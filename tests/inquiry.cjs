@@ -1,0 +1,55 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const scripts=['cases','help','media','app','inquiry'].map(n=>fs.readFileSync('docs/'+n+'.js','utf8')).join('\n');
+const fixture=()=>({schema:'assessment-one',version:1,step:1,answers:{topic:'가상 탐구'},sources:[{title:'가상 자료',author:'기관',url:'https://example.org'}],checks:[true]});
+function setup(raw=JSON.stringify(fixture()),fail={}){
+ let disk=raw, writes=0,removes=0,downloads=[],printed=0,objects=new Map(),seq=0;
+ const nodes={};function node(s){return nodes[s]??={innerHTML:'',textContent:'',hidden:false,style:{},dataset:{},classList:{toggle(){}},handlers:{},addEventListener(t,f){const old=this.handlers[t];this.handlers[t]=old?e=>{old(e);return f(e)}:f},setAttribute(){},focus(){},scrollIntoView(){},querySelector(){return node('child')},querySelectorAll(){return []},click(){}};}
+ const imageData='data:image/jpeg;base64,'+Buffer.from('isolated fake JPEG').toString('base64');
+ const document={querySelector:node,querySelectorAll(s){if(s==='#question .primary-fields > .field')return Array.from({length:((node('#question').innerHTML.split('<div class="primary-fields">')[1]||'').split('<details class="optional-fields">')[0].match(/class="field"/g)||[]).length},(_,i)=>node('field'+i));return [];},body:node('body'),createElement(tag){if(tag==='canvas')return {getContext(){return {fillRect(){},drawImage(){}}},toDataURL(){return imageData}};return {click(){downloads.push({name:this.download,blob:objects.get(this.href)})}};}};
+ class MockImage{naturalWidth=1200;naturalHeight=675;set src(v){queueMicrotask(()=>v==='data:image/jpeg;base64,YmFk'?this.onerror():this.onload());}}
+ const winHandlers={};const context={document,localStorage:{getItem(){if(fail.get)throw Error('denied');return disk},setItem(k,v){if(fail.set)throw Error('quota');writes++;disk=v},removeItem(){if(fail.remove)throw Error('denied');removes++;disk=null}},window:{addEventListener(k,v){winHandlers[k]=v},print(){printed++}},Date,Math,JSON,Number,String,Object,Array,Promise,Image:MockImage,Blob,URL:{createObjectURL(x){let id='blob:qa-'+(++seq);objects.set(id,x);return id},revokeObjectURL(){}},setTimeout(){},console,confirm:()=>true,queueMicrotask};vm.createContext(context);vm.runInContext(scripts,context);return {run:x=>vm.runInContext(x,context),node,fail,context,winHandlers,disk:()=>disk,writes:()=>writes,removes:()=>removes,downloads,printed:()=>printed};
+}
+async function restore(e,obj){await e.node('#file').onchange({target:{files:[{size:100,text:async()=>typeof obj==='string'?obj:JSON.stringify(obj)}],value:'file'}});}
+(async()=>{
+ let e=setup(),raw=e.disk();
+ assert.equal(e.writes(),0,'loading and rendering v1 must be read only');assert.equal(e.disk(),raw);
+ const allLegacy=setup(JSON.stringify({...fixture(),answers:Object.fromEntries(['school','classroom','number','name','team','topic','reason','inquiry','scope','current','cause','impact','policy','action','format','message','visual','visualSource','opening','body','closing','qa','role','cooperation','reflection','improve','aiUse'].map(k=>[k,'KEEP_'+k]))}));allLegacy.run('buildReport()');for(const k of Object.keys(JSON.parse(allLegacy.disk()).answers))assert(allLegacy.node('#report').innerHTML.includes('KEEP_'+k));assert.equal(allLegacy.writes(),0);
+ assert.equal(e.run('KEY'),'pyeongga-hanjang-social2-v1');assert.equal(e.run('taskId()'),'human');
+ assert.equal(e.run('steps.flatMap(s=>s.slice(3)).length'),27);assert.equal(e.run('sourceFields.length'),7);
+ e.run('renderInquiry();buildReport()');assert.equal(e.writes(),0);assert(!e.node('#report').innerHTML.includes('도서관 접근성에서'));
+ assert(!e.run('JSON.stringify(work().answers)').includes('generalization'));
+ assert(e.run('selectTask("economy")'));assert.equal(e.run('work().answers.topic'),undefined);assert.equal(e.run('data.answers.topic'),'가상 탐구');
+ e.run("work().answers.topic='경제 전용';work().answers.practicePlan='계획만';work().answers.concepts='경제개념 해석';save();goInquiry(0)");assert(e.node('#case-guide').hidden);
+ e.run('goInquiry(4)');assert(e.run('inquiryItems().some(a=>a.keys?.includes("practicePlan"))'));
+ e.run('goInquiry(6)');assert(e.run('inquiryItems().some(a=>a.keys?.includes("practiceResult"))'));
+ e.run('buildReport()');assert(e.node('#report').innerHTML.includes('경제 전용'));assert(!e.node('#report').innerHTML.includes('가상 탐구'));assert(e.node('#report').innerHTML.includes('계획만'));assert(!e.run('work().answers.practiceResult'));
+ assert(e.run('selectTask("human")'));assert.equal(e.run('work().answers.topic'),'가상 탐구');assert.equal(e.run('work().answers.practicePlan'),undefined);
+ e.run("work().sources=[{title:'A',evidence:'OLD_EVIDENCE',trust:'OLD_TRUST',scope:'OLD_SCOPE'},{title:'B'},{title:'C'}];linkEvidence('conclusion',1,true)");
+ const id=e.run('work().sources[1]._id');assert(id);assert.equal(e.run('learning().links.conclusion[0]'),id);
+ assert(e.run('deleteInquirySource(0)'));assert.equal(e.run('work().sources[0]._id'),id);assert.equal(e.run('learning().links.conclusion[0]'),id);
+ e.run("work().answers.conclusion='my conclusion';buildReport()");assert(e.node('#report').innerHTML.includes('자료 1 (B)'));
+ assert(e.run('deleteInquirySource(0)'));e.run('buildReport()');assert(e.node('#report').innerHTML.includes('삭제된 자료 · 확인 필요'));assert(!e.node('#report').innerHTML.includes('자료 1 (C)'));
+ assert(e.run('inquiryGaps().some(s=>s.includes("삭제된"))'));
+ e.run("work().sources[0].fact='FACT_SENTINEL';work().sources[0].factType='직접 관찰·측정';work().sources[0].meaning='SOURCE_MEANING';for(const k of ['comparison','interpretation','valueCriterion','valueJudgment','generalization','conditions','transfer','conclusion','limits','method','chosenEvidence','qa','actualQuestions'])work().answers[k]='OWN_'+k;save();buildReport()");
+ for(const word of ['FACT_SENTINEL','직접 관찰·측정','SOURCE_MEANING','OWN_valueCriterion','OWN_valueJudgment','OWN_interpretation','OWN_generalization','OWN_conditions','OWN_transfer','OWN_qa','OWN_actualQuestions'])assert(e.node('#report').innerHTML.includes(word),word);
+ assert(!e.node('#report').innerHTML.includes(e.run('transferContext()')),'prompts must not become answers');
+ e.node('#backup').onclick();const backup=JSON.parse(await e.downloads[0].blob.text());let e2=setup();await restore(e2,backup);assert.equal(e2.run('learning().links.conclusion[0]'),id);assert.equal(e2.run('data.economy.answers.topic'),'경제 전용');assert.equal(e2.run('work().sources[0].fact'),'FACT_SENTINEL');
+ const loaded=setup(JSON.stringify(backup));assert.equal(loaded.writes(),0);assert.equal(loaded.disk(),JSON.stringify(backup));
+ // Unsupported extension and corrupt inactive task fail closed before any auto-write.
+ for(const corrupt of [{...fixture(),inquiry:{version:2,active:'human'}},{...backup,learning:{version:2,links:{}}},{...backup,economy:{...backup.economy,answers:{topic:9}}},{...backup,learning:{version:1,links:{conclusion:[9]}}}]){const x=setup(JSON.stringify(corrupt));assert(x.run('storageBlocked'));x.run('save()');assert.equal(x.writes(),0);}
+ raw=e.disk();e.fail.set=true;assert.equal(e.run('selectTask("economy")'),false);assert.equal(e.run('taskId()'),'human');assert.equal(e.disk(),raw);assert.equal(e.run('deleteInquirySource(0)'),false);assert.equal(e.run('work().sources.length'),1);
+ await restore(e,{...backup,answers:{topic:'replacement'}});assert.equal(e.disk(),raw);assert.equal(e.run('work().answers.topic'),'가상 탐구');
+ e.fail.set=false;assert(await e.run("addStudentPhotos([{type:'image/png',size:100}])"));assert.equal(e.run('data.attachments.length'),1);
+ assert(e.run('selectTask("economy")'));assert.equal(e.run('work().attachments'),undefined);assert(await e.run("addStudentPhotos([{type:'image/jpeg',size:100}])"));assert.equal(e.run('data.economy.attachments.length'),1);assert.equal(e.run('data.attachments.length'),1);
+ e.node('#backup').onclick();const bothPhotos=JSON.parse(await e.downloads[e.downloads.length-1].blob.text());const photoRoundtrip=setup();await restore(photoRoundtrip,bothPhotos);assert.equal(photoRoundtrip.run('data.attachments.length'),1);assert.equal(photoRoundtrip.run('data.economy.attachments.length'),1);
+ e.fail.set=true;assert.equal(await e.run("addStudentPhotos([{type:'image/jpeg',size:100}])"),false);assert.equal(e.run('work().attachments.length'),1);e.fail.set=false;
+ e.node('#student-media').handlers.click({target:{dataset:{removeMedia:'0'}}});assert.equal(e.run('data.economy.attachments.length'),0);assert.equal(e.run('data.attachments.length'),1);
+ // Restore must decode photos in the inactive task too, without replacing on failure.
+ const photo={id:'bad',caption:'',credit:'',source:'',dataUrl:'data:image/jpeg;base64,YmFk'};raw=e.disk();await restore(e,{...backup,economy:{...backup.economy,attachments:[photo]}});assert.equal(e.disk(),raw);
+ const race=setup();race.run('let releasePhoto;convertStudentPhoto=()=>new Promise(resolve=>releasePhoto=resolve)');const inFlight=race.run("addStudentPhotos([{type:'image/png',size:10}])");race.run('selectTask("economy")');race.run("releasePhoto({id:'race',caption:'',credit:'',source:'',dataUrl:'data:image/jpeg;base64,QQ=='})");assert.equal(await inFlight,false);assert.equal(race.run('data.attachments'),undefined);assert.equal(race.run('data.economy.attachments'),undefined);
+ // Actual UI routes and direct navigation stay separate from legacy storage positions.
+ e=setup(null);e.run('goInquiry(0)');for(let i=0;i<80;i++)e.node('#next').onclick();assert.equal(e.run('inquiryGroup'),6);assert.equal(e.node('#report-panel').hidden,false);for(let i=0;i<80;i++)e.node('#prev').onclick();assert.equal(e.run('inquiryGroup'),0);assert.equal(e.run('inquiryIndex'),0);assert.deepEqual(JSON.parse(e.run('JSON.stringify(work().answers)')),{});
+ assert(!e.run('safeLink("javascript:alert(1)")'));assert(e.run("sourceRef({title:'book',url:'도서 12쪽'},0)").includes('도서 12쪽'));e.run("work().answers.topic='<img onerror=alert(1)>';buildReport()");assert(!e.node('#report').innerHTML.includes('<img onerror'));
+ await e.node('#print').onclick();assert.equal(e.printed(),1);e.winHandlers.beforeprint();assert(e.node('#report').innerHTML.includes('개념 관계·조건·전이'));assert(e.node('#report').innerHTML.includes('실제 수행·질문·협업·성찰'));
+ console.log('PASS: full inquiry layer; read-only v1 load; both tasks and switching; source IDs across deletion/backup/restore; facts/interpretation/value/generalization/transfer report mapping; no generated answers; fail-closed extensions; failed writes/switch/delete/restore; isolated photos and inactive photo validation; navigation and print handler. Physical devices and real PDF output not tested.');
+})().catch(err=>{console.error(err);process.exit(1)});
