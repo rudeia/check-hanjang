@@ -1,0 +1,23 @@
+const fs=require('fs');
+const harness=fs.readFileSync('tests/inquiry.cjs','utf8').split('(async()=>{')[0];
+eval(harness+`
+const e=setup();
+e.run("work().answers.format='포스터';work().answers.chosenEvidence='MY_SELECTED_WORDS';work().answers.interpretation='LONG_RESEARCH_ONLY';work().answers.reason='WHY_RESEARCH';work().answers.conclusion='MY_CONCLUSION';work().answers.message='MY_MESSAGE';work().sources[0].fact='WHOLE_SOURCE_FACT';work().answers.policy='X'.repeat(1700);save()");
+const original=e.run('JSON.stringify(data)');
+const compact=e.run('inquiryPoster()');
+assert(compact.includes('MY_SELECTED_WORDS')&&compact.includes('MY_CONCLUSION'));
+assert(!compact.includes('LONG_RESEARCH_ONLY')&&!compact.includes('WHOLE_SOURCE_FACT'));
+assert(compact.includes('현재 핵심 글이 길어')&&compact.includes('X'.repeat(1700)));
+assert(compact.includes('data-edit-output="fullReport"'));
+e.run("editOutput('fullReport')");
+assert(e.node('#report').innerHTML.includes('LONG_RESEARCH_ONLY'));
+assert(e.node('#report').innerHTML.includes('WHY_RESEARCH'));
+assert(e.node('#report').innerHTML.includes('WHOLE_SOURCE_FACT'));
+e.run("editOutput('compactPoster')");
+assert(e.node('#report').innerHTML.includes('compact-student-poster'));
+assert.equal(e.run('JSON.stringify(data)'),original);
+e.node('#include-appendix').checked=true;e.run('buildReport()');
+assert(e.node('#report').innerHTML.includes('LONG_RESEARCH_ONLY'));
+assert(!e.node('#report').innerHTML.includes('class="report-appendix" hidden'));
+console.log('PASS compact poster: student-selected text unchanged, full research separate and recoverable, appendix inclusion, long-text warning without truncation, no stored-data mutation');
+`);

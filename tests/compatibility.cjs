@@ -21,9 +21,9 @@ run('data.step=1;render();selectedCase=0;renderGuide()');assert(node('#case-guid
 run("data.answers.inquiry='내가 직접 쓴 질문';save();buildReport()");assert(node('#report').innerHTML.includes('내가 직접 쓴 질문'));assert(!node('#report').innerHTML.includes('이번 단계의 생각 힌트'));
 const result=JSON.parse(saved);assert.equal(result.version,1);assert.equal(result.answers.name,seed.answers.name);assert.deepEqual(result.sources,seed.sources);assert.deepEqual(result.checks,seed.checks);
 assert.equal(run("valid({schema:'assessment-one',version:2,step:0,answers:{},sources:[{}],checks:[]})"),false);
-assert.equal(run('INQUIRY_CASES.length'),6);assert(run('INQUIRY_CASES.every(c=>c.sources.length>0&&c.sources.every(s=>s.url.startsWith("https://")))'));
+assert.equal(run('INQUIRY_CASES.length'),9);assert(run('INQUIRY_CASES.every(c=>c.sources.length>0&&c.sources.every(s=>s.url.startsWith("https://")))'));
 assert(!/fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket/.test(fs.readFileSync('docs/app.js','utf8')));
-console.log('PASS: v1 untouched load, preserved fields/sources/checks, forward/back focus navigation, 5 flows / 9 legacy step values, focus toggle, 6 cases, own-writing report, no network submission. Browser visual QA not performed.');
+console.log('PASS: v1 untouched load, preserved fields/sources/checks, forward/back focus navigation, 5 flows / 9 legacy step values, focus toggle, 9 cases, own-writing report, no network submission. Browser visual QA not performed.');
 assert.equal(run('INQUIRY_CASES.filter(c=>c.photo).length'),4);
 for(const id of ['mobility','digital','library','heat']){
  const html=run(`renderPhoto(INQUIRY_CASES.find(c=>c.id==='${id}').photo)`);
