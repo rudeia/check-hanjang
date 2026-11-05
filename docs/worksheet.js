@@ -597,6 +597,9 @@ async function printPoster() {
     const snapshot = revision;
     await Promise.all([...$('#poster').querySelectorAll('img')].map(img => img.decode()));
     if (snapshot !== revision) throw new Error('작성 내용이 바뀌었어요. 인쇄 버튼을 다시 눌러 주세요.');
+    await document.fonts?.ready;
+    if (snapshot !== revision) throw new Error('작성 내용이 바뀌었어요. 인쇄 버튼을 다시 눌러 주세요.');
+    window.prepareReportPrint?.();
     window.print();
   } catch {
     notice('#message', '인쇄를 준비하지 못했어요. 포스터의 이미지와 내용을 확인한 뒤 다시 눌러 주세요.');

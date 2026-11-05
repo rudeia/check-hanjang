@@ -161,7 +161,7 @@ button:disabled { cursor: wait; opacity: .65; }
 .paper-tag { border: 1px solid var(--line); padding: .18rem .48rem; border-radius: 5px; white-space: nowrap; color: var(--muted); }
 .poster { padding: clamp(.65rem, 2vw, 1.2rem); }
 .paper {
-  min-width: 0; min-height: min-content; aspect-ratio: 210 / 297;
+  min-width: 0; min-height: auto; aspect-ratio: 210 / 297;
   background: white; padding: clamp(1rem, 3vw, 2.25rem);
   border-top: 5px solid var(--accent); box-shadow: 0 4px 14px #193d2e18;
   font-size: .87rem;

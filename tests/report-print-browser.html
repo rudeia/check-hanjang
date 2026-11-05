@@ -1,0 +1,56 @@
+<!doctype html><meta charset="utf-8"><title>Report pagination browser regression</title>
+<link rel="stylesheet" href="../docs/style.css"><link rel="stylesheet" href="../docs/report-print.css">
+<div id="poster"></div><pre id="results">Running…</pre>
+<script src="../docs/report-print.js"></script>
+<script>
+(async () => {
+  const results = [], poster = document.querySelector('#poster');
+  const text = '긴 문장의 마지막 줄을 확인합니다. 👨‍👩‍👧‍👦 가\u0301\n\nhttps://example.org/' + 'NO_SPACE'.repeat(30) + '\n';
+  const photo = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="900" height="180"><rect width="900" height="180" fill="green"/></svg>');
+  const escape = s => s.replaceAll('&','&amp;').replaceAll('<','&lt;');
+  const cases = [
+    ['short', '짧은 문장.', '짧은 제목'],
+    ['long paragraphs, URLs, Unicode, blank lines', text.repeat(30), '긴 내용'],
+    ['oversized headings', text, '아주긴제목'.repeat(350)]
+  ];
+  try {
+    for (const [name, body, title] of cases) {
+      poster.innerHTML = `<article class="paper"><header class="paper-header"><h2>${escape(title)}</h2></header><section class="paper-evidence"><h3>근거 자료</h3><div class="evidence-grid"><figure><figcaption>첫째 자료</figcaption><img src="${photo}"><p><strong>사실</strong> ${escape(body)}</p><small>출처 전체</small></figure><figure><figcaption>둘째 자료</figcaption><p>${escape(body)}</p></figure></div><div class="paper-analysis"><section><h4>분석</h4><p>${escape(body)}</p></section><section><h4>원인</h4><p>마지막 글자</p></section></div></section><section class="paper-reflection"><h3>활동 돌아보기</h3><div class="paper-analysis"><section><h4>역할</h4><p>${escape(body)}</p></section><section><h4>성찰</h4><p>FINAL_SENTINEL</p></section></div></section></article>`;
+      await Promise.all([...poster.querySelectorAll('img')].map(i=>i.decode()));
+      await document.fonts.ready;
+      const originals = [...poster.querySelectorAll('h2,h3,h4,p,small,figcaption,img')];
+      originals.forEach((e,i)=>e.dataset.testOrigin=i);
+      const before = poster.innerHTML;
+      for (let repeat=0;repeat<2;repeat++) {
+        window.prepareReportPrint();
+        const output=document.querySelector('.print-pages');
+        for (const original of originals) {
+          const copies=[...output.querySelectorAll(`[data-test-origin="${original.dataset.testOrigin}"]`)];
+          if(original.tagName==='IMG' ? copies.length!==1 || copies[0].src!==original.src : copies.map(c=>c.textContent).join('')!==original.textContent) throw Error(name+': changed content');
+        }
+        const firstRow=output.querySelector('.print-row');
+        if(name!=='oversized headings' && [...firstRow.children].some(c=>!c.textContent.trim())) throw Error(name+': empty paired column');
+        for(const page of output.children) {
+          if(page.getBoundingClientRect().height>268*96/25.4+1) throw Error(name+': vertical overflow');
+          for(const e of page.querySelectorAll('*')) if(getComputedStyle(e).display!=='inline' && e.scrollWidth>e.clientWidth+2) throw Error(name+': horizontal overflow');
+        }
+        if(poster.innerHTML!==before) throw Error(name+': mutated original report');
+        results.push(`PASS ${name}, repeat ${repeat+1}: ${output.children.length} pages, text/images preserved`);
+        window.dispatchEvent(new Event('afterprint'));
+        if(document.querySelector('.print-pages') || document.documentElement.classList.contains('has-print-pages')) throw Error('cancel cleanup');
+      }
+    }
+    // Native Cmd-P must fail visibly, not expose the original clipping-prone layout.
+    poster.innerHTML='<article class="paper"><img src="data:image/png;base64,broken"></article>';
+    window.dispatchEvent(new Event('beforeprint'));
+    if(!document.querySelector('.print-pages')?.textContent.includes('인쇄를 준비하지 못했어요')) throw Error('missing print failure state');
+    window.dispatchEvent(new Event('afterprint'));
+    results.push('PASS native print failure state and cleanup');
+    document.querySelector('#results').textContent=results.join('\n');
+    document.body.dataset.testResult='passed';
+  } catch(error) {
+    document.querySelector('#results').textContent=results.join('\n')+'\nFAIL '+error.message;
+    document.body.dataset.testResult='failed';
+  }
+})();
+</script>

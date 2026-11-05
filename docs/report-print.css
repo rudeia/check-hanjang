@@ -1,0 +1,17 @@
+/* Print measurements use the same dimensions before and during beforeprint. */
+.print-pages { position: absolute; left: -20000px; top: 0; width: 186mm; visibility: hidden; }
+.print-paper { width: 186mm; min-height: 0; aspect-ratio: auto; border: 0; padding: 0; box-shadow: none; font-size: 10pt; }
+.print-paper:first-child { border-top: 2mm solid var(--accent); padding-top: 5mm; }
+.print-paper h2 { font-size: 21pt; }
+.print-paper .evidence-grid, .print-paper .paper-analysis { display: block; columns: auto; }
+.print-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5mm; }
+.print-row > div { min-width: 0; }
+.print-paper .evidence-grid figure, .print-paper .paper-analysis section { margin: 0 0 3mm; }
+.print-paper .evidence-grid img { max-height: 43mm; }
+.print-paper .paper-section, .print-paper .paper-evidence { margin-top: 3mm; }
+@media print {
+  .has-print-pages .poster { display: none; }
+  .has-print-pages .print-pages { position: static; left: auto; visibility: visible; }
+  .print-paper { break-after: page; page-break-after: always; }
+  .print-paper:last-child { break-after: auto; page-break-after: auto; }
+}
