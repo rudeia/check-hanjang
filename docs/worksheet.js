@@ -79,6 +79,7 @@ const answer = (key, a = work().answers) => a[key] ?? ({
   economicPlan: a.policy
 })[key] ?? '';
 const previewButton = $('#mobile-preview');
+const previewPrint = $('#preview-print');
 const fileDialog = $('#file-dialog');
 
 function notice(selector, message) {
@@ -404,6 +405,7 @@ function render(focus = false) {
     (index ? '<button type="button" data-back>← 이전 단계</button>' : '') +
     (index < 3 ? `<button type="button" class="primary" data-next>다음 단계: ${STEPS[index + 1]} →</button>`
       : '<button type="button" id="print" class="primary">PDF로 저장 / 인쇄하기</button>');
+  previewPrint.hidden = index !== STEPS.length - 1;
   renderProgress();
   renderPoster();
   if (focus) $('#step-title').focus();
@@ -585,18 +587,26 @@ $('#editor').addEventListener('click', event => {
   }
 });
 
+let editorScroll = 0;
 previewButton.addEventListener('click', () => {
   const open = previewButton.getAttribute('aria-expanded') !== 'true';
+  if (open) editorScroll = window.scrollY;
   showMobilePreview(open);
-  if (open) $('#preview-title').focus();
-  else $('#step-title').focus();
+  if (open) {
+    $('#preview-title').focus();
+  } else {
+    previewButton.focus({ preventScroll: true });
+    window.scrollTo(0, editorScroll);
+  }
 });
 mobile.addEventListener('change', () => showMobilePreview(false));
+previewPrint.addEventListener('click', printPoster);
 
 async function printPoster() {
   if (printBusy) return;
   printBusy = true;
-  $('#print').disabled = true;
+  const buttons = [$('#print'), previewPrint].filter(Boolean);
+  buttons.forEach(button => { button.disabled = true; });
   notice('#message', '');
   try {
     const snapshot = revision;
@@ -605,9 +615,10 @@ async function printPoster() {
     window.print();
   } catch {
     notice('#message', '인쇄를 준비하지 못했어요. 포스터의 이미지와 내용을 확인한 뒤 다시 눌러 주세요.');
+    $('#message').scrollIntoView({ block: 'nearest' });
   } finally {
     printBusy = false;
-    if ($('#print')) $('#print').disabled = false;
+    buttons.forEach(button => { button.disabled = false; });
   }
 }
 

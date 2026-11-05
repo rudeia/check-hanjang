@@ -204,7 +204,11 @@ dialog li + li { margin-top: .5rem; }
 .dialog-top { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 .file-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
 
+#preview-print { display: none; }
 @media (max-width: 839px) {
+  html { scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+  .show-preview .preview-bar { flex-wrap: wrap; }
+  .show-preview #preview-print { display: inline-flex; }
   .top-inner, .shell { width: min(100% - 1.5rem, 640px); }
   .top-inner { display: grid; grid-template-columns: 1fr auto 1fr; gap: .4rem; }
   .brand { grid-column: span 2; }
