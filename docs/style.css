@@ -252,5 +252,5 @@ dialog li + li { margin-top: .5rem; }
   .evidence-grid figure, .paper-analysis section { margin: 0 0 3mm; break-inside: avoid; }
   .evidence-grid img { max-height: 43mm; }
   .paper-section, .paper-evidence { margin-top: 3mm; }
-  .paper-rehearsal li { break-inside: avoid; }
+  .paper-reflection, .paper-rehearsal li { break-inside: avoid; }
 }
