@@ -53,6 +53,7 @@ const REFLECTION_KEYS = ['role', 'reflection'];
 const PRIOR_KEYS = ['comparison', 'interpretation', 'proposal'];
 
 let data = blank();
+let openIdeaId = '';
 let originalRaw = null;
 let storageBlocked = false;
 let memoryDirty = false;
@@ -181,13 +182,23 @@ function selectedIdea() {
 
 function ideaExplorer() {
   const chosen = selectedIdea();
+  const ideas = TOPIC_IDEAS[activeTask()];
+  const open = ideas.find(idea => idea.id === openIdeaId) || chosen;
   return `<section class="idea-explorer" aria-labelledby="idea-title">
     <h3 id="idea-title">💡 어떤 주제를 할지 고민되나요?</h3>
-    <p>아래 사례 카드를 눌러 시작해 보세요! 내 생각대로 바꿔도 좋아요.</p>
-    <ul class="idea-cards">${TOPIC_IDEAS[activeTask()].map(idea => `<li>
-      <button type="button" data-idea="${idea.id}" aria-pressed="${idea === chosen}">
-        <span aria-hidden="true">${idea.icon}</span> ${esc(idea.label)}
+    <p>내가 겪거나 주변에서 본 일과 닮은 장면을 골라 보세요.</p>
+    <ul class="idea-cards">${ideas.map(idea => `<li>
+      <button type="button" data-idea="${idea.id}" aria-pressed="${idea === open}" ${open ? 'aria-controls="idea-story"' : ''}>
+        <span><span aria-hidden="true">${idea.icon}</span> ${esc(idea.label)}<small>${esc(idea.hook)}</small></span>
       </button></li>`).join('')}</ul>
+    ${open ? `<article class="idea-story" id="idea-story" aria-labelledby="idea-story-title">
+      <h4 id="idea-story-title" tabindex="-1">${esc(open.hook)}</h4>
+      <p class="idea-story-label">이런 상황이라고 상상해 보세요</p>
+      <p>${esc(open.scene)}</p>
+      <p><strong>나라면 무엇이 궁금할까요?</strong> ${esc(open.starter)}</p>
+      ${open !== chosen ? `<button type="button" class="primary" data-use-idea="${open.id}">이 사례로 주제와 질문 바꾸기</button>`
+        : '<button type="button" id="edit-idea-topic">내 탐구 주제 고치기</button>'}
+    </article>` : ''}
   </section>`;
 }
 
@@ -202,20 +213,18 @@ function ideaHints() {
   </aside>`;
 }
 
-function applyIdea(id) {
+function applyIdea(id, replace = false) {
   const idea = TOPIC_IDEAS[activeTask()].find(item => item.id === id);
   if (!idea) return;
+  openIdeaId = id;
   const answers = work().answers;
-  if (answers.ideaId === id) {
-    $('#topic').focus();
-    return;
-  }
   const replacesDraft = (filled(answers.topic) && answers.topic !== idea.title)
     || (filled(answers.inquiry) && answers.inquiry !== idea.question);
-  if (replacesDraft && !confirm('지금 적은 주제와 출발 질문을 이 사례로 바꿀까요?')) return;
-  change(patchTask({ answers: { ...answers, ideaId: id, topic: idea.title, inquiry: idea.question } }));
+  if (answers.ideaId !== id && (replace || !replacesDraft)) {
+    change(patchTask({ answers: { ...answers, ideaId: id, topic: idea.title, inquiry: idea.question } }));
+  }
   render();
-  $('#topic').focus();
+  $('#idea-story-title').focus();
 }
 
 function problemEditor() {
@@ -419,6 +428,7 @@ function move(index) {
     }
     return;
   }
+  openIdeaId = '';
   change(patchTask({ worksheetStep: index }));
   showMobilePreview(false);
   notice('#message', '');
@@ -427,6 +437,7 @@ function move(index) {
 
 function switchTask(task) {
   if (!Object.hasOwn(TASKS, task) || task === activeTask()) return;
+  openIdeaId = '';
   const candidate = { ...data, inquiry: { version: 1, active: task } };
   if (task === 'economy' && !candidate.economy) {
     const { number = '', name = '', team = '' } = work().answers;
@@ -539,10 +550,12 @@ $('#editor').addEventListener('change', event => {
       $('#topic').select();
     } else if (field.value !== '') {
       const title = topicOptions()[Number(field.value)];
+      openIdeaId = '';
       change(patchTask({ answers: { ...work().answers, topic: title, ideaId: '' } }));
       render();
       $('#topic-picker').focus();
     } else {
+      openIdeaId = '';
       change(patchTask({ answers: { ...work().answers, topic: '', ideaId: '' } }));
       render();
       $('#topic-picker').focus();
@@ -563,6 +576,8 @@ $('#editor').addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button) return;
   if (button.dataset.idea) applyIdea(button.dataset.idea);
+  if (button.dataset.useIdea) applyIdea(button.dataset.useIdea, true);
+  if (button.id === 'edit-idea-topic') $('#topic').focus();
   if (button.id === 'start') {
     (filled(work().answers.topic) ? $('#inquiry') : $('#topic-picker')).focus();
   }
@@ -654,6 +669,7 @@ $('#file').onchange = async event => {
     if (snapshot !== revision) throw new Error('작성 내용이 바뀌었어요. 파일을 다시 선택해 주세요.');
     if (!confirm('지금 화면의 기록을 보관 파일의 내용으로 바꿀까요?')) return;
     if (!persist(imported, true)) throw new Error('기기에 저장하지 못했어요. 현재 기록을 유지했어요.');
+    openIdeaId = '';
     data = imported;
     originalRaw = JSON.stringify(imported);
     revision++;
@@ -678,6 +694,7 @@ $('#reset').onclick = () => {
     notice('#storage-warning', '기기에서 기록을 지우지 못했어요. 현재 기록을 유지했어요.');
     return;
   }
+  openIdeaId = '';
   data = blank();
   originalRaw = null;
   storageBlocked = memoryDirty = false;

@@ -254,3 +254,10 @@ dialog li + li { margin-top: .5rem; }
   .paper-section, .paper-evidence { margin-top: 3mm; }
   .paper-reflection, .paper-rehearsal li { break-inside: avoid; }
 }
+
+.idea-cards small { display: block; margin-top: .3rem; color: var(--muted); font-weight: 400; }
+.idea-story { margin-top: .65rem; padding: .8rem; border-inline-start: 3px solid var(--accent); background: white; }
+.idea-story h4 { color: var(--accent); }
+.idea-story p { margin-top: .55rem; color: var(--ink); }
+.idea-story .idea-story-label { color: var(--muted); font-size: .8rem; }
+.idea-story button { margin-top: .65rem; }
