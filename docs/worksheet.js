@@ -266,7 +266,7 @@ function sourceCard(source, i) {
     <div class="photo-row">
       ${source._photo ? `<img class="card-image" src="${source._photo}" alt="${title} 이미지"><button type="button" data-remove-photo="${i}">이미지 제거</button>` : ''}
       <label class="upload-button" for="photo-${i}">${source._photo ? '이미지 바꾸기' : '+ 이미지 첨부'}<input id="photo-${i}" type="file" data-photo="${i}" accept="image/jpeg,image/png,image/webp"></label>
-      ${source._photo ? '' : '<small>선택 사항</small>'}
+      <small>선택 사항 · 원본 20MB까지 · 과제당 4장 · 자동 용량 줄이기<br>JPEG·PNG·WebP, 2,500만 화소 이하. HEIC는 JPEG로 바꿔 주세요.</small>
     </div>
     ${sourceChips('type', '어떤 자료인가요?', SOURCE_TYPES, sourceType(source), i)}
     ${sourceChips('scale', '어디의 이야기인가요?', SOURCE_SCALES, sourceScale(source), i)}
@@ -473,19 +473,26 @@ async function attachPhoto(input) {
   const task = activeTask();
   const sourcesAtStart = work().sources;
   photoBusy = true;
+  notice('#message', '이미지 용량을 줄이고 있어요. 잠시 기다려 주세요.');
   try {
+    const photoCount = work().sources.filter(source => source._photo).length;
+    if (!work().sources[index]?._photo && photoCount >= MEDIA_LIMIT.count) {
+      throw new Error('이 과제의 자료 카드에는 이미지를 최대 4장까지 넣을 수 있어요.');
+    }
     const dataUrl = await convertStudentPhoto(file);
     if (activeTask() !== task || work().sources !== sourcesAtStart) {
       throw new Error('자료가 바뀌었어요. 이미지를 다시 골라 주세요.');
     }
     const candidate = editSource(index, { _photo: dataUrl });
     if (!valid(candidate)) throw new Error('이 과제에는 이미지를 최대 4장까지 넣을 수 있어요.');
-    if (!change(candidate, true)) throw new Error('이미지를 저장하지 못했어요. 기기 저장 상태를 확인해 주세요.');
+    const backupBytes = new Blob([JSON.stringify({ ...candidate, exportedAt: new Date().toISOString() }, null, 2)]).size;
+    if (backupBytes > BACKUP_LIMIT_BYTES) throw new Error('전체 보관 용량을 넘어서 이미지를 추가하지 않았어요. 기존 글과 사진은 그대로 있어요. 작업을 파일로 보관한 뒤 필요 없는 사진을 정리해 주세요.');
+    if (!change(candidate, true)) throw new Error('기기 저장 공간이 부족하거나 저장이 허용되지 않아 이미지를 추가하지 않았어요. 기존 글과 사진은 그대로 있어요. 작업을 파일로 보관해 주세요.');
     if (stage() === 1) {
       render();
       $('#photo-' + index).focus();
     }
-    notice('#message', '이미지를 첨부했어요.');
+    notice('#message', '이미지를 첨부했어요. 글자가 있는 사진은 미리보기에서 선명도를 확인해 주세요.');
   } catch (error) {
     notice('#message', error.message);
   } finally {
