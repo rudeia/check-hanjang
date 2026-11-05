@@ -2,7 +2,6 @@
 
 const STEPS = ['문제 찾기', '근거 자료 모으기', '내 생각 정리하기', '포스터 완성 및 인쇄'];
 const TASKS = { human: '인권과 불평등', economy: '우리 지역의 경제 변화' };
-const ECONOMY_TOPICS = ['전통시장과 온라인 쇼핑', '관광객이 늘어난 동네의 상권 변화', '산업단지와 지역 일자리'];
 const CHECKLIST = [
   '조사할 문제를 구체적인 질문으로 적었어요.',
   '자료에서 확인한 사실과 출처를 적었어요.',
@@ -164,10 +163,6 @@ function heading(title, description) {
   return `<div class="step-heading"><span class="step-kicker">Step ${stage() + 1} / 4</span><h1 id="step-title" tabindex="-1">${title}</h1><p>${description}</p></div>`;
 }
 
-function topicOptions() {
-  return activeTask() === 'human' ? INQUIRY_CASES.map(item => item.title) : ECONOMY_TOPICS;
-}
-
 function caseGuide(title) {
   const example = activeTask() === 'human' && INQUIRY_CASES.find(item => item.title === title);
   if (!example) return '';
@@ -229,7 +224,6 @@ function applyIdea(id, replace = false) {
 
 function problemEditor() {
   const a = work().answers;
-  const topics = topicOptions();
   return heading(STEPS[0], '내 정보를 적고 조사할 주제를 골라요.') +
     `<div class="field-grid student-fields">
       ${input('number', '학번', '예: 20513', a.number, { limit: 10 })}
@@ -237,22 +231,12 @@ function problemEditor() {
       ${input('team', '모둠', '예: 3모둠', a.team, { limit: 20 })}
     </div>
     <div class="worksheet-section topic-section">
-      <div class="topic-heading"><h2>무엇을 조사할까요?</h2>
-        <button type="button" class="primary" id="start">탐구 시작하기</button>
-      </div>
-      <div class="field-grid topic-fields">
-        <div class="field"><label for="task">수업 과제</label><select id="task">${Object.entries(TASKS).map(([key, label]) =>
-          `<option value="${key}" ${key === activeTask() ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
-        <div class="field"><label for="topic-picker">탐구 주제 선택</label><select id="topic-picker">
-          <option value="">주제를 골라 보세요</option>
-          ${topics.map((title, index) => `<option value="${index}" ${title === a.topic ? 'selected' : ''}>${esc(title)}</option>`).join('')}
-          <option value="custom" ${filled(a.topic) && !topics.includes(a.topic) ? 'selected' : ''}>직접 정하기</option>
-        </select></div>
-      </div>
+      <h2>무엇을 조사할까요?</h2>
+      <div class="field"><label for="task">수업 과제</label><select id="task">${Object.entries(TASKS).map(([key, label]) =>
+        `<option value="${key}" ${key === activeTask() ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
+      <p class="topic-choice-note">사례에서 주제를 가져오거나 아래에 직접 적어도 좋아요.</p>
       ${ideaExplorer()}
-      <div id="custom-topic" ${selectedIdea() || (filled(a.topic) && !topics.includes(a.topic)) ? '' : 'hidden'}>
-        ${input('topic', '내 탐구 주제', '예: 우리 동네 노인복지관 이용의 어려움', a.topic, { limit: 60 })}
-      </div>
+      ${input('topic', '내 탐구 주제', '예: 우리 동네 노인복지관 이용의 어려움', a.topic, { limit: 60 })}
       <div id="case-guide">${caseGuide(a.topic)}</div>
     </div>
     <div class="worksheet-section question-section">
@@ -535,32 +519,12 @@ $('#editor').addEventListener('input', event => {
   const count = $('#' + field.id + '-count');
   if (count) count.textContent = countText(field.value, field.dataset.limit);
   if (key === 'topic') {
-    const i = topicOptions().indexOf(field.value);
-    $('#topic-picker').value = i >= 0 ? String(i) : 'custom';
     $('#case-guide').innerHTML = caseGuide(field.value);
   }
 });
 $('#editor').addEventListener('change', event => {
   const field = event.target;
   if (field.id === 'task') switchTask(field.value);
-  if (field.id === 'topic-picker') {
-    if (field.value === 'custom') {
-      $('#custom-topic').hidden = false;
-      $('#topic').focus();
-      $('#topic').select();
-    } else if (field.value !== '') {
-      const title = topicOptions()[Number(field.value)];
-      openIdeaId = '';
-      change(patchTask({ answers: { ...work().answers, topic: title, ideaId: '' } }));
-      render();
-      $('#topic-picker').focus();
-    } else {
-      openIdeaId = '';
-      change(patchTask({ answers: { ...work().answers, topic: '', ideaId: '' } }));
-      render();
-      $('#topic-picker').focus();
-    }
-  }
   if (field.dataset.photo !== undefined) attachPhoto(field);
   if (field.dataset.check !== undefined) {
     const index = Number(field.dataset.check);
@@ -578,9 +542,6 @@ $('#editor').addEventListener('click', event => {
   if (button.dataset.idea) applyIdea(button.dataset.idea);
   if (button.dataset.useIdea) applyIdea(button.dataset.useIdea, true);
   if (button.id === 'edit-idea-topic') $('#topic').focus();
-  if (button.id === 'start') {
-    (filled(work().answers.topic) ? $('#inquiry') : $('#topic-picker')).focus();
-  }
   if (button.id === 'add-source') {
     const sources = sourceSlots();
     const index = sources.length;
