@@ -12,11 +12,11 @@ function stringRecord(value) {
     && Object.values(value).every(item => typeof item === 'string');
 }
 function validWorksheet(task) {
-  const { worksheetStep, worksheetChecks } = task;
+  const { worksheetStep, worksheetChecks, rehearsalChecks } = task;
   const photos = task.sources.filter(source => source._photo !== undefined);
   return (worksheetStep === undefined || (Number.isInteger(worksheetStep) && worksheetStep >= 0 && worksheetStep < 4))
-    && (worksheetChecks === undefined || (Array.isArray(worksheetChecks) && worksheetChecks.length === 4
-      && worksheetChecks.every(value => typeof value === 'boolean')))
+    && [worksheetChecks, rehearsalChecks].every(checks => checks === undefined
+      || (Array.isArray(checks) && checks.length === 4 && checks.every(value => typeof value === 'boolean')))
     && photos.length <= MEDIA_LIMIT.count
     && photos.every(source => source._photo.length <= MEDIA_LIMIT.dataChars
       && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(source._photo))

@@ -9,15 +9,48 @@ const CHECKLIST = [
   '자료를 비교하고 내 입장과 해결책을 적었어요.',
   '포스터에 나온 이름, 출처, 사진을 확인했어요.'
 ];
+const REHEARSAL = [
+  '시작(문제) - 본론(자료) - 끝(해결책) 순서로 이야기가 자연스럽게 이어지나요?',
+  '친구들이 듣기 편한 목소리 크기와 속도로, 쉬운 단어를 써서 설명할 수 있나요?',
+  '발표할 때 화면만 보지 않고 친구들과 눈을 맞추며 이야기할 준비가 되었나요?',
+  '친구들이 질문했을 때 내가 조사한 자료를 근거로 답할 수 있나요?'
+];
+const SOURCE_GOAL = 3;
+const SOURCE_TYPES = ['통계·그래프', '뉴스 기사', '보고서·책', '직접 찍은 사진·인터뷰'];
+const SOURCE_SCALES = ['우리 동네(지역)', '우리나라', '세계 여러 나라'];
+const OLD_TYPES = new Map([['보고서·논문', '보고서·책'], ['교과서·도서', '보고서·책'], ['직접 촬영·조사', '직접 찍은 사진·인터뷰']]);
+const OLD_SCALES = new Map([['우리 지역', '우리 동네(지역)'], ['국내(국가)', '우리나라'], ['해외·세계', '세계 여러 나라']]);
+const sourceType = source => OLD_TYPES.get(source.type) ?? source.type;
+const sourceScale = source => OLD_SCALES.get(source.scale) ?? source.scale;
+
 const PROMPTS = {
   inquiry: ['어디에서, 누구에게, 어떤 문제가 생기고 있나요?', '예: 우리 동네와 옆 동네는 노인복지관을 이용하기 얼마나 편할까?'],
-  current: ['자료에서 확인한 정확한 수치나 사실은 무엇인가요?', '예: 우리 동네 고령화율은 25%인데 노인복지관은 1곳뿐이다.'],
-  comparison: ['다른 지역이나 사례와 비교하면 어떤 차이가 있나요?', '예: 옆 동네에는 복지관이 3곳이고, 집에서 걸어갈 수 있는 곳도 더 많다.'],
-  interpretation: ['왜 이런 차이가 생겼을까요?', '예: 우리 동네는 마을이 흩어져 있고 복지관으로 가는 버스도 적다.'],
-  valueJudgment: ['가장 중요하게 지켜야 할 가치는 무엇이고, 왜 그렇게 생각하나요?', '예: 형평성이 중요하다. 사는 곳에 따라 복지관을 이용할 기회가 달라지기 때문이다.'],
-  proposal: ['누가 무엇을 하면 이 문제가 나아질까요?', '예: 구청이 복지관과 외곽 마을을 잇는 셔틀을 주 2회 운영한다.'],
+  current: ['지금 무슨 일이 일어나고 있나요?', '예: 우리 동네는 고령화율이 25%인데 노인복지관이 1곳뿐이다.', '어디에서, 누구에게 어떤 불평등이나 인권 문제가 생겼나요?'],
+  cause: ['왜 이런 일이 생겼나요?', '예: 마을이 흩어져 있고 외곽에서 복지관까지 가는 버스가 적다.', '조사한 자료를 보고 이유를 적어 보세요.'],
+  valueJudgment: ['무엇이 가장 중요할까요?', '예: 교통이 불편한 주민부터 도와야 복지관을 이용할 기회가 공평해진다.', '개인의 자유와 권리, 모두를 위한 배려와 공정함 중 무엇을 더 중요하게 보나요? 이유도 적어 보세요.'],
+  policy: ['법·제도 바꾸기', '예: 구청이 복지관과 외곽 마을을 잇는 셔틀을 주 2회 운영한다.', '정부, 시청, 학교에서 어떤 규칙이나 제도를 만들면 좋을까요?'],
+  action: ['우리가 직접 해보기', '예: 친구들과 버스 이용이 어려운 정류장을 조사해 주민 제안 게시판에 개선안을 올린다.', '나와 친구들이 일상에서 바로 할 수 있는 일은 무엇인가요?'],
+  region: ['어느 지역을 조사했나요?', '예: 전남 순천시 원도심의 중앙시장 주변'],
+  economicChange: ['무엇이 달라졌나요?', '예: 주말 관광객이 늘면서 시장 주변에 음식점이 많아졌다.', '예전과 지금을 비교해 보세요.'],
+  economicCause: ['왜 달라졌나요?', '예: 관광지와 시장을 잇는 버스가 생겨 방문하기 쉬워졌다.'],
+  concepts: ['수업 시간에 배운 경제 원리로 설명한다면?', '예: 합리적 선택으로 보면, 관광객이 버스를 고른 까닭은 주차비와 이동 시간을 아낄 수 있어서다.', '합리적 선택, 시장실패, 분업과 무역, 지속가능발전 등에서 하나를 골라 이 변화를 설명해 보세요.'],
+  economicPlan: ['우리 지역에 어떤 아이디어가 도움이 될까요?', '예: 시장 상인회와 시청이 주민과 관광객이 함께 이용할 수 있는 공동 배송을 운영한다.'],
+  practicePlan: ['내가 직접 할 수 있는 일은 무엇인가요?', '예: 다음 주에 모둠과 시장 이용 안내 지도를 만들어 상인회에 전달한다.'],
+  role: ['함께하며 내가 한 역할과 배려', '예: 자료를 정리하는 역할을 맡았다. 의견이 갈렸을 때 친구의 이유를 먼저 듣고 함께 결정했다.', '내가 맡은 역할은 무엇이었고, 친구의 의견을 어떻게 존중하고 도왔나요?'],
+  reflection: ['탐구를 마치고 느낀 점', '예: 조사 전에는 관광객이 늘면 모든 가게에 좋다고 생각했다. 다음에는 가게마다 어떤 차이가 있는지 알아보고 싶다.', '조사 전후로 생각이 어떻게 달라졌나요? 새롭게 알게 된 점이나 다음에 더 알아보고 싶은 점을 적어 보세요.'],
+  peerLearning: ['친구에게 배운 점', '예: 2모둠은 그래프의 기간과 단위를 먼저 알려 줘서 비교하기 쉬웠다.', '함께 활동하거나 발표를 들은 친구 중 누가 인상 깊었나요? 그 친구에게 배운 점을 한 줄로 적어 보세요.'],
+  proposal: ['이전에 작성한 제안', '예: 구청이 복지관과 외곽 마을을 잇는 셔틀을 운영한다.'],
+  comparison: ['이전에 작성한 비교', '예: 옆 동네에는 복지관이 3곳이다.'],
+  interpretation: ['이전에 작성한 해석', '예: 외곽 주민은 복지관을 이용하기 어렵다.'],
   posterTitle: ['포스터 제목을 정해 볼까요?', '예: 복지관으로 가는 길, 동네마다 얼마나 다를까?']
 };
+
+const RUBRIC = {
+  human: { analysis: ['current', 'cause', 'valueJudgment'], solutions: ['policy', 'action'] },
+  economy: { analysis: ['region', 'economicChange', 'economicCause', 'concepts'], solutions: ['economicPlan', 'practicePlan'] }
+};
+const REFLECTION_KEYS = ['role', 'reflection'];
+const PRIOR_KEYS = ['comparison', 'interpretation', 'proposal'];
 
 let data = blank();
 let originalRaw = null;
@@ -34,7 +67,17 @@ const stage = () => work().worksheetStep ?? [0, 0, 1, 1, 2, 3, 3, 3, 3][work().s
 const filled = value => Boolean(value?.trim());
 const sourceFact = source => source.fact ?? source.evidence ?? '';
 const hasSource = source => Object.entries(source).some(([key, value]) => key !== '_id' && filled(value));
-const proposal = answers => answers.proposal ?? [answers.policy, answers.action].filter(filled).join('\n');
+const sourceThought = source => source.thought ?? source.meaning ?? '';
+const completeSource = source => [sourceType(source), sourceScale(source), sourceFact(source), sourceThought(source)].every(filled)
+  && filled(source.url || source.author);
+const rubric = () => RUBRIC[activeTask()];
+const reflectionKeys = () => activeTask() === 'economy' ? [...REFLECTION_KEYS, 'peerLearning'] : REFLECTION_KEYS;
+const answer = (key, a = work().answers) => a[key] ?? ({
+  region: a.scope,
+  economicChange: a.current,
+  economicCause: a.cause,
+  economicPlan: a.policy
+})[key] ?? '';
 const previewButton = $('#mobile-preview');
 const fileDialog = $('#file-dialog');
 
@@ -93,20 +136,26 @@ function change(candidate, requireStorage = false) {
   return true;
 }
 
+function countText(value, limit) {
+  return `${[...value].length} / ${limit}자 권장`;
+}
+
 function input(key, label, example, value = '', options = {}) {
-  const { area = false, source, count = false } = options;
+  const { area = false, source, limit = 120, hint } = options;
   const id = source === undefined ? key : `source-${source}-${key}`;
-  const attributes = `id="${id}" data-key="${key}" ${source === undefined ? '' : `data-source="${source}"`} placeholder="${esc(example)}"`;
-  return `<div class="field"><label for="${id}">${label}</label>${
-    area ? `<textarea ${attributes}${count ? ` aria-describedby="${id}-count"` : ''}>${esc(value)}</textarea>`
-      : `<input type="text" ${attributes} value="${esc(value)}" autocomplete="off">`
-  }${count ? `<small class="character-count" id="${id}-count">${[...value].length}자</small>` : ''}</div>`;
+  const attributes = `id="${id}" data-key="${key}" ${source === undefined ? '' : `data-source="${source}"`} placeholder="${esc(example)}"
+    data-limit="${limit}" aria-describedby="${hint ? `${id}-hint ` : ''}${id}-count"`;
+  return `<div class="field"><label for="${id}">${label}</label>
+    ${hint ? `<small class="field-hint" id="${id}-hint">${hint}</small>` : ''}
+    ${area ? `<textarea ${attributes}>${esc(value)}</textarea>`
+      : `<input type="text" ${attributes} value="${esc(value)}" autocomplete="off">`}
+    <small class="character-count" id="${id}-count">${countText(value, limit)}</small></div>`;
 }
 
 function prompt(key) {
-  const [question, example] = PROMPTS[key];
-  return input(key, question, example, key === 'proposal' ? proposal(work().answers) : work().answers[key],
-    { area: key !== 'posterTitle', count: key !== 'posterTitle' });
+  const [label, example, hint] = PROMPTS[key];
+  const area = !['posterTitle', 'region'].includes(key);
+  return input(key, label, example, answer(key), { area, hint, limit: area ? 120 : 50 });
 }
 
 function heading(title, description) {
@@ -125,17 +174,62 @@ function caseGuide(title) {
   ).join('')}</ul></details>`;
 }
 
+function selectedIdea() {
+  return TOPIC_IDEAS[activeTask()].find(idea => idea.id === work().answers.ideaId);
+}
+
+function ideaExplorer() {
+  const chosen = selectedIdea();
+  return `<section class="idea-explorer" aria-labelledby="idea-title">
+    <h3 id="idea-title">💡 어떤 주제를 할지 고민되나요?</h3>
+    <p>아래 사례 카드를 눌러 시작해 보세요! 내 생각대로 바꿔도 좋아요.</p>
+    <ul class="idea-cards">${TOPIC_IDEAS[activeTask()].map(idea => `<li>
+      <button type="button" data-idea="${idea.id}" aria-pressed="${idea === chosen}">
+        <span aria-hidden="true">${idea.icon}</span> ${esc(idea.label)}
+      </button></li>`).join('')}</ul>
+  </section>`;
+}
+
+function ideaHints() {
+  const idea = selectedIdea();
+  if (!idea) return '';
+  return `<aside class="idea-hints" aria-labelledby="hint-title">
+    <h3 id="hint-title">🔍 추천 검색 키워드 &amp; 찾아볼 자료 힌트</h3>
+    <p>${esc(idea.label)}</p>
+    ${idea.concepts ? `<p><strong>수업 시간에 배운 개념</strong> ${esc(idea.concepts)}</p>` : ''}
+    <ol>${idea.hints.map(hint => `<li>${esc(hint)}</li>`).join('')}</ol>
+  </aside>`;
+}
+
+function applyIdea(id) {
+  const idea = TOPIC_IDEAS[activeTask()].find(item => item.id === id);
+  if (!idea) return;
+  const answers = work().answers;
+  if (answers.ideaId === id) {
+    $('#topic').focus();
+    return;
+  }
+  const replacesDraft = (filled(answers.topic) && answers.topic !== idea.title)
+    || (filled(answers.inquiry) && answers.inquiry !== idea.question);
+  if (replacesDraft && !confirm('지금 적은 주제와 출발 질문을 이 사례로 바꿀까요?')) return;
+  change(patchTask({ answers: { ...answers, ideaId: id, topic: idea.title, inquiry: idea.question } }));
+  render();
+  $('#topic').focus();
+}
+
 function problemEditor() {
   const a = work().answers;
   const topics = topicOptions();
   return heading(STEPS[0], '내 정보를 적고 조사할 주제를 골라요.') +
     `<div class="field-grid student-fields">
-      ${input('number', '학번', '예: 20513', a.number)}
-      ${input('name', '이름', '예: 김하늘', a.name)}
-      ${input('team', '모둠', '예: 3모둠', a.team)}
+      ${input('number', '학번', '예: 20513', a.number, { limit: 10 })}
+      ${input('name', '이름', '예: 김하늘', a.name, { limit: 10 })}
+      ${input('team', '모둠', '예: 3모둠', a.team, { limit: 20 })}
     </div>
     <div class="worksheet-section topic-section">
-      <h2>무엇을 조사할까요?</h2>
+      <div class="topic-heading"><h2>무엇을 조사할까요?</h2>
+        <button type="button" class="primary" id="start">탐구 시작하기</button>
+      </div>
       <div class="field-grid topic-fields">
         <div class="field"><label for="task">수업 과제</label><select id="task">${Object.entries(TASKS).map(([key, label]) =>
           `<option value="${key}" ${key === activeTask() ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
@@ -145,67 +239,106 @@ function problemEditor() {
           <option value="custom" ${filled(a.topic) && !topics.includes(a.topic) ? 'selected' : ''}>직접 정하기</option>
         </select></div>
       </div>
-      <div id="custom-topic" ${filled(a.topic) && !topics.includes(a.topic) ? '' : 'hidden'}>
-        ${input('topic', '내 탐구 주제', '예: 우리 동네 노인복지관 이용의 어려움', a.topic)}
+      ${ideaExplorer()}
+      <div id="custom-topic" ${selectedIdea() || (filled(a.topic) && !topics.includes(a.topic)) ? '' : 'hidden'}>
+        ${input('topic', '내 탐구 주제', '예: 우리 동네 노인복지관 이용의 어려움', a.topic, { limit: 60 })}
       </div>
       <div id="case-guide">${caseGuide(a.topic)}</div>
-      <button type="button" class="primary" id="start">탐구 시작하기</button>
     </div>
-    <div class="worksheet-section question-section">${prompt('inquiry')}
+    <div class="worksheet-section question-section">
+      ${input('inquiry', '출발 질문', PROMPTS.inquiry[1], a.inquiry, { area: true, hint: PROMPTS.inquiry[0] })}
+      ${ideaHints()}
       ${a.reason ? input('reason', '이 주제를 고른 이유는 무엇인가요?', '예: 할머니가 복지관까지 두 번 환승하는 것을 봤다.', a.reason, { area: true }) : ''}
     </div>`;
+}
+
+function sourceChips(key, label, options, value, index) {
+  const name = `source-${index}-${key}`;
+  return `<fieldset class="source-chips"><legend>${label}</legend>
+    <div class="chip-options">${options.map(option => `<label>
+      <input type="radio" name="${name}" data-key="${key}" data-source="${index}" value="${option}" ${value === option ? 'checked' : ''}>
+      <span>${option}</span></label>`).join('')}</div></fieldset>`;
+}
+
+function sourceSlots() {
+  const sources = work().sources;
+  return [...sources, ...Array.from({ length: Math.max(0, SOURCE_GOAL - sources.length) }, () => ({}))];
 }
 
 function sourceCard(source, i) {
   const title = `근거 자료 ${i + 1}`;
   return `<section class="source-card" aria-labelledby="card-${i}">
-    <div class="card-head"><h2 id="card-${i}" tabindex="-1">${title}</h2><button type="button" data-delete="${i}" aria-label="${title} 삭제">삭제</button></div>
+    <div class="card-head"><h2 id="card-${i}" tabindex="-1">${title}</h2><button type="button" data-delete="${i}" aria-label="${title} 삭제" ${hasSource(source) || i >= SOURCE_GOAL ? '' : 'hidden'}>삭제</button></div>
     <div class="photo-row">
       ${source._photo ? `<img class="card-image" src="${source._photo}" alt="${title} 이미지"><button type="button" data-remove-photo="${i}">이미지 제거</button>` : ''}
       <label class="upload-button" for="photo-${i}">${source._photo ? '이미지 바꾸기' : '+ 이미지 첨부'}<input id="photo-${i}" type="file" data-photo="${i}" accept="image/jpeg,image/png,image/webp"></label>
       ${source._photo ? '' : '<small>선택 사항</small>'}
     </div>
-    ${input('title', '자료 이름', '예: 우리 구 노인복지시설 현황', source.title, { source: i })}
-    ${input('url', '자료 출처', '예: ○○구청 복지시설 현황(2025) 또는 자료 링크', source.url, { source: i })}
-    ${input('fact', '자료에서 확인한 핵심 사실 한 줄', '예: 2025년 ○○동에 등록된 노인복지관은 1곳이다.', sourceFact(source), { source: i })}
+    ${sourceChips('type', '어떤 자료인가요?', SOURCE_TYPES, sourceType(source), i)}
+    ${sourceChips('scale', '어디의 이야기인가요?', SOURCE_SCALES, sourceScale(source), i)}
+    ${input('title', '자료 제목이 무엇인가요?', '예: 우리 구 노인복지시설 현황', source.title, { source: i })}
+    ${input('url', '어디에서 찾았나요?', '예: ○○구청 복지시설 현황(2025) 또는 자료 링크', source.url, { source: i })}
+    ${input('fact', '팩트 체크 (자료에 나온 사실)', '예: 2025년 ○○동에 등록된 노인복지관은 1곳이다.', sourceFact(source),
+      { source: i, area: true, limit: 100, hint: '자료에 나온 숫자나 사실을 있는 그대로 적어 보세요.' })}
+    ${input('thought', '내 생각 한 줄 (해석)', '예: 복지관이 한 곳에 몰려 외곽 주민은 이동하기 어려울 수 있다.', sourceThought(source),
+      { source: i, area: true, limit: 100, hint: '이 자료를 보면 어떤 문제나 원인을 알 수 있나요?' })}
     ${source._photo ? input('photoCaption', '이미지 설명', '예: ○○동과 △△동의 복지관 위치 지도', source.photoCaption, { source: i }) : ''}
     ${source.author || source.date ? `<details class="supplement"><summary>자료를 만든 곳과 날짜</summary>
-      ${input('author', '작성자 또는 기관', '예: ○○구청 복지과', source.author, { source: i })}
-      ${input('date', '자료 기준 날짜', '예: 2025년 12월', source.date, { source: i })}</details>` : ''}
+      ${input('author', '누가 만든 자료인가요?', '예: ○○구청 복지과', source.author, { source: i })}
+      ${input('date', '언제 나온 자료인가요?', '예: 2025년 12월', source.date, { source: i })}</details>` : ''}
   </section>`;
 }
 
 function evidenceEditor() {
-  const sources = work().sources;
-  return heading(STEPS[1], '기사, 통계, 지도에서 확인한 사실과 출처를 함께 남겨요.') +
-    sources.map(sourceCard).join('') + '<button type="button" id="add-source" class="add-source">+ 근거 자료 카드 추가</button>';
+  return heading(STEPS[1], '믿을 만한 자료를 여러 종류로 3개 이상 찾아요.') + ideaHints() +
+    `<div class="evidence-status"><span id="source-count" class="rubric-badge" role="status"></span>
+      <p>자료를 찾은 곳, 자료 종류와 범위, 사실과 내 생각을 모두 채우면 숫자가 올라가요. 믿을 만한 자료를 여러 종류로 골라 보세요.</p></div>` +
+    sourceSlots().map(sourceCard).join('') + '<button type="button" id="add-source" class="add-source">+ 근거 자료 카드 추가</button>';
 }
 
 function thinkingEditor() {
-  return heading(STEPS[2], '확인한 사실에서 출발해 내 입장과 해결책을 적어요.') +
-    [['팩트 체크', ['current']], ['비교 및 분석', ['comparison', 'interpretation']],
-      ['나의 입장', ['valueJudgment']], ['최종 제안', ['proposal']]]
-      .map(([title, keys]) => `<section class="worksheet-section thought"><h2>${title}</h2>${keys.map(prompt).join('')}</section>`).join('');
+  const { analysis, solutions } = rubric();
+  const human = activeTask() === 'human';
+  const prior = PRIOR_KEYS.filter(key => filled(answer(key)));
+  return heading(STEPS[2], '찾은 자료를 보면서 왜 이런 일이 생겼는지, 무엇을 바꿀 수 있을지 적어요.') +
+    `<section class="worksheet-section thought"><h2>${human ? '무슨 일이 왜 일어나고 있나요?' : '우리 동네에 어떤 변화가 생겼나요?'}</h2>${analysis.map(prompt).join('')}</section>
+    <section class="worksheet-section thought"><h2>${human ? '어떻게 바꿀 수 있을까요? (해결책 2가지)' : '우리 지역을 살리는 아이디어와 나의 실천'}</h2>${solutions.map(prompt).join('')}</section>` +
+    (prior.length ? `<details class="supplement"><summary>전에 적은 비교, 생각과 제안</summary>${prior.map(prompt).join('')}</details>` : '');
 }
 
-function checklist() {
-  return `<fieldset class="checklist"><legend>인쇄 전 확인할 내용</legend>${CHECKLIST.map((label, i) =>
-    `<label><input type="checkbox" data-check="${i}" ${work().worksheetChecks?.[i] ? 'checked' : ''}> <span>${label}</span></label>`).join('')}</fieldset>`;
+function isChecked(index) {
+  return index < CHECKLIST.length
+    ? work().worksheetChecks?.[index]
+    : work().rehearsalChecks?.[index - CHECKLIST.length];
+}
+
+function checklist(title, labels, offset = 0) {
+  return `<fieldset class="checklist"><legend>${title}</legend>${labels.map((label, i) =>
+    `<label><input type="checkbox" data-check="${offset + i}" ${isChecked(offset + i) ? 'checked' : ''}> <span>${label}</span></label>`).join('')}</fieldset>`;
 }
 
 function finalEditor() {
-  return heading(STEPS[3], '포스터 미리보기를 살펴보고 빠진 내용이 있으면 해당 단계에서 고쳐요.') +
-    prompt('posterTitle') + checklist() +
-    '<p class="print-note">인쇄 창에서 프린터를 고르거나 PDF로 저장할 수 있어요. 작성한 내용이 길면 여러 장으로 이어져요.</p>';
+  return heading(STEPS[3], '발표를 연습하고, 친구들과 함께한 일과 조사에서 배운 점을 적어요.') +
+    prompt('posterTitle') + checklist('인쇄 전 확인할 내용', CHECKLIST) +
+    checklist('발표 전 스스로 점검하기', REHEARSAL, CHECKLIST.length) +
+    `<section class="worksheet-section thought"><h2>활동 돌아보기</h2>${reflectionKeys().map(prompt).join('')}</section>` +
+    '<p class="print-note">돌아보기에서 쓴 글도 포스터 아래에 함께 인쇄돼요. 내용이 길면 다음 장으로 이어져요.</p>';
 }
 
 function renderProgress() {
   const { answers: a, sources } = work();
+  const written = sources.filter(completeSource);
+  const count = $('#source-count');
+  if (count) {
+    const label = `모은 자료: ${written.length} / ${SOURCE_GOAL}개 (최고점 목표: 3개 이상)`;
+    if (count.textContent !== label) count.textContent = label;
+  }
+  const { analysis, solutions } = rubric();
   const completed = [
     [a.number, a.name, a.team, a.topic, a.inquiry].every(filled),
-    sources.some(hasSource) && sources.filter(hasSource).every(s => filled(s.url || s.author) && filled(sourceFact(s))),
-    [a.current, a.comparison, a.interpretation, a.valueJudgment, proposal(a)].every(filled),
-    CHECKLIST.every((_, i) => work().worksheetChecks?.[i])
+    written.length >= SOURCE_GOAL && new Set(written.map(sourceType)).size >= 2,
+    [...analysis, ...solutions].every(key => filled(answer(key))),
+    [...CHECKLIST, ...REHEARSAL].every((_, i) => isChecked(i)) && reflectionKeys().every(key => filled(answer(key)))
   ];
   $('#steps').innerHTML = STEPS.map((title, i) =>
     `<li><button type="button" data-stage="${i}" ${stage() === i ? 'aria-current="step"' : ''}>
@@ -215,33 +348,52 @@ function renderProgress() {
   ).join('');
 }
 
+function posterFields(keys) {
+  return keys.map(key => {
+    const value = answer(key);
+    return `<section><h4>${PROMPTS[key][0]}</h4><p${filled(value) ? '' : ' class="paper-empty"'}>${esc(value || '작성할 내용')}</p></section>`;
+  }).join('');
+}
+
 function renderPoster() {
   const { answers: a, sources, attachments = [] } = work();
+  const { analysis, solutions } = rubric();
+  const prior = PRIOR_KEYS.filter(key => filled(answer(key)));
   const author = [a.classroom, a.number, a.name, a.team].filter(filled).join('  /  ');
-  const blocks = [
-    ['확인한 사실', a.current], ['비교 및 분석', [a.comparison, a.interpretation, a.cause, a.impact].filter(filled).join('\n')],
-    ['나의 입장', [a.valueCriterion, a.valueJudgment].filter(filled).join('\n')],
-    ['최종 제안', proposal(a) || a.conclusion]
-  ];
   const evidence = sources.filter(hasSource);
   $('#poster').innerHTML = `<article class="paper">
-    <header class="paper-header"><span class="paper-label">통합사회2 탐구 포스터</span>
+    <header class="paper-header"><span class="paper-label">통합사회2 탐구 포스터 · ${TASKS[activeTask()]}</span>
       <h2>${esc(a.posterTitle || a.topic || '나의 탐구 주제')}</h2>
       <p class="paper-author">${esc(author || '학번 / 이름 / 모둠')}</p>
     </header>
-    <section class="paper-question"><h3>내가 던진 질문</h3><p>${esc(a.inquiry || '탐구 질문을 적으면 여기에 보여요.')}</p></section>
-    <section class="paper-evidence"><h3>근거 자료</h3>
+    <section class="paper-question"><h3>1. 시작하며 (우리가 찾은 문제)</h3>
+      ${a.posterTitle && a.topic ? `<p><strong>주제</strong> ${esc(a.topic)}</p>` : ''}
+      <p>${esc(a.inquiry || '탐구 질문을 적으면 여기에 보여요.')}</p>
+      ${filled(a.reason) ? `<p>${esc(a.reason)}</p>` : ''}
+    </section>
+    <section class="paper-evidence"><h3>2. 살펴보기 (자료로 본 사실과 원인)</h3>
       ${evidence.length || attachments.length ? `<div class="evidence-grid">${evidence.map((source, i) =>
         `<figure><figcaption><strong>${i + 1}. ${esc(source.title || '근거 자료')}</strong></figcaption>
+        ${[sourceType(source), sourceScale(source)].some(filled)
+          ? `<span class="rubric-badge">${esc([sourceType(source), sourceScale(source)].filter(filled).join(' · '))}</span>` : ''}
         ${source._photo ? `<img src="${source._photo}" alt="${esc(source.photoCaption || source.title || '첨부한 근거 이미지')}">` : ''}
         ${source._photo && source.photoCaption ? `<small>${esc(source.photoCaption)}</small>` : ''}
-        ${sourceFact(source) ? `<p>${esc(sourceFact(source))}</p>` : ''}
-        <small>${esc([source.author, source.date, source.url].filter(filled).join(' / ') || '출처를 적어 주세요.')}</small></figure>`).join('')}
+        <p><strong class="evidence-label">사실</strong> ${esc(sourceFact(source) || '작성할 내용')}</p>
+        <p><strong class="evidence-label">내 생각</strong> ${esc(sourceThought(source) || '작성할 내용')}</p>
+        <small><strong>출처</strong> ${esc([source.author, source.date, source.url].filter(filled).join(' / ') || '출처를 적어 주세요.')}</small></figure>`).join('')}
         ${attachments.map(photo => `<figure><img src="${esc(photo.dataUrl)}" alt="${esc(photo.caption || '이전에 첨부한 이미지')}"><figcaption>${esc(photo.caption)} <small>${esc([photo.credit, photo.source].filter(filled).join(' / '))}</small></figcaption></figure>`).join('')}</div>`
         : '<p class="paper-empty">모은 자료와 이미지가 여기에 들어가요.</p>'}
+      <div class="paper-analysis">${posterFields([...analysis, ...prior.filter(key => key !== 'proposal')])}</div>
     </section>
-    <div class="paper-analysis">${blocks.map(([title, value]) =>
-      `<section><h3>${title}</h3><p${filled(value) ? '' : ' class="paper-empty"'}>${esc(value || '작성할 내용')}</p></section>`).join('')}</div>
+    <section class="paper-section"><h3>3. 제안하기 (우리가 찾은 해결책)</h3>
+      <div class="paper-analysis">${posterFields([...solutions, ...prior.filter(key => key === 'proposal')])}</div>
+    </section>
+    <section class="paper-section paper-rehearsal"><h3>발표 전 스스로 점검하기</h3>
+      <ul>${REHEARSAL.map((label, i) => `<li>${isChecked(CHECKLIST.length + i) ? '✓' : '□'} ${label}</li>`).join('')}</ul>
+    </section>
+    <section class="paper-section paper-reflection"><h3>활동 돌아보기</h3>
+      <div class="paper-analysis">${posterFields(reflectionKeys())}</div>
+    </section>
   </article>`;
 }
 
@@ -288,7 +440,7 @@ function editAnswer(key, value) {
 }
 
 function editSource(i, updates) {
-  const sources = work().sources.map((source, index) => index === i ? { ...source, ...updates } : source);
+  const sources = sourceSlots().map((source, index) => index === i ? { ...source, ...updates } : source);
   return patchTask({ sources });
 }
 
@@ -361,10 +513,14 @@ $('#editor').addEventListener('input', event => {
   const field = event.target;
   const { key, source } = field.dataset;
   if (!key) return;
-  if (source !== undefined) change(editSource(Number(source), { [key]: field.value }));
-  else editAnswer(key, field.value);
+  if (source !== undefined) {
+    const index = Number(source);
+    change(editSource(index, { [key]: field.value }));
+    const remove = $(`[data-delete="${index}"]`);
+    remove.hidden = index < SOURCE_GOAL && !hasSource(work().sources[index]);
+  } else editAnswer(key, field.value);
   const count = $('#' + field.id + '-count');
-  if (count) count.textContent = `${[...field.value].length}자`;
+  if (count) count.textContent = countText(field.value, field.dataset.limit);
   if (key === 'topic') {
     const i = topicOptions().indexOf(field.value);
     $('#topic-picker').value = i >= 0 ? String(i) : 'custom';
@@ -381,32 +537,37 @@ $('#editor').addEventListener('change', event => {
       $('#topic').select();
     } else if (field.value !== '') {
       const title = topicOptions()[Number(field.value)];
-      $('#custom-topic').hidden = true;
-      $('#topic').value = title;
-      editAnswer('topic', title);
-      $('#case-guide').innerHTML = caseGuide(title);
+      change(patchTask({ answers: { ...work().answers, topic: title, ideaId: '' } }));
+      render();
+      $('#topic-picker').focus();
     } else {
-      $('#custom-topic').hidden = true;
-      $('#topic').value = '';
-      editAnswer('topic', '');
-      $('#case-guide').innerHTML = '';
+      change(patchTask({ answers: { ...work().answers, topic: '', ideaId: '' } }));
+      render();
+      $('#topic-picker').focus();
     }
   }
   if (field.dataset.photo !== undefined) attachPhoto(field);
   if (field.dataset.check !== undefined) {
-    const worksheetChecks = CHECKLIST.map((_, i) => i === Number(field.dataset.check) ? field.checked : Boolean(work().worksheetChecks?.[i]));
-    change(patchTask({ worksheetChecks }));
+    const index = Number(field.dataset.check);
+    const rehearsal = index >= CHECKLIST.length;
+    const key = rehearsal ? 'rehearsalChecks' : 'worksheetChecks';
+    const offset = rehearsal ? CHECKLIST.length : 0;
+    const labels = rehearsal ? REHEARSAL : CHECKLIST;
+    const checks = labels.map((_, i) => i + offset === index ? field.checked : Boolean(isChecked(i + offset)));
+    change(patchTask({ [key]: checks }));
   }
 });
 $('#editor').addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button) return;
+  if (button.dataset.idea) applyIdea(button.dataset.idea);
   if (button.id === 'start') {
     (filled(work().answers.topic) ? $('#inquiry') : $('#topic-picker')).focus();
   }
   if (button.id === 'add-source') {
-    const index = work().sources.length;
-    change(patchTask({ sources: [...work().sources, {}] }));
+    const sources = sourceSlots();
+    const index = sources.length;
+    change(patchTask({ sources: [...sources, {}] }));
     render();
     $('#source-' + index + '-title').focus();
   }
