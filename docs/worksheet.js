@@ -284,7 +284,9 @@ function sourceCard(source, i) {
 }
 
 function evidenceEditor() {
-  return heading(STEPS[1], '믿을 만한 자료를 여러 종류로 3개 이상 찾아요.') + ideaHints() +
+  return heading(STEPS[1], '믿을 만한 자료를 여러 종류로 3개 이상 찾아요.') +
+    '<a class="research-link" href="https://www.bigkinds.or.kr/" target="_blank" rel="noopener noreferrer">빅카인즈에서 뉴스 찾기 <small>(새 탭)</small></a>' +
+    ideaHints() +
     `<div class="evidence-status"><span id="source-count" class="rubric-badge" role="status"></span>
       <p>자료를 찾은 곳, 자료 종류와 범위, 사실과 내 생각을 모두 채우면 숫자가 올라가요. 믿을 만한 자료를 여러 종류로 골라 보세요.</p></div>` +
     sourceSlots().map(sourceCard).join('') + '<button type="button" id="add-source" class="add-source">+ 근거 자료 카드 추가</button>';

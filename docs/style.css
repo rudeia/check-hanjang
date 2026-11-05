@@ -25,12 +25,12 @@ h3 { font-size: 1rem; }
 a { color: var(--accent); text-underline-offset: .2em; }
 button, input, textarea, select { font: inherit; color: inherit; }
 button, select, summary { cursor: pointer; }
-button, .upload-button {
+button, .upload-button, .research-link {
   display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px;
   padding: .48rem .85rem; background: var(--surface); border: 1px solid var(--line);
   border-radius: 8px; font-weight: 650;
 }
-button:hover, .upload-button:hover { background: var(--wash); border-color: #a2c2b6; }
+button:hover, .upload-button:hover, .research-link:hover { background: var(--wash); border-color: #a2c2b6; }
 button:disabled { cursor: wait; opacity: .65; }
 :focus-visible { outline: 3px solid #007863; outline-offset: 3px; }
 .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -116,6 +116,7 @@ button:disabled { cursor: wait; opacity: .65; }
 .chip-options label:hover span { background: var(--background); }
 .chip-options input:checked + span { color: var(--accent); background: var(--wash); border-color: var(--accent); font-weight: 700; }
 .chip-options input:focus-visible + span { outline: 3px solid #007863; outline-offset: 2px; }
+.research-link { margin-bottom: .85rem; text-decoration: none; }
 .evidence-status { margin-bottom: .85rem; color: var(--muted); font-size: .9rem; }
 .evidence-status p { margin-top: .35rem; }
 .rubric-badge {
