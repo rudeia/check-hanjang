@@ -260,3 +260,30 @@ dialog li + li { margin-top: .5rem; }
 .idea-story p { margin-top: .55rem; color: var(--ink); }
 .idea-story .idea-story-label { color: var(--muted); font-size: .8rem; }
 .idea-story button { margin-top: .65rem; }
+
+.economy-materials { margin-block: 1rem 1.4rem; padding: .85rem; border: 1px solid var(--line); border-radius: 10px; background: #f9fbfa; }
+.economy-materials > p { margin-block: .5rem .85rem; }
+.official-card { margin-top: 1rem; padding: .75rem; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.official-card h3 { margin-bottom: .45rem; }
+.official-card button { margin-top: .6rem; }
+.official-graph { min-width: 0; margin-block: .5rem .8rem; }
+.official-graph .stat-image { display: block; width: 100%; height: auto; max-height: none; margin-block: .5rem; object-fit: contain; }
+.stat-meta, .stat-note, .stat-citation { font-size: .84rem; color: var(--muted); }
+.stat-note { margin-top: .45rem; padding: .45rem; background: var(--background); }
+.stat-citation { margin-top: .45rem; }
+.stat-citation span { display: block; }
+.stat-table-wrap { max-width: 100%; overflow-x: auto; }
+.stat-table { width: 100%; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }
+.stat-table caption { text-align: left; font-size: .84rem; margin-bottom: .25rem; }
+.stat-table th, .stat-table td { padding: .3rem .35rem; border-bottom: 1px solid var(--line); text-align: right; }
+.stat-table th:first-child { text-align: left; }
+.paper .official-graph { font-size: .9em; }
+.paper .official-graph .stat-meta, .paper .official-graph .stat-note, .paper .official-graph .stat-citation { font-size: .9em; }
+.paper .official-graph .stat-table, .paper .official-graph caption { font-size: 1em; }
+@media (max-width: 440px) {
+  .economy-materials, .official-card { padding: .55rem; }
+}
+@media print {
+  .stat-table-wrap { overflow: visible; }
+  .official-graph .stat-image { break-inside: avoid; }
+}

@@ -2,7 +2,7 @@
 // Browser image decoding/encoding are mocked: this is not physical-device QA.
 const fs = require('fs'), vm = require('vm'), assert = require('assert');
 const core = fs.readFileSync('docs/workbook-storage.js', 'utf8');
-const app = ['cases', 'topic-ideas', 'workbook-storage', 'worksheet'].map(name => fs.readFileSync(`docs/${name}.js`, 'utf8')).join('\n');
+const app = ['cases', 'topic-ideas', 'workbook-storage', 'economy-data', 'economy-activity', 'worksheet'].map(name => fs.readFileSync(`docs/${name}.js`, 'utf8')).join('\n');
 const photo = 'data:image/jpeg;base64,AAAA';
 const seed = () => ({ schema: 'assessment-one', version: 1, step: 1, worksheetStep: 1,
   answers: { topic: 'Synthetic topic', reflection: 'KEEP MY ANSWER' }, sources: [{ title: 'KEEP SOURCE', _photo: photo }], checks: [] });

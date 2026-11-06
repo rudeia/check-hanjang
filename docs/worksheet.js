@@ -156,7 +156,13 @@ function input(key, label, example, value = '', options = {}) {
 function prompt(key) {
   const [label, example, hint] = PROMPTS[key];
   const area = !['posterTitle', 'region'].includes(key);
-  return input(key, label, example, answer(key), { area, hint, limit: area ? 120 : 50 });
+  const economics = activeTask() === 'economy';
+  const examples = {
+    economicChange: '지역 자료에서 비교한 두 시점의 값과 달라진 모습을 적어요.',
+    economicCause: '원인이라고 생각한 점을 자료와 연결하고, 확인할 점도 적어요.',
+    posterTitle: '예: 시장의 변화, 우리 동네의 선택'
+  };
+  return input(key, label, economics ? examples[key] || example : example, answer(key), { area, hint, limit: area ? 120 : 50 });
 }
 
 function heading(title, description) {
@@ -216,7 +222,7 @@ function applyIdea(id, replace = false) {
   const replacesDraft = (filled(answers.topic) && answers.topic !== idea.title)
     || (filled(answers.inquiry) && answers.inquiry !== idea.question);
   if (answers.ideaId !== id && (replace || !replacesDraft)) {
-    change(patchTask({ answers: { ...answers, ideaId: id, topic: idea.title, inquiry: idea.question } }));
+    change(patchTask({ answers: { ...answers, ideaId: id, economyPackId: '', topic: idea.title, inquiry: idea.question } }));
   }
   render();
   $('#idea-story-title').focus();
@@ -260,9 +266,11 @@ function sourceSlots() {
 }
 
 function sourceCard(source, i) {
+  const stat = officialStat(source);
   const title = `근거 자료 ${i + 1}`;
   return `<section class="source-card" aria-labelledby="card-${i}">
     <div class="card-head"><h2 id="card-${i}" tabindex="-1">${title}</h2><button type="button" data-delete="${i}" aria-label="${title} 삭제" ${hasSource(source) || i >= SOURCE_GOAL ? '' : 'hidden'}>삭제</button></div>
+    ${stat ? officialGraph(source.statId) : ''}
     <div class="photo-row">
       ${source._photo ? `<img class="card-image" src="${source._photo}" alt="${title} 이미지"><button type="button" data-remove-photo="${i}">이미지 제거</button>` : ''}
       <label class="upload-button" for="photo-${i}">${source._photo ? '이미지 바꾸기' : '+ 이미지 첨부'}<input id="photo-${i}" type="file" data-photo="${i}" accept="image/jpeg,image/png,image/webp"></label>
@@ -270,11 +278,11 @@ function sourceCard(source, i) {
     </div>
     ${sourceChips('type', '어떤 자료인가요?', SOURCE_TYPES, sourceType(source), i)}
     ${sourceChips('scale', '어디의 이야기인가요?', SOURCE_SCALES, sourceScale(source), i)}
-    ${input('title', '자료 제목이 무엇인가요?', '예: 우리 구 노인복지시설 현황', source.title, { source: i })}
-    ${input('url', '어디에서 찾았나요?', '예: ○○구청 복지시설 현황(2025) 또는 자료 링크', source.url, { source: i })}
-    ${input('fact', '팩트 체크 (자료에 나온 사실)', '예: 2025년 ○○동에 등록된 노인복지관은 1곳이다.', sourceFact(source),
+    ${input('title', '자료 제목이 무엇인가요?', activeTask() === 'economy' ? '예: 우리 시 상가 공실률 통계' : '예: 우리 구 노인복지시설 현황', source.title, { source: i })}
+    ${input('url', '어디에서 찾았나요?', activeTask() === 'economy' ? '예: 통계청 자료 제목과 링크' : '예: ○○구청 복지시설 현황(2025) 또는 자료 링크', source.url, { source: i })}
+    ${input('fact', '팩트 체크 (자료에 나온 사실)', activeTask() === 'economy' ? '예: 비교한 두 해의 수치와 차이를 단위와 함께 적어요.' : '예: 2025년 ○○동에 등록된 노인복지관은 1곳이다.', sourceFact(source),
       { source: i, area: true, limit: 100, hint: '자료에 나온 숫자나 사실을 있는 그대로 적어 보세요.' })}
-    ${input('thought', '내 생각 한 줄 (해석)', '예: 복지관이 한 곳에 몰려 외곽 주민은 이동하기 어려울 수 있다.', sourceThought(source),
+    ${input('thought', '내 생각 한 줄 (해석)', activeTask() === 'economy' ? '예: 이 변화가 소비자와 가게에 어떤 영향을 줄 수 있을지 적어요.' : '예: 복지관이 한 곳에 몰려 외곽 주민은 이동하기 어려울 수 있다.', sourceThought(source),
       { source: i, area: true, limit: 100, hint: '이 자료를 보면 어떤 문제나 원인을 알 수 있나요?' })}
     ${source._photo ? input('photoCaption', '이미지 설명', '예: ○○동과 △△동의 복지관 위치 지도', source.photoCaption, { source: i }) : ''}
     ${source.author || source.date ? `<details class="supplement"><summary>자료를 만든 곳과 날짜</summary>
@@ -289,7 +297,7 @@ function evidenceEditor() {
     ideaHints() +
     `<div class="evidence-status"><span id="source-count" class="rubric-badge" role="status"></span>
       <p>자료를 찾은 곳, 자료 종류와 범위, 사실과 내 생각을 모두 채우면 숫자가 올라가요. 믿을 만한 자료를 여러 종류로 골라 보세요.</p></div>` +
-    sourceSlots().map(sourceCard).join('') + '<button type="button" id="add-source" class="add-source">+ 근거 자료 카드 추가</button>';
+    economyMaterials() + sourceSlots().map(sourceCard).join('') + '<button type="button" id="add-source" class="add-source">+ 근거 자료 카드 추가</button>';
 }
 
 function thinkingEditor() {
@@ -297,6 +305,7 @@ function thinkingEditor() {
   const human = activeTask() === 'human';
   const prior = PRIOR_KEYS.filter(key => filled(answer(key)));
   return heading(STEPS[2], '찾은 자료를 보면서 왜 이런 일이 생겼는지, 무엇을 바꿀 수 있을지 적어요.') +
+    economyReadingEditor() +
     `<section class="worksheet-section thought"><h2>${human ? '무슨 일이 왜 일어나고 있나요?' : '우리 동네에 어떤 변화가 생겼나요?'}</h2>${analysis.map(prompt).join('')}</section>
     <section class="worksheet-section thought"><h2>${human ? '어떻게 바꿀 수 있을까요? (해결책 2가지)' : '우리 지역을 살리는 아이디어와 나의 실천'}</h2>${solutions.map(prompt).join('')}</section>` +
     (prior.length ? `<details class="supplement"><summary>전에 적은 비교, 생각과 제안</summary>${prior.map(prompt).join('')}</details>` : '');
@@ -324,15 +333,16 @@ function finalEditor() {
 function renderProgress() {
   const { answers: a, sources } = work();
   const written = sources.filter(completeSource);
+  const sourceCount = new Set(written.map(source => officialStat(source)?.sourceUrl || source)).size;
   const count = $('#source-count');
   if (count) {
-    const label = `모은 자료: ${written.length} / ${SOURCE_GOAL}개 (최고점 목표: 3개 이상)`;
+    const label = `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (최고점 목표: 3개 이상)`;
     if (count.textContent !== label) count.textContent = label;
   }
   const { analysis, solutions } = rubric();
   const completed = [
     [a.number, a.name, a.team, a.topic, a.inquiry].every(filled),
-    written.length >= SOURCE_GOAL && new Set(written.map(sourceType)).size >= 2,
+    sourceCount >= SOURCE_GOAL && new Set(written.map(sourceType)).size >= 2,
     [...analysis, ...solutions].every(key => filled(answer(key))),
     [...CHECKLIST, ...REHEARSAL].every((_, i) => isChecked(i)) && reflectionKeys().every(key => filled(answer(key)))
   ];
@@ -372,6 +382,7 @@ function renderPoster() {
         `<figure><figcaption><strong>${i + 1}. ${esc(source.title || '근거 자료')}</strong></figcaption>
         ${[sourceType(source), sourceScale(source)].some(filled)
           ? `<span class="rubric-badge">${esc([sourceType(source), sourceScale(source)].filter(filled).join(' · '))}</span>` : ''}
+        ${officialStat(source) ? officialGraph(source.statId, true) : ''}
         ${source._photo ? `<img src="${source._photo}" alt="${esc(source.photoCaption || source.title || '첨부한 근거 이미지')}">` : ''}
         ${source._photo && source.photoCaption ? `<small>${esc(source.photoCaption)}</small>` : ''}
         <p><strong class="evidence-label">사실</strong> ${esc(sourceFact(source) || '작성할 내용')}</p>
@@ -379,6 +390,7 @@ function renderPoster() {
         <small><strong>출처</strong> ${esc([source.author, source.date, source.url].filter(filled).join(' / ') || '출처를 적어 주세요.')}</small></figure>`).join('')}
         ${attachments.map(photo => `<figure><img src="${esc(photo.dataUrl)}" alt="${esc(photo.caption || '이전에 첨부한 이미지')}"><figcaption>${esc(photo.caption)} <small>${esc([photo.credit, photo.source].filter(filled).join(' / '))}</small></figcaption></figure>`).join('')}</div>`
         : '<p class="paper-empty">모은 자료와 이미지가 여기에 들어가요.</p>'}
+      ${economyReadingReport()}
       <div class="paper-analysis">${posterFields([...analysis, ...prior.filter(key => key !== 'proposal')])}</div>
     </section>
     <section class="paper-section"><h3>3. 제안하기 (우리가 찾은 해결책)</h3>
@@ -534,6 +546,14 @@ $('#editor').addEventListener('input', event => {
 $('#editor').addEventListener('change', event => {
   const field = event.target;
   if (field.id === 'task') switchTask(field.value);
+  if (field.id === 'economy-pack') {
+    const id = field.value;
+    if (!id || ECONOMY_DATA.packs[id]) {
+      change(patchTask({ answers: { ...work().answers, economyPackId: id } }));
+      render();
+      $('#economy-pack').focus();
+    }
+  }
   if (field.dataset.photo !== undefined) attachPhoto(field);
   if (field.dataset.check !== undefined) {
     const index = Number(field.dataset.check);
@@ -548,6 +568,7 @@ $('#editor').addEventListener('change', event => {
 $('#editor').addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button) return;
+  if (button.dataset.useStat) useOfficialStat(button.dataset.useStat);
   if (button.dataset.idea) applyIdea(button.dataset.idea);
   if (button.dataset.useIdea) applyIdea(button.dataset.useIdea, true);
   if (button.id === 'edit-idea-topic') $('#topic').focus();
