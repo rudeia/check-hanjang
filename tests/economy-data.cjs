@@ -11,7 +11,10 @@ const expected = {
   'aging-share': [[18.2, 25.2, 10.3], [19.2, 26.2, 11.0]],
   'jeju-visitors': [[1079.2, 1164.0]],
   'jeju-retail': [[97.0, 96.5]],
-  'cocoa-price': [[2.39, 3.28, 7.33]]
+  'cocoa-price': [[2.39, 3.28, 7.33]],
+  'household-spending': [[2640, 2792, 2890]],
+  'dual-income': [[48.0, 43.7, 62.2]],
+  'regional-growth': [[2.0, 3.6, 3.4, -0.8, -1.5]]
 };
 assert.deepEqual(Object.keys(data.packs).sort(), Array.from(ideas.economy, item => item.id).sort());
 for (const [id, values] of Object.entries(expected)) {
@@ -21,7 +24,7 @@ for (const [id, values] of Object.entries(expected)) {
   assert.match(chart.sourceUrl, /^https:\/\//);
   for (const series of chart.series) {
     assert.equal(series.values.length, chart.labels.length);
-    assert(series.values.every(value => Number.isFinite(value) && value >= 0));
+    assert(series.values.every(value => Number.isFinite(value)));
   }
   const svg = fs.readFileSync('docs/assets/economy/' + id + '.svg', 'utf8');
   assert.match(svg, /<svg/);
@@ -37,4 +40,22 @@ assert.notEqual(data.charts['jeju-visitors'].unit, data.charts['jeju-retail'].un
 assert.match(data.charts['jeju-visitors'].note, /調整|조정/);
 assert.match(data.charts['aging-share'].note, /추산/);
 assert.match(data.charts['online-sales'].note, /포함/);
-console.log('PASS 6 case packs, 7 checked official series, offline SVG assets, units/scope/cautions, separate reading questions.');
+console.log('PASS 9 case packs, 10 checked official series, offline SVG assets, units/scope/cautions, separate reading questions.');
+
+// Regression: answering the reading questions must retain the graph in the report,
+// even when the student did not separately copy it into an evidence card.
+const work = { answers: { ideaId: 'global-prices' }, sources: [{}] };
+const context = { activeTask: () => 'economy', work: () => work, filled: value => Boolean(value?.trim()), Intl };
+vm.createContext(context);
+vm.runInContext(['workbook-storage', 'topic-ideas', 'economy-data', 'economy-activity']
+  .map(name => fs.readFileSync('docs/' + name + '.js', 'utf8')).join('\n'), context);
+const report = () => vm.runInContext('economyReadingReport()', context);
+assert.equal(report(), '');
+work.answers['reading_global-prices_compare'] = '7.33 and 2.39 were compared';
+assert.match(report(), /assets\/economy\/cocoa-price.svg/);
+assert.match(report(), /7.33 and 2.39 were compared/);
+work.sources = [{ statId: 'cocoa-price' }];
+assert.doesNotMatch(report(), /<img/); // The evidence card already prints the same graph.
+work.answers.economyPackId = 'living-costs';
+assert.equal(report(), ''); // Old answers must not appear under a different data pack.
+console.log('PASS reading-only graph inclusion, no duplicate evidence graph, and case-isolated report answers.');

@@ -70,6 +70,7 @@ function economyReadingEditor() {
   const pack = economyPack();
   if (!pack) return '';
   return `<section class="worksheet-section thought"><h2>숫자 비교부터 내 설명까지</h2>
+    <p class="field-hint">여기에 답을 쓰면 읽은 자료의 그래프와 출처도 포스터에 함께 들어가요.</p>
     <details class="supplement"><summary>표와 그래프 다시 보기</summary>${pack.charts.map(id => officialGraph(id)).join('')}</details>
     ${readingFields(pack).map(field => input(field.key, field.title, '그래프의 수치, 단위와 이유를 내 말로 적어 보세요.',
       work().answers[field.key], { area: true, limit: 200, hint: field.hint })).join('')}
@@ -81,8 +82,11 @@ function economyReadingReport() {
   if (!pack) return '';
   const fields = readingFields(pack).filter(field => filled(work().answers[field.key]));
   if (!fields.length) return '';
+  const missingCharts = pack.charts.filter(id => !work().sources.some(source => source.statId === id));
   return `<section class="paper-section"><h3>공식 자료를 읽고 생각한 점</h3>
     <p class="stat-meta">${esc(TOPIC_IDEAS.economy.find(idea => idea.id === pack.id).label)}</p>
+    ${missingCharts.length ? `<div class="evidence-grid">${missingCharts.map(id =>
+      `<figure><figcaption><strong>${esc(ECONOMY_DATA.charts[id].title)}</strong></figcaption>${officialGraph(id, true)}</figure>`).join('')}</div>` : ''}
     <div class="paper-analysis">${fields.map(field =>
       `<section><h4>${field.title}</h4><p>${esc(work().answers[field.key])}</p></section>`).join('')}</div></section>`;
 }

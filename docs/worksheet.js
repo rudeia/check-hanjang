@@ -296,14 +296,26 @@ function evidenceEditor() {
     '<a class="research-link" href="https://www.bigkinds.or.kr/" target="_blank" rel="noopener noreferrer">빅카인즈에서 뉴스 찾기 <small>(새 탭)</small></a>' +
     ideaHints() +
     `<div class="evidence-status"><span id="source-count" class="rubric-badge" role="status"></span>
-      <p>자료를 찾은 곳, 자료 종류와 범위, 사실과 내 생각을 모두 채우면 숫자가 올라가요. 믿을 만한 자료를 여러 종류로 골라 보세요.</p></div>` +
+      <p>${activeTask() === 'economy'
+        ? '제공된 자료의 숫자 비교와 경제 설명을 쓰거나, 아래 근거 카드의 출처·종류·범위·사실·생각을 채우면 숫자가 올라가요.'
+        : '자료를 찾은 곳, 자료 종류와 범위, 사실과 내 생각을 모두 채우면 숫자가 올라가요.'} 믿을 만한 자료를 여러 종류로 골라 보세요.</p></div>` +
     economyMaterials() + sourceSlots().map(sourceCard).join('') + '<button type="button" id="add-source" class="add-source">+ 근거 자료 카드 추가</button>';
 }
 
+function analysisKeys() {
+  return economyPack() ? rubric().analysis.filter(key => key !== 'concepts') : rubric().analysis;
+}
+
+function priorAnswerKeys() {
+  const keys = economyPack() ? [...PRIOR_KEYS, 'concepts'] : PRIOR_KEYS;
+  return keys.filter(key => filled(answer(key)));
+}
+
 function thinkingEditor() {
-  const { analysis, solutions } = rubric();
+  const { solutions } = rubric();
+  const analysis = analysisKeys();
   const human = activeTask() === 'human';
-  const prior = PRIOR_KEYS.filter(key => filled(answer(key)));
+  const prior = priorAnswerKeys();
   return heading(STEPS[2], '찾은 자료를 보면서 왜 이런 일이 생겼는지, 무엇을 바꿀 수 있을지 적어요.') +
     economyReadingEditor() +
     `<section class="worksheet-section thought"><h2>${human ? '무슨 일이 왜 일어나고 있나요?' : '우리 동네에 어떤 변화가 생겼나요?'}</h2>${analysis.map(prompt).join('')}</section>
@@ -333,17 +345,26 @@ function finalEditor() {
 function renderProgress() {
   const { answers: a, sources } = work();
   const written = sources.filter(completeSource);
-  const sourceCount = new Set(written.map(source => officialStat(source)?.sourceUrl || source)).size;
+  const sourceKeys = new Set(written.map(source => officialStat(source)?.sourceUrl || source));
+  const sourceTypes = new Set(written.map(sourceType));
+  const pack = economyPack();
+  if (pack && readingFields(pack).slice(0, 2).every(field => filled(a[field.key]))) {
+    pack.charts.forEach(id => sourceKeys.add(ECONOMY_DATA.charts[id].sourceUrl));
+    sourceTypes.add('통계·그래프');
+  }
+  const sourceCount = sourceKeys.size;
   const count = $('#source-count');
   if (count) {
     const label = `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (최고점 목표: 3개 이상)`;
     if (count.textContent !== label) count.textContent = label;
   }
-  const { analysis, solutions } = rubric();
+  const { solutions } = rubric();
+  const analysis = analysisKeys();
   const completed = [
     [a.number, a.name, a.team, a.topic, a.inquiry].every(filled),
-    sourceCount >= SOURCE_GOAL && new Set(written.map(sourceType)).size >= 2,
-    [...analysis, ...solutions].every(key => filled(answer(key))),
+    sourceCount >= SOURCE_GOAL && sourceTypes.size >= 2,
+    [...analysis, ...solutions].every(key => filled(answer(key)))
+      && (!economyPack() || readingFields(economyPack()).every(field => filled(work().answers[field.key]))),
     [...CHECKLIST, ...REHEARSAL].every((_, i) => isChecked(i)) && reflectionKeys().every(key => filled(answer(key)))
   ];
   $('#steps').innerHTML = STEPS.map((title, i) =>
@@ -363,10 +384,12 @@ function posterFields(keys) {
 
 function renderPoster() {
   const { answers: a, sources, attachments = [] } = work();
-  const { analysis, solutions } = rubric();
-  const prior = PRIOR_KEYS.filter(key => filled(answer(key)));
+  const { solutions } = rubric();
+  const analysis = analysisKeys();
+  const prior = priorAnswerKeys();
   const author = [a.classroom, a.number, a.name, a.team].filter(filled).join('  /  ');
   const evidence = sources.filter(hasSource);
+  const readingReport = economyReadingReport();
   $('#poster').innerHTML = `<article class="paper">
     <header class="paper-header"><span class="paper-label">통합사회2 탐구 포스터 · ${TASKS[activeTask()]}</span>
       <h2>${esc(a.posterTitle || a.topic || '나의 탐구 주제')}</h2>
@@ -389,8 +412,8 @@ function renderPoster() {
         <p><strong class="evidence-label">내 생각</strong> ${esc(sourceThought(source) || '작성할 내용')}</p>
         <small><strong>출처</strong> ${esc([source.author, source.date, source.url].filter(filled).join(' / ') || '출처를 적어 주세요.')}</small></figure>`).join('')}
         ${attachments.map(photo => `<figure><img src="${esc(photo.dataUrl)}" alt="${esc(photo.caption || '이전에 첨부한 이미지')}"><figcaption>${esc(photo.caption)} <small>${esc([photo.credit, photo.source].filter(filled).join(' / '))}</small></figcaption></figure>`).join('')}</div>`
-        : '<p class="paper-empty">모은 자료와 이미지가 여기에 들어가요.</p>'}
-      ${economyReadingReport()}
+        : readingReport ? '' : '<p class="paper-empty">모은 자료와 이미지가 여기에 들어가요.</p>'}
+      ${readingReport}
       <div class="paper-analysis">${posterFields([...analysis, ...prior.filter(key => key !== 'proposal')])}</div>
     </section>
     <section class="paper-section"><h3>3. 제안하기 (우리가 찾은 해결책)</h3>
