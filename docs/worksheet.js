@@ -26,7 +26,7 @@ const PROMPTS = {
   inquiry: ['어디에서, 누구에게, 어떤 문제가 생기고 있나요?', '예: 우리 동네와 옆 동네는 노인복지관을 이용하기 얼마나 편할까?'],
   current: ['지금 무슨 일이 일어나고 있나요?', '예: 우리 동네는 고령화율이 25%인데 노인복지관이 1곳뿐이다.', '어디에서, 누구에게 어떤 불평등이나 인권 문제가 생겼나요?'],
   cause: ['왜 이런 일이 생겼나요?', '예: 마을이 흩어져 있고 외곽에서 복지관까지 가는 버스가 적다.', '조사한 자료를 보고 이유를 적어 보세요.'],
-  valueJudgment: ['무엇이 가장 중요할까요?', '예: 교통이 불편한 주민부터 도와야 복지관을 이용할 기회가 공평해진다.', '개인의 자유와 권리, 모두를 위한 배려와 공정함 중 무엇을 더 중요하게 보나요? 이유도 적어 보세요.'],
+  valueJudgment: ['무엇이 가장 중요할까요?', '예: 교통이 불편한 주민부터 도와야 복지관을 이용할 기회가 공평해진다.', '이 문제에서 누구의 어떤 권리를 지켜야 할까요? 자유, 안전, 공정함, 서로를 위한 배려 등에서 중요하다고 생각한 기준을 고르고 자료와 연결해 이유를 적어 보세요.'],
   policy: ['법·제도 바꾸기', '예: 구청이 복지관과 외곽 마을을 잇는 셔틀을 주 2회 운영한다.', '정부, 시청, 학교에서 어떤 규칙이나 제도를 만들면 좋을까요?'],
   action: ['우리가 직접 해보기', '예: 친구들과 버스 이용이 어려운 정류장을 조사해 주민 제안 게시판에 개선안을 올린다.', '나와 친구들이 일상에서 바로 할 수 있는 일은 무엇인가요?'],
   region: ['어느 지역을 조사했나요?', '예: 전남 순천시 원도심의 중앙시장 주변'],
@@ -162,7 +162,10 @@ function prompt(key) {
     economicCause: '원인이라고 생각한 점을 자료와 연결하고, 확인할 점도 적어요.',
     posterTitle: '예: 시장의 변화, 우리 동네의 선택'
   };
-  return input(key, label, economics ? examples[key] || example : example, answer(key), { area, hint, limit: area ? 120 : 50 });
+  const contextualExample = economics ? examples[key] : selectedIdea()?.examples?.[key];
+  const fallbackExample = key === 'reflection' && !economics
+    ? '예: 처음에는 시설 수만 살폈다. 조사 후에는 누가 실제로 이용하기 어려운지도 생각하게 됐다.' : example;
+  return input(key, label, contextualExample || fallbackExample, answer(key), { area, hint, limit: area ? 120 : 50 });
 }
 
 function heading(title, description) {
@@ -278,16 +281,16 @@ function sourceCard(source, i) {
     </div>
     ${sourceChips('type', '어떤 자료인가요?', SOURCE_TYPES, sourceType(source), i)}
     ${sourceChips('scale', '어디의 이야기인가요?', SOURCE_SCALES, sourceScale(source), i)}
-    ${input('title', '자료 제목이 무엇인가요?', activeTask() === 'economy' ? '예: 우리 시 상가 공실률 통계' : '예: 우리 구 노인복지시설 현황', source.title, { source: i })}
-    ${input('url', '어디에서 찾았나요?', activeTask() === 'economy' ? '예: 통계청 자료 제목과 링크' : '예: ○○구청 복지시설 현황(2025) 또는 자료 링크', source.url, { source: i })}
-    ${input('fact', '팩트 체크 (자료에 나온 사실)', activeTask() === 'economy' ? '예: 비교한 두 해의 수치와 차이를 단위와 함께 적어요.' : '예: 2025년 ○○동에 등록된 노인복지관은 1곳이다.', sourceFact(source),
+    ${input('title', '자료 제목이 무엇인가요?', activeTask() === 'economy' ? '예: 우리 시 상가 공실률 통계' : selectedIdea() ? `예: ${selectedIdea().label} 조사 기록` : '예: 우리 구 노인복지시설 현황', source.title, { source: i })}
+    ${input('url', '어디에서 찾았나요?', activeTask() === 'economy' ? '예: 통계청 자료 제목과 링크' : '예: ○○시청 자료 제목과 링크 / 직접 조사한 장소', source.url, { source: i })}
+    ${input('fact', '팩트 체크 (자료에 나온 사실)', activeTask() === 'economy' ? '예: 비교한 두 해의 수치와 차이를 단위와 함께 적어요.' : selectedIdea()?.examples?.fact || '예: 2025년 ○○동에 등록된 노인복지관은 1곳이다.', sourceFact(source),
       { source: i, area: true, limit: 100, hint: '자료에 나온 숫자나 사실을 있는 그대로 적어 보세요.' })}
-    ${input('thought', '내 생각 한 줄 (해석)', activeTask() === 'economy' ? '예: 이 변화가 소비자와 가게에 어떤 영향을 줄 수 있을지 적어요.' : '예: 복지관이 한 곳에 몰려 외곽 주민은 이동하기 어려울 수 있다.', sourceThought(source),
+    ${input('thought', '내 생각 한 줄 (해석)', activeTask() === 'economy' ? '예: 이 변화가 소비자와 가게에 어떤 영향을 줄 수 있을지 적어요.' : selectedIdea()?.examples?.thought || '예: 복지관이 한 곳에 몰려 외곽 주민은 이동하기 어려울 수 있다.', sourceThought(source),
       { source: i, area: true, limit: 100, hint: '이 자료를 보면 어떤 문제나 원인을 알 수 있나요?' })}
-    ${source._photo ? input('photoCaption', '이미지 설명', '예: ○○동과 △△동의 복지관 위치 지도', source.photoCaption, { source: i }) : ''}
-    ${source.author || source.date ? `<details class="supplement"><summary>자료를 만든 곳과 날짜</summary>
-      ${input('author', '누가 만든 자료인가요?', '예: ○○구청 복지과', source.author, { source: i })}
-      ${input('date', '언제 나온 자료인가요?', '예: 2025년 12월', source.date, { source: i })}</details>` : ''}
+    ${source._photo ? input('photoCaption', '이미지에서 무엇을 볼 수 있나요?', '예: ○○동에서 직접 조사한 모습, 11월 7일 촬영', source.photoCaption, { source: i }) : ''}
+    <details class="supplement"><summary>자료를 만든 곳과 날짜 적기</summary>
+      ${input('author', '누가 만들거나 조사했나요?', '예: ○○구청 / 직접 촬영(김하늘)', source.author, { source: i })}
+      ${input('date', '언제 만들거나 조사했나요?', '예: 2026년 11월 7일 촬영 / 2025년 12월 발행', source.date, { source: i })}</details>
   </section>`;
 }
 
