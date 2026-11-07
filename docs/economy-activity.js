@@ -36,12 +36,12 @@ function economyMaterials() {
   const pack = economyPack();
   return `<section class="economy-materials" aria-labelledby="economy-materials-title">
     <h2 id="economy-materials-title">실제 숫자와 그래프를 읽어 봐요</h2>
-    <p class="field-hint">수업에서 비교할 수 있도록 시점을 고정한 공식 자료예요. 최신 현황과는 다를 수 있어요. 날짜·단위·지역을 먼저 확인하세요.</p>
+    <p class="field-hint">날짜·단위·지역을 먼저 확인해요. 이 활동은 표에 적힌 시점의 공식 통계를 사용해요.</p>
     <div class="field"><label for="economy-pack">어떤 사례의 자료를 볼까요?</label>
       <select id="economy-pack"><option value="" disabled>자료 묶음을 골라 보세요</option>
         ${TOPIC_IDEAS.economy.map(idea => `<option value="${idea.id}" ${idea.id === pack?.id ? 'selected' : ''}>${esc(idea.label)}</option>`).join('')}
       </select>
-      <small class="field-hint">여기서는 연습할 자료만 바뀌어요. 내 탐구 주제와 출발 질문은 1단계에서 고쳐요.</small>
+      <small class="field-hint">참고할 통계를 골라요. 주제와 출발 질문을 고치려면 1단계로 가요.</small>
     </div>
     ${pack ? pack.charts.map((id, index) => {
       const chart = ECONOMY_DATA.charts[id];
