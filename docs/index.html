@@ -7,6 +7,8 @@
   <title>체크 한장 · 통합사회2 탐구 활동지</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="report-print.css">
+  <link rel="stylesheet" href="listening.css">
+  <script defer src="home.js"></script>
   <script defer src="cases.js"></script>
   <script defer src="topic-ideas.js"></script>
   <script defer src="workbook-storage.js"></script>
@@ -15,7 +17,19 @@
   <script defer src="worksheet.js"></script>
   <script defer src="report-print.js"></script>
 </head>
-<body>
+<body class="at-home">
+  <main id="home" class="home-shell">
+    <a class="home-brand" href="./">체크 한장</a>
+    <p class="step-kicker">통합사회 · 탐구와 발표</p>
+    <h1>내 생각을 만들고,<br>친구의 생각을 이어 보세요.</h1>
+    <p class="home-intro">오늘 할 활동을 골라 시작하세요. 작성한 내용은 이 기기에 보관돼요.</p>
+    <div class="home-choices">
+      <a href="#activity" class="home-card"><span class="card-number">01</span><h2>활동하기</h2><p>질문과 자료를 모아<br>나만의 탐구 한 장을 만들어요.</p><span class="card-link">탐구 활동지 열기 →</span></a>
+      <a href="listening.html" class="home-card"><span class="card-number">02</span><h2>평가하기</h2><p>친구의 발표를 듣고<br>핵심 내용과 내 생각을 정리해요.</p><span class="card-link">발표 정리 학습지 열기 →</span></a>
+    </div>
+    <p class="home-foot">발표자 학번별로 기록하고, 마지막에 모두 한 PDF로 모을 수 있어요.</p>
+  </main>
+  <div id="activity-root">
   <a class="skip" href="#workspace">작성 화면으로 건너뛰기</a>
   <header class="topbar">
     <div class="top-inner">
@@ -24,6 +38,7 @@
         <div><strong>체크 한장</strong><small>통합사회2 탐구 활동지</small></div>
       </div>
       <div class="tools">
+        <a href="#home" class="research-link">대문</a>
         <span id="save-status" class="save-status" role="status">이 기기에 자동 저장</span>
         <button id="open-files" type="button">작업 저장·불러오기</button>
         <button id="reset" type="button">초기화</button>
@@ -78,6 +93,7 @@
     <h3>사진과 공유 기기 사용</h3>
     <p>직접 찍었거나 사용 허락을 받은 사진을 써요. 사진에 얼굴, 이름, 집 주소가 나오지 않는지 확인하세요. 공유 기기에서는 파일을 안전한 곳에 보관한 뒤 작업을 초기화하고, 내려받기 폴더에 남은 파일도 정리하세요.</p>
   </dialog>
+  </div>
   <noscript>이 활동지를 작성하려면 브라우저에서 자바스크립트를 켜 주세요.</noscript>
 </body>
 </html>

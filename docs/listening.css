@@ -1,0 +1,73 @@
+/* Shared green-and-paper theme; no network resources or external fonts. */
+.home-brand { color: var(--ink); font-size: 1.25rem; font-weight: 800; text-decoration: none; }
+.home-shell { max-width: 1040px; margin: auto; padding: 3rem 1.5rem; }
+.home-shell > .home-brand { display: inline-block; margin-bottom: 4rem; }
+.home-shell h1 { margin: .6rem 0 1rem; font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.25; }
+.home-intro, .home-foot { color: var(--muted); }
+.home-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 1.3rem; margin: 2.4rem 0 1.3rem; }
+.home-card { display: block; padding: 2rem; border: 1px solid var(--line); border-radius: 18px; background: white; text-decoration: none; color: var(--ink); transition: border-color .15s, background .15s; }
+.home-card:hover { border-color: var(--accent); background: #fafffc; }
+.card-number { display: inline-grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 12px; background: var(--wash); color: var(--accent); font-weight: 800; }
+.home-card h2 { font-size: 1.7rem; margin: 1rem 0 .5rem; }
+.home-card p { color: var(--muted); line-height: 1.7; }
+.card-link { display: block; margin-top: 2rem; font-weight: 750; color: var(--accent); }
+.at-home #activity-root { display: none; }
+.listening-heading { margin: .8rem 0 1.6rem; }
+.listening-heading h1 { margin: .35rem 0 .5rem; }
+.listening-heading > p:last-child { color: var(--muted); }
+.listener-bar { display: flex; align-items: center; gap: 2rem; margin-bottom: 1rem; padding: 1rem 1.3rem; background: var(--wash); border-radius: 12px; }
+.listener-bar .field { margin: 0; flex: 0 1 260px; }
+.listener-bar p { max-width: 620px; font-size: .9rem; color: var(--muted); }
+.listening-layout { display: grid; grid-template-columns: 280px minmax(0,1fr); gap: 1.3rem; align-items: start; }
+.notes-sidebar { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem; }
+.notes-sidebar h2 { margin-bottom: 1rem; }
+#record-count { color: var(--accent); }
+#open-note button { width: 100%; }
+.notes-sidebar > .field-hint { margin: .75rem 0; font-size: .83rem; }
+.record-list { list-style: none; padding: 0; margin: 1rem 0; display: grid; gap: .5rem; }
+.record-list button { display: grid; justify-content: start; text-align: left; width: 100%; }
+.record-list button span { font-size: .85rem; font-weight: 400; color: var(--muted); }
+.record-list button[aria-current] { background: var(--wash); border-color: var(--accent); }
+#empty-list { color: var(--muted); font-size: .9rem; margin-block: 2rem; }
+.note-utilities { display: grid; gap: .5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.note-utilities button { font-size: .85rem; }
+#clear-notes { color: #8c3529; }
+#editor-empty { min-height: 340px; display: flex; flex-direction: column; justify-content: center; gap: .7rem; }
+#editor-empty p:last-child { color: var(--muted); }
+.note-title-row { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: 1.5rem; }
+.note-title-row h2 { font-size: 1.4rem; }
+#note-fields .field { padding-top: 1rem; margin-bottom: 1rem; border-top: 1px solid var(--line); }
+#note-fields .field-hint { font-size: .9rem; }
+#note-fields textarea { min-height: 105px; line-height: 1.7; }
+.note-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: .7rem; }
+#notes-print { display: none; }
+@media (max-width: 700px) {
+  .home-shell > .home-brand { margin-bottom: 2.5rem; }
+  .home-choices { grid-template-columns: 1fr; }
+  .home-card { padding: 1.5rem; }
+  .home-card p br { display: none; }
+  .card-link { margin-top: 1rem; }
+  .listening-layout { grid-template-columns: 1fr; }
+  .listener-bar { display: grid; gap: .7rem; }
+  .listening-page .top-inner { flex-wrap: wrap; }
+  .listening-page .top-inner, .listening-page .shell { width: min(100% - 2rem, 1240px); }
+  .record-list { max-height: 260px; overflow-y: auto; }
+  .note-title-row { flex-wrap: wrap; }
+}
+@media print {
+  .at-home #home { display: block; }
+  .listening-page > :not(#notes-print) { display: none !important; }
+  .listening-page #notes-print { display: block !important; color: #111; background: white; font-size: 10pt; }
+  .listening-page { background: white; }
+  .print-intro { border-bottom: 1.5pt solid #006653; padding-bottom: 5mm; margin-bottom: 6mm; }
+  .print-intro h1 { font-size: 19pt; margin: 2mm 0; }
+  .printed-note + .printed-note { break-before: page; }
+  .printed-note header { margin-bottom: 5mm; }
+  .printed-note h2 { font-size: 16pt; margin-top: 2mm; }
+  .printed-note section { margin: 0 0 5mm; }
+  .printed-note h3 { font-size: 11pt; break-after: avoid; margin-bottom: 2mm; }
+  .printed-note section p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; orphans: 3; widows: 3; }
+  @page { size: A4; margin: 16mm; }
+}
+
+.pdf-help { margin: -.5rem 0 1rem; color: var(--muted); font-size: .88rem; }
