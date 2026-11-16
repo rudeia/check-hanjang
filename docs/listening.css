@@ -92,3 +92,8 @@
   .listening-page .workspace { padding: 1.1rem; }
   .note-actions > button { flex: 1 1 100%; }
 }
+/* Header actions share the same height and baseline, including compact screens. */
+.listening-page .top-inner { display: flex; flex-wrap: wrap; align-items: center; }
+.listening-page .top-inner .tools { display: flex; align-items: center; gap: .5rem; }
+.listening-page .top-inner .research-link,
+.listening-page .top-inner [data-export-pdf] { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin: 0; padding: .65rem .85rem; }
