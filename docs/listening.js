@@ -51,11 +51,11 @@
     const note = state.draft?.number === number ? state.draft : state.records.find(n => n.number === number);
     active = number;
     $('presenter').value = number;
-    $('active-number').textContent = number;
+    $('active-number').textContent = number; $('edit-presenter').value = number;
     $('editor-empty').hidden = true; $('note-form').hidden = false;
     for (const key of ['topic', ...fields.map(f => f[0])]) $(key).value = note?.[key] || '';
     $('draft-status').textContent = note ? '기록 이어 쓰기' : '새 기록';
-    list(); $('topic').focus(); status(`${number} 발표를 정리하고 있어요.`);
+    list(); resizeFields(); $('topic').focus(); status(`${number} 발표를 정리하고 있어요.`);
   }
   const hasContent = n => ['topic', ...fields.map(f => f[0])].some(k => n[k].trim());
   function upsert(n) {
@@ -72,12 +72,37 @@
     if (ok) status(`${active} 발표 기록을 저장했어요. 다음 발표자 학번을 입력하거나 목록에서 다른 기록을 열어 보세요.`);
     return ok;
   }
+  function resizeFields() {
+    document.querySelectorAll('#note-form textarea').forEach(el => {
+      el.style.height = 'auto';
+      el.style.height = Math.min(420, el.scrollHeight + 2) + 'px';
+    });
+  }
+  $('rename-presenter').onclick = () => {
+    if (!active || blocked) return;
+    const number = $('edit-presenter').value.trim();
+    if (!number) { status('변경할 학번을 입력해 주세요.'); $('edit-presenter').focus(); return; }
+    if (number === active) { status('현재 학번과 같아요.'); return; }
+    if (state.records.some(n => n.number === number)) {
+      status(`${number} 학번의 기록이 이미 있어요. 두 기록을 보호하기 위해 변경하지 않았어요. 다른 학번을 입력해 주세요.`);
+      $('edit-presenter').focus(); return;
+    }
+    const oldState = state, oldNumber = active;
+    const note = {...readForm(), number};
+    const records = state.records.map(n => n.number === oldNumber ? {...note} : n);
+    state = {...state, records, draft: note};
+    if (!persist()) { state = oldState; return; }
+    active = number; $('presenter').value = number; $('active-number').textContent = number;
+    list(); $('draft-status').textContent = '학번 변경됨';
+    status(`${oldNumber} → ${number}(으)로 학번을 바꿨어요. 작성 내용은 그대로 보관했어요.`);
+  };
+  window.addEventListener('resize', resizeFields);
   $('note-fields').innerHTML = fields.map(([key, title, hint]) => `<div class="field"><label for="${key}">${title}</label><p id="${key}-hint" class="field-hint">${hint}</p><textarea id="${key}" name="${key}" maxlength="6000" aria-describedby="${key}-hint" rows="3"></textarea></div>`).join('');
   $('listener').value = state.listener;
   $('listener').addEventListener('input', () => { if (!blocked) { state.listener = $('listener').value; persist(); } });
   $('open-note').addEventListener('submit', e => { e.preventDefault(); const n = $('presenter').value.trim(); if (n) openNote(n); });
   $('record-list').addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) openNote(state.records[Number(b.dataset.open)].number); });
-  $('note-form').addEventListener('input', () => { $('draft-status').textContent = saveDraft() ? '임시 저장됨' : '기기 저장 실패'; });
+  $('note-form').addEventListener('input', e => { if (e.target.id === 'edit-presenter') return; resizeFields(); $('draft-status').textContent = saveDraft() ? '임시 저장됨' : '기기 저장 실패'; });
   $('note-form').addEventListener('submit', e => { e.preventDefault(); save(); });
   $('next-note').addEventListener('click', () => {
     if (!save()) return;

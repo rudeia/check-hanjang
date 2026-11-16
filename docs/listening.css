@@ -74,3 +74,21 @@
 
 .pdf-actions { display: grid; gap: .5rem; margin: 1rem 0; }
 .pdf-actions p { color: var(--muted); font-size: .8rem; line-height: 1.6; margin: 0; }
+
+/* Keep editable identifiers and long student writing legible on every width. */
+.rename-presenter { display: flex; align-items: end; gap: .65rem; flex-wrap: wrap; padding: 1rem; margin-bottom: 1.4rem; background: var(--wash); border-radius: 10px; }
+.rename-presenter .field { flex: 1 1 180px; margin: 0; }
+.rename-presenter > p { flex-basis: 100%; margin: 0; color: var(--muted); font-size: .83rem; }
+.listening-page .workspace, .notes-sidebar, .record-list li, .record-list button { min-width: 0; }
+.record-list button strong, .record-list button span, .note-title-row h2 { overflow-wrap: anywhere; }
+#note-form textarea { width: 100%; min-height: 110px; max-height: 420px; overflow-y: auto; line-height: 1.7; resize: vertical; }
+#note-form #topic { min-height: 72px; }
+@media (min-width: 701px) and (max-width: 1000px) {
+  .listening-layout { grid-template-columns: 220px minmax(0, 1fr); gap: 1rem; }
+  .notes-sidebar { padding: 1rem; }
+  .listening-page .workspace { padding: 1.25rem; }
+}
+@media (max-width: 700px) {
+  .listening-page .workspace { padding: 1.1rem; }
+  .note-actions > button { flex: 1 1 100%; }
+}
