@@ -39,7 +39,7 @@
     $('record-count').textContent = state.records.length;
     $('empty-list').hidden = state.records.length > 0;
     $('record-list').innerHTML = state.records.map((n, i) => `<li><button type="button" data-open="${i}" ${n.number === active ? 'aria-current="true"' : ''}><strong>${esc(n.number)}</strong><span>${esc(n.topic || '제목 없는 발표')}</span></button></li>`).join('');
-    $('export-all').disabled = !state.records.length && !active;
+    document.querySelectorAll('[data-export-pdf]').forEach(button => { button.disabled = !state.records.length && !active; });
   }
   function openNote(number) {
     if (blocked) { status('원래 저장 기록을 먼저 보관해 주세요. 덮어쓰기를 막기 위해 새 작성을 잠시 막았습니다.'); return; }
@@ -110,12 +110,13 @@
     if (active && hasContent(readForm())) { upsert(readForm()); state.draft = null; persist(); list(); }
     $('notes-print').innerHTML = `<header class="print-intro"><p>체크 한장 · 발표 정리 학습지</p><h1>친구의 발표, 내 말로 한 장</h1><p>작성자 학번: ${esc(state.listener || '미입력')} · 발표 ${state.records.length}건</p></header>` + state.records.map((n, i) => `<article class="printed-note"><header><p>발표 ${i+1} / ${state.records.length} · 발표자 학번 ${esc(n.number)}</p><h2>${esc(n.topic || '제목 없는 발표')}</h2></header>${fields.map(([k,title]) => `<section><h3>${title}</h3><p>${esc(n[k] || '작성하지 않음')}</p></section>`).join('')}</article>`).join('');
   }
-  $('export-all').onclick = () => {
+  function exportAll() {
     preparePrint();
     if (!state.records.length) { status('발표 내용을 저장한 뒤 PDF로 모을 수 있어요.'); return; }
     status('인쇄창에서 대상을 “PDF로 저장”으로 선택하세요. 모든 발표 기록이 하나의 PDF에 들어갑니다.');
     window.print();
-  };
+  }
+  document.querySelectorAll('[data-export-pdf]').forEach(button => { button.onclick = exportAll; });
   window.addEventListener('beforeprint', preparePrint);
   list();
   if (!blocked && state.draft) { const n = state.draft.number; openNote(n); status(`${n} 발표의 임시 기록을 복원했어요.`); }
