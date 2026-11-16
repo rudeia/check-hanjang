@@ -15,3 +15,12 @@
   .print-paper { break-after: page; page-break-after: always; }
   .print-paper:last-child { break-after: auto; page-break-after: auto; }
 }
+
+/* Reading order comes first: prose is full width; compact evidence may pair. */
+#poster .paper-analysis { display: block; }
+#poster .paper-analysis > section { margin-bottom: .8rem; }
+#poster .evidence-grid > * { grid-column: 1 / -1; }
+#poster .evidence-grid > .compact-evidence { grid-column: auto; }
+@media (max-width: 700px) {
+  #poster .evidence-grid > .compact-evidence { grid-column: 1 / -1; }
+}

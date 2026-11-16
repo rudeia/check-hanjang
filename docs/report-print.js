@@ -97,29 +97,22 @@
     }
     function grid(node, path) {
       const items = [...node.children];
-      for (let i = 0; i < items.length; i += 2) {
-        let remaining = [clone(items[i]), items[i + 1] ? clone(items[i + 1]) : null];
-        let attempts = 0;
-        while (remaining.some(Boolean)) {
-          const parent = host([...path, node]);
-          const row = document.createElement('div'); row.className = 'print-row';
-          parent.append(row);
-          let consumed = false;
-          remaining = remaining.map(item => {
-            const column = document.createElement('div'); row.append(column);
-            if (!item) return null;
-            const rest = take(item, column);
-            if (column.hasChildNodes()) consumed = true;
-            return rest;
-          });
-          if (!consumed) { row.remove(); if (++attempts > 1) throw new Error('Report item cannot fit on an A4 page'); }
-          else attempts = 0;
-          if (remaining.some(Boolean)) nextPage();
-        }
+      for (let i = 0; i < items.length;) {
+        const a = items[i], b = items[i + 1];
+        if (!b || !compactPair(a, b)) { fullBlock(a, [...path, node]); i++; continue; }
+        const parent = host([...path, node]);
+        const row = document.createElement('div'); row.className = 'print-row';
+        [a, b].forEach(item => { const column = document.createElement('div'); column.append(clone(item)); row.append(column); });
+        parent.append(row);
+        // Only short comparable cards stay together. Never create a blank
+        // continuation column: a pair that cannot fit moves as one short unit.
+        if (!fits()) { row.remove(); nextPage(); host([...path, node]).append(row); }
+        i += 2;
       }
     }
     function visit(node, path) {
-      if (node.matches('.evidence-grid, .paper-analysis')) grid(node, path);
+      if (node.matches('.evidence-grid')) grid(node, path);
+      else if (node.matches('.paper-analysis')) [...node.children].forEach(child => fullBlock(child, [...path, node]));
       else if (node.querySelector('.evidence-grid, .paper-analysis'))
         [...node.children].forEach(child => visit(child, [...path, node]));
       else fullBlock(node, path);
@@ -131,6 +124,37 @@
         throw new Error('Report page overflow');
       document.documentElement.classList.add('has-print-pages');
     } catch (error) { clear(); throw error; }
+  }
+  function compactPair(a, b) {
+    if ([a,b].some(n => n.textContent.length > 450)) return false;
+    const probe = document.createElement('article');
+    probe.className = 'paper print-paper';
+    probe.style.cssText = 'position:absolute;left:-20000px;visibility:hidden;border:0;padding:0';
+    probe.innerHTML = '<div class="evidence-grid"><div class="print-row"><div></div><div></div></div></div>';
+    const slots = [...probe.querySelector('.print-row').children];
+    [a,b].forEach((n,i) => slots[i].append(n.cloneNode(true)));
+    document.body.append(probe);
+    const heights = slots.map(c => c.firstElementChild.getBoundingClientRect().height);
+    probe.remove();
+    return Math.max(...heights) <= 260 && Math.abs(heights[0] - heights[1]) <= 100;
+  }
+  function previewLayout() {
+    const grid = document.querySelector('#poster .evidence-grid');
+    if (!grid) return;
+    const items = [...grid.children];
+    items.forEach(n => n.classList.remove('compact-evidence'));
+    for (let i=0; i<items.length;) {
+      if (items[i+1] && compactPair(items[i],items[i+1])) {
+        items[i].classList.add('compact-evidence'); items[i+1].classList.add('compact-evidence'); i+=2;
+      } else i++;
+    }
+  }
+  // Preview classification changes layout only, never saved student answers.
+  const poster = document.querySelector('#poster');
+  if (poster && document.querySelector('#workspace')) {
+    new MutationObserver(previewLayout).observe(poster, {childList:true, subtree:true});
+    poster.addEventListener('load', previewLayout, true);
+    document.fonts?.ready.then(previewLayout); previewLayout();
   }
   window.prepareReportPrint = prepare;
   function beforePrint() {

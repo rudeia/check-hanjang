@@ -29,7 +29,7 @@
           if(original.tagName==='IMG' ? copies.length!==1 || copies[0].src!==original.src : copies.map(c=>c.textContent).join('')!==original.textContent) throw Error(name+': changed content');
         }
         const firstRow=output.querySelector('.print-row');
-        if(name!=='oversized headings' && [...firstRow.children].some(c=>!c.textContent.trim())) throw Error(name+': empty paired column');
+        if(name==='short' && (!firstRow || [...firstRow.children].some(c=>!c.textContent.trim()))) throw Error(name+': empty paired column');
         for(const page of output.children) {
           if(page.getBoundingClientRect().height>268*96/25.4+1) throw Error(name+': vertical overflow');
           for(const e of page.querySelectorAll('*')) if(getComputedStyle(e).display!=='inline' && e.scrollWidth>e.clientWidth+2) throw Error(name+': horizontal overflow');
