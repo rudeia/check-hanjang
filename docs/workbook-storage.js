@@ -178,3 +178,26 @@ async function validateRestoredPhotos(items) {
 }
 
 function downloadJSON(value,name){const blob=new Blob([typeof value==='string'?value:JSON.stringify(value,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return blob.size;}
+
+// Activity-scoped views/backups preserve the original v1 container and unknown fields.
+function activityRecord(container, task) {
+  if (task === 'economy') return container.economy || blank();
+  const {economy, inquiry, exportedAt, ...human} = container;
+  return human;
+}
+function replaceActivity(container, record, task) {
+  if (task === 'economy') return {...container, economy: record, inquiry: {version: 1, active: task}};
+  return {...record, ...(container.economy ? {economy: container.economy} : {}), inquiry: {version: 1, active: task}};
+}
+function restoreActivity(container, incoming, task) {
+  let record;
+  if (incoming.schema === 'check-hanjang-activity') {
+    if (incoming.version !== 1 || incoming.activity !== task || !validTask(incoming.task, task === 'economy') || incoming.task.economy || incoming.task.inquiry)
+      throw new Error('다른 활동의 파일이거나 지원하지 않는 파일이에요. 해당 활동에서 열어 주세요.');
+    record = incoming.task;
+  } else {
+    if (!valid(incoming) || (task === 'economy' && !incoming.economy)) throw new Error('현재 활동의 기록이 없는 파일이에요.');
+    record = activityRecord(incoming, task);
+  }
+  return replaceActivity(container, record, task);
+}

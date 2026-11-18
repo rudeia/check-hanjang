@@ -24,10 +24,10 @@
     <h1>내 생각을 만들고,<br>친구의 생각을 이어 보세요.</h1>
     <p class="home-intro">오늘 할 활동을 골라 시작하세요. 작성한 내용은 이 기기에 보관돼요.</p>
     <div class="home-choices">
-      <a href="#activity" class="home-card"><span class="card-number">01</span><h2>활동하기</h2><p>질문과 자료를 모아<br>나만의 탐구 한 장을 만들어요.</p><span class="card-link">탐구 활동지 열기 →</span></a>
-      <a href="listening.html" class="home-card"><span class="card-number">02</span><h2>평가하기</h2><p>친구의 발표를 듣고<br>핵심 내용과 내 생각을 정리해요.</p><span class="card-link">발표 정리 학습지 열기 →</span></a>
+      <section class="home-card"><span class="card-number">01 · 인권</span><h2>보이는 탐구, 말하는 사회</h2><p>인권과 불평등의 원인을 살펴보고<br>권리 보장 방안을 포스터와 발표로 전해요.</p><a href="#human" class="card-link">인권 탐구 작성하기 →</a><br><a href="listening.html?task=human" class="card-link">인권 발표 정리하기 →</a></section>
+      <section class="home-card"><span class="card-number">02 · 경제</span><h2>경제 탐구 보고서</h2><p>자료의 수치를 비교하고 경제 개념으로<br>지역의 변화와 대응 방안을 분석해요.</p><a href="#economy" class="card-link">경제 보고서 작성하기 →</a><br><a href="listening.html?task=economy" class="card-link">경제 탐구 공유 기록하기 →</a></section>
     </div>
-    <p class="home-foot">발표자 학번별로 기록하고, 마지막에 모두 한 PDF로 모을 수 있어요.</p>
+    <p class="home-foot">두 활동의 답안·자료·진행 상황과 공유 기록을 각각 보관해요. 같은 학번으로 참여해도 서로 바뀌지 않아요.</p>
   </main>
   <div id="activity-root">
   <a class="skip" href="#workspace">작성 화면으로 건너뛰기</a>
@@ -41,7 +41,7 @@
         <a href="#home" class="research-link">대문</a>
         <span id="save-status" class="save-status" role="status">이 기기에 자동 저장</span>
         <button id="open-files" type="button">작업 저장·불러오기</button>
-        <button id="reset" type="button">초기화</button>
+        <button id="reset" type="button">이 활동 초기화</button>
         <button id="open-help" type="button">? 작성·평가 안내</button>
       </div>
     </div>
@@ -70,7 +70,7 @@
 
   <dialog id="file-dialog" aria-labelledby="file-title">
     <div class="dialog-top"><h2 id="file-title">작업 저장·불러오기</h2><form method="dialog"><button aria-label="닫기">닫기</button></form></div>
-    <p>같은 기기와 브라우저에서 이어서 쓸 수 있어요. 다른 기기로 옮기거나 브라우저 기록을 지우기 전에는 파일로 보관하세요.</p>
+    <p>현재 활동만 저장하거나 불러와요. 이전 두 과제 통합 파일도 현재 활동의 기록만 가져와요. 같은 기기와 브라우저에서 이어서 쓸 수 있어요. 다른 기기로 옮기거나 브라우저 기록을 지우기 전에는 파일로 보관하세요.</p>
     <div class="file-actions">
       <button id="backup" class="primary" type="button">파일로 내 기기에 보관하기</button>
       <button id="restore" type="button">보관한 파일 불러오기</button>
@@ -82,14 +82,14 @@
 
   <dialog id="help-dialog" aria-labelledby="help-title">
     <div class="dialog-top"><h2 id="help-title">작성·평가 안내</h2><form method="dialog"><button aria-label="닫기">닫기</button></form></div>
-    <h3>무엇을 살펴보나요?</h3>
+    <h3>무엇을 살펴보나요?</h3><p>2026학년도 보통과 2학기 통합사회2 교수학습 및 평가 운영 계획을 기준으로 안내해요. 경제 탐구는 지역의 변화·경제 개념 적용·결론과 시사점을 보고서로 설명해요. 아래 입력 순서와 점검은 작성 도움이며 별도 채점 기준을 추가하지 않아요.</p>
     <ul>
       <li><strong>인권과 불평등</strong>　자료 조사 30점, 발표 자료 제작과 실제 발표 40점, 협업과 자기 돌아보기 30점.</li>
       <li><strong>우리 지역의 경제 변화</strong>　경제 변화 조사 40점, 지역사회 변화 방안 30점, 발표와 협업 30점.</li>
     </ul>
     <p>자료에 나온 사실과 내 생각을 구분하고, 어떤 자료를 썼는지 남겨요. 마지막 확인 목록은 스스로 빠진 내용을 살펴보는 데 쓰여요. 실제 발표, 질문에 답하기, 모둠 활동과 실천은 수업에서 진행해요.</p>
     <h3>AI를 써도 되나요?</h3>
-    <p>기초 조사와 개념 이해에만 활용하고, 알아낸 내용은 출처에서 직접 확인하세요. 답안, 포스터, 내 생각을 담는 글은 직접 만들어요.</p>
+    <p>기초 조사와 개념 이해에만 활용하고, 알아낸 내용은 출처에서 직접 확인하세요. 답안, 보고서·포스터, 내 생각을 담는 글은 직접 만들어요.</p>
     <h3>사진과 공유 기기 사용</h3>
     <p>직접 찍었거나 사용 허락을 받은 사진을 써요. 사진에 얼굴, 이름, 집 주소가 나오지 않는지 확인하세요. 공유 기기에서는 파일을 안전한 곳에 보관한 뒤 작업을 초기화하고, 내려받기 폴더에 남은 파일도 정리하세요.</p>
   </dialog>

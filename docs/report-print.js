@@ -21,6 +21,12 @@
     document.body.append(output);
     let page, containers;
     function nextPage() {
+      // A newly created section can itself add padding/borders when its first
+      // heading does not fit. Remove only empty layout shells before closing
+      // the previous page; never remove text or images.
+      if (page) [...page.querySelectorAll('section, .paper-analysis, .evidence-grid')].reverse().forEach(node => {
+        if (!node.textContent.trim() && !node.querySelector('img')) node.remove();
+      });
       page = document.createElement('article');
       page.className = 'paper print-paper';
       output.append(page);
