@@ -16,7 +16,7 @@ const REHEARSAL = [
   '발표할 때 화면만 보지 않고 친구들과 눈을 맞추며 이야기할 준비가 되었나요?',
   '친구들이 질문했을 때 내가 조사한 자료를 근거로 답할 수 있나요?'
 ];
-const taskRehearsal = () => activeTask() === 'economy' ? ['경제 탐구 질문 → 비교 자료 → 경제 개념을 적용한 설명 → 결론과 시사점이 연결되나요?', '자료의 기간·지역·단위와 수치를 정확히 설명할 수 있나요?', '제안의 기대 효과와 비용·부담을 자료에 근거해 설명할 수 있나요?', '친구의 질문을 듣고 근거와 추가 확인할 점을 구분해 답할 수 있나요?'] : REHEARSAL;
+const taskRehearsal = () => activeTask() === 'economy' ? ['경제 탐구 질문 → 비교 자료 → 경제 개념을 적용한 설명 → 결론과 시사점이 연결되나요?', '자료의 기간·지역·단위와 수치를 정확히 설명할 수 있나요?', '제안의 기대 효과와 비용·부담을 자료에 근거해 설명할 수 있나요?', '친구의 질문에 답할 때 자료로 확인한 내용과 더 확인할 내용을 구분할 수 있나요?'] : REHEARSAL;
 const SOURCE_GOAL = 3;
 const SOURCE_TYPES = ['통계·그래프', '뉴스 기사', '보고서·책', '직접 찍은 사진·인터뷰'];
 const SOURCE_SCALES = ['우리 동네(지역)', '우리나라', '세계 여러 나라'];
@@ -34,12 +34,12 @@ const PROMPTS = {
   action: ['우리가 직접 해보기', '예: 친구들과 버스 이용이 어려운 정류장을 조사해 주민 제안 게시판에 개선안을 올린다.', '나와 친구들이 일상에서 바로 할 수 있는 일은 무엇인가요?'],
   region: ['어느 지역을 조사했나요?', '예: 전남 순천시 원도심의 중앙시장 주변'],
   economicPeriod: ['언제와 언제, 무엇을 비교하나요?', '예: 2023년과 2024년의 관광객 수와 소매 판매액', '기간·지역·지표·단위를 확인하고 비교 기준을 적어요.'],
-  economicImpact: ['경제 주체마다 어떤 영향을 받나요?', '소비자·생산자·근로자·정부 중 이 변화와 관련된 주체를 골라 적어요.', '편익과 부담이 누구에게 생기는지 자료와 연결해 설명해요. 자료로 확인한 영향과 예상한 영향을 구분해요.'],
-  economicConclusion: ['경제 분석의 결론과 시사점은 무엇인가요?', '확인한 변화, 경제 개념으로 설명한 원인, 지역에 주는 시사점을 연결해 적어요.', '처음 질문에 답하고 자료로 설명할 수 있는 범위와 추가로 확인할 점을 함께 적어요.'],
+  economicImpact: ['각 경제 주체는 어떤 영향을 받나요?', '소비자·생산자·근로자·정부 중 이 변화와 관련된 주체를 골라 적어요.', '편익과 부담이 누구에게 생기는지 자료와 연결해 설명해요. 자료로 확인한 영향과 예상한 영향을 구분해요.'],
+  economicConclusion: ['경제 분석의 결론과 시사점은 무엇인가요?', '확인한 변화, 경제 개념으로 설명한 원인, 지역사회에 주는 시사점을 연결해 적어요.', '처음 질문에 답하고 자료로 설명할 수 있는 범위와 추가로 확인할 점을 함께 적어요.'],
   practiceResult: ['실제로 해 본 일과 확인한 결과', '실행한 날짜, 나의 행동, 확인한 결과를 적어요.', '아직 실행 전이면 준비 상태를 적고, 계획과 실제로 한 일을 구분해요.'],
   economicChange: ['무엇이 달라졌나요?', '예: 주말 관광객이 늘면서 시장 주변에 음식점이 많아졌다.', '예전과 지금을 비교해 보세요.'],
   economicCause: ['왜 달라졌나요?', '예: 관광지와 시장을 잇는 버스가 생겨 방문하기 쉬워졌다.'],
-  concepts: ['수업 시간에 배운 경제 원리로 설명한다면?', '예: 합리적 선택으로 보면, 관광객이 버스를 고른 까닭은 주차비와 이동 시간을 아낄 수 있어서다.', '합리적 선택, 시장실패, 분업과 무역, 지속가능발전 등에서 하나를 골라 이 변화를 설명해 보세요.'],
+  concepts: ['수업 시간에 배운 경제 원리로 설명한다면?', '예: 자가용과 버스의 요금·이동 시간·편리함을 비교해 관광객이 버스를 선택한 이유를 설명한다.', '합리적 선택, 시장실패, 금융 자산과 자산 관리, 분업과 무역, 지속가능발전 등에서 관련 개념을 골라 이 변화를 설명해 보세요.'],
   economicPlan: ['우리 지역에 어떤 아이디어가 도움이 될까요?', '예: 시장 상인회와 시청이 주민과 관광객이 함께 이용할 수 있는 공동 배송을 운영한다.'],
   practicePlan: ['내가 직접 할 수 있는 일은 무엇인가요?', '예: 다음 주에 모둠과 시장 이용 안내 지도를 만들어 상인회에 전달한다.'],
   role: ['함께하며 내가 한 역할과 배려', '예: 자료를 정리하는 역할을 맡았다. 의견이 갈렸을 때 친구의 이유를 먼저 듣고 함께 결정했다.', '내가 맡은 역할은 무엇이었고, 친구의 의견을 어떻게 존중하고 도왔나요?'],
@@ -177,8 +177,8 @@ function promptDefinition(key) {
     inquiry: ['어떤 지역의 경제 변화를 왜 알아보려 하나요?', '지역·경제 현상·비교 기준을 담은 질문을 적어요.'],
     economicCause: ['경제 변화의 원인은 무엇인가요?', '변화를 설명하는 원인과 이를 뒷받침하는 자료를 연결해요.', '함께 변한 지표만으로 원인을 확정하지 않고, 다른 가능한 원인과 확인할 자료도 살펴요.'],
     economicPlan: ['지역사회에 어떤 대응 방안을 제안하나요?', '누가 무엇을 실행하면 좋을지 적어요.', '앞의 경제 분석을 근거로 기대 효과와 필요한 비용·부담을 비교해요.'],
-    practicePlan: ['내가 참여할 실천을 어떻게 준비하나요?', '언제, 누구와, 무엇을 하고 결과를 어떻게 확인할지 적어요.'],
-    reflection: ['경제 탐구를 통해 생각이 어떻게 달라졌나요?', '자료와 경제 개념을 연결하며 새롭게 알게 된 점을 적어요.']
+    practicePlan: ['나는 어떤 일을 실천할 계획인가요?', '언제, 누구와, 무엇을 하고 결과를 어떻게 확인할지 적어요.'],
+    reflection: ['경제 탐구를 통해 생각이 어떻게 달라졌나요?', '탐구 과정에서 잘한 점과 보완할 점, 자료를 보고 달라진 생각을 적어요.']
   })[key] || PROMPTS[key];
 }
 
@@ -273,13 +273,13 @@ function problemEditor() {
       <p class="activity-context">${TASKS[activeTask()]} · <a href="#home">다른 활동 선택</a></p>
       <p class="topic-choice-note">사례에서 주제를 가져오거나 아래에 직접 적어도 좋아요.</p>
       ${ideaExplorer()}
-      ${input('topic', '내 탐구 주제', '예: 우리 동네 노인복지관 이용의 어려움', a.topic, { limit: 60 })}
+      ${input('topic', '내 탐구 주제', activeTask() === 'economy' ? '예: 우리 지역의 고용 변화와 그 원인' : '예: 우리 동네 노인복지관 이용의 어려움', a.topic, { limit: 60 })}
       <div id="case-guide">${caseGuide(a.topic)}</div>
     </div>
     <div class="worksheet-section question-section">
-      ${input('inquiry', '출발 질문', PROMPTS.inquiry[1], a.inquiry, { area: true, hint: PROMPTS.inquiry[0] })}
+      ${input('inquiry', '출발 질문', promptDefinition('inquiry')[1], a.inquiry, { area: true, hint: promptDefinition('inquiry')[0] })}
       ${ideaHints()}
-      ${a.reason ? input('reason', '이 주제를 고른 이유는 무엇인가요?', '예: 할머니가 복지관까지 두 번 환승하는 것을 봤다.', a.reason, { area: true }) : ''}
+      ${a.reason ? input('reason', '이 주제를 고른 이유는 무엇인가요?', activeTask() === 'economy' ? '지역의 어떤 경제 변화가 궁금했는지 적어요.' : '예: 할머니가 복지관까지 두 번 환승하는 것을 봤다.', a.reason, { area: true }) : ''}
     </div>`;
 }
 
@@ -311,9 +311,9 @@ function sourceCard(source, i) {
     ${sourceChips('scale', '어디의 이야기인가요?', SOURCE_SCALES, sourceScale(source), i)}
     ${input('title', '자료 제목이 무엇인가요?', activeTask() === 'economy' ? '예: 우리 시 상가 공실률 통계' : selectedIdea() ? `예: ${selectedIdea().label} 조사 기록` : '예: 우리 구 노인복지시설 현황', source.title, { source: i })}
     ${input('url', '어디에서 찾았나요?', activeTask() === 'economy' ? '예: 통계청 자료 제목과 링크' : '예: ○○시청 자료 제목과 링크 / 직접 조사한 장소', source.url, { source: i })}
-    ${input('fact', '팩트 체크 (자료에 나온 사실)', activeTask() === 'economy' ? '예: 비교한 두 해의 수치와 차이를 단위와 함께 적어요.' : selectedIdea()?.examples?.fact || '예: 2025년 ○○동에 등록된 노인복지관은 1곳이다.', sourceFact(source),
+    ${input('fact', '팩트 체크 (자료에 나온 사실)', activeTask() === 'economy' ? '비교한 두 해의 수치와 차이를 단위와 함께 적어요.' : selectedIdea()?.examples?.fact || '예: 2025년 ○○동에 등록된 노인복지관은 1곳이다.', sourceFact(source),
       { source: i, area: true, limit: 100, hint: '자료에 나온 숫자나 사실을 있는 그대로 적어 보세요.' })}
-    ${input('thought', '내 생각 한 줄 (해석)', activeTask() === 'economy' ? '예: 이 변화가 소비자와 가게에 어떤 영향을 줄 수 있을지 적어요.' : selectedIdea()?.examples?.thought || '예: 복지관이 한 곳에 몰려 외곽 주민은 이동하기 어려울 수 있다.', sourceThought(source),
+    ${input('thought', '내 생각 한 줄 (해석)', activeTask() === 'economy' ? '이 변화가 소비자와 가게에 어떤 영향을 줄 수 있을지 적어요.' : selectedIdea()?.examples?.thought || '예: 복지관이 한 곳에 몰려 외곽 주민은 이동하기 어려울 수 있다.', sourceThought(source),
       { source: i, area: true, limit: 100, hint: '이 자료를 보면 어떤 문제나 원인을 알 수 있나요?' })}
     ${source._photo ? input('photoCaption', '이미지에서 무엇을 볼 수 있나요?', '예: ○○동에서 직접 조사한 모습, 11월 7일 촬영', source.photoCaption, { source: i }) : ''}
     <details class="supplement"><summary>자료를 만든 곳과 날짜 적기</summary>
@@ -323,13 +323,13 @@ function sourceCard(source, i) {
 }
 
 function evidenceEditor() {
-  return heading(taskSteps()[1], '믿을 만한 자료를 여러 종류로 3개 이상 찾아요.') +
+  return heading(taskSteps()[1], '믿을 만한 자료를 찾아 비교해요. 자료 3개 이상은 탐구를 충실히 하기 위한 목표예요.') +
     '<a class="research-link" href="https://www.bigkinds.or.kr/" target="_blank" rel="noopener noreferrer">빅카인즈에서 뉴스 찾기 <small>(새 탭)</small></a>' +
     ideaHints() +
     `<div class="evidence-status"><span id="source-count" class="rubric-badge" role="status"></span>
       <p>${activeTask() === 'economy'
-        ? '제공된 자료의 숫자 비교와 경제 설명을 쓰거나, 아래 근거 카드의 출처·종류·범위·사실·생각을 채우면 숫자가 올라가요.'
-        : '자료를 찾은 곳, 자료 종류와 범위, 사실과 내 생각을 모두 채우면 숫자가 올라가요.'} 믿을 만한 자료를 여러 종류로 골라 보세요.</p></div>` +
+        ? '제공된 자료의 수치를 비교해 경제 개념으로 설명하거나, 아래 근거 카드의 출처·종류·범위·사실·생각을 채우면 작성한 자료 수에 반영돼요.'
+        : '자료를 찾은 곳, 자료 종류와 범위, 사실과 내 생각을 모두 채우면 작성한 자료 수에 반영돼요.'} 믿을 만한 자료를 여러 종류로 골라 보세요.</p></div>` +
     economyMaterials() + sourceSlots().map(sourceCard).join('') + '<button type="button" id="add-source" class="add-source">+ 근거 자료 카드 추가</button>';
 }
 
@@ -386,14 +386,14 @@ function renderProgress() {
   const sourceCount = sourceKeys.size;
   const count = $('#source-count');
   if (count) {
-    const label = `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (최고점 목표: 3개 이상)`;
+    const label = `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (자료 조사 목표: 3개 이상)`;
     if (count.textContent !== label) count.textContent = label;
   }
   const { solutions } = rubric();
   const analysis = analysisKeys();
   const completed = [
     [a.number, a.name, a.team, a.topic, a.inquiry].every(filled),
-    sourceCount >= SOURCE_GOAL && sourceTypes.size >= 2,
+    sourceCount >= SOURCE_GOAL,
     [...analysis, ...solutions].every(key => filled(answer(key)))
       && (!economyPack() || readingFields(economyPack()).every(field => filled(work().answers[field.key]))),
     [...CHECKLIST, ...taskRehearsal()].every((_, i) => isChecked(i)) && reflectionKeys().every(key => filled(answer(key)))
@@ -684,7 +684,7 @@ async function printPoster() {
     window.prepareReportPrint?.();
     window.print();
   } catch {
-    notice('#message', '인쇄를 준비하지 못했어요. 포스터의 이미지와 내용을 확인한 뒤 다시 눌러 주세요.');
+    notice('#message', `인쇄를 준비하지 못했어요. ${productName()}의 이미지와 내용을 확인한 뒤 다시 눌러 주세요.`);
     $('#message').scrollIntoView({ block: 'nearest' });
   } finally {
     printBusy = false;

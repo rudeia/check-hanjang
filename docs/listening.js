@@ -4,14 +4,14 @@
   const economy = activity === 'economy';
   // Keep the original human-rights store intact; never infer or move old notes.
   const KEY = economy ? 'check-hanjang-economy-reading-v1' : 'check-hanjang-listening-v1';
-  const activityLabel = economy ? '경제 탐구 보고서' : '보이는 사회, 말하는 탐구 · 인권';
+  const activityLabel = economy ? '경제 탐구 보고서' : '보이는 탐구, 말하는 사회 · 인권';
   const itemLabel = economy ? '보고서' : '발표';
   const $ = id => document.getElementById(id);
   const fields = economy ? [
     ['problem', '01 어떤 경제 현상을 분석했나요?', '분석 대상 지역·기간과 생산, 소비, 고용, 가격 등의 변화를 정리해요.'],
     ['evidence', '02 어떤 자료로 비교했나요?', '자료의 출처·기간·단위를 확인하고, 비교한 수치와 차이를 적어요.'],
     ['explanation', '03 경제 개념으로 어떻게 설명했나요?', '보고서에 사용한 경제 개념과 변화의 원리를 연결해 정리해요. 확인된 사실과 원인에 대한 해석을 구분해요.'],
-    ['solution', '04 어떤 방안을 제안했나요?', '누가 실행하는 방안인지, 예상되는 경제적 효과와 부담은 무엇인지 정리해요. 보고서에 없는 내용은 제시하지 않음으로 적어요.'],
+    ['solution', '04 어떤 방안을 제안했나요?', '누가 실행하는 방안인지, 예상되는 경제적 효과와 부담은 무엇인지 정리해요. 보고서에 없다면 “제시하지 않음”으로 적어요.'],
     ['learning', '05 새롭게 이해한 경제 원리는 무엇인가요?', '보고서를 읽기 전후에 달라진 생각이나 다른 사례에 적용할 수 있는 점을 적어요.'],
     ['question', '06 더 확인할 자료나 질문이 있나요? (선택)', '설명을 확인하려면 어떤 자료가 더 필요한지, 함께 탐구할 질문을 적어요.']
   ] : [
@@ -22,12 +22,12 @@
     ['learning', '05 새롭게 알게 된 점은 무엇인가요?', '발표를 듣기 전과 비교해 새로 알게 된 점이나 달라진 생각을 적어요.'],
     ['question', '06 더 묻고 싶은 점이 있나요? (선택)', '이해가 안 된 부분이나 함께 생각해 보고 싶은 질문을 남겨요.']
   ];
-  document.title = `${activityLabel} · 읽기 기록 · 체크 한장`;
+  document.title = `${activityLabel} · 공유 기록 · 체크 한장`;
   document.querySelector('[data-activity-title]').textContent = activityLabel;
   document.querySelector('[data-notes-title]').textContent = `친구의 ${itemLabel}, 내 말로 한 장`;
   document.querySelector('[data-notes-intro]').textContent = economy
     ? '친구의 경제 보고서를 읽고 현상·자료·경제 원리를 정리해요. 인권 발표 기록과 별도로 보관돼요.'
-    : '친구의 인권 발표를 듣고 핵심 내용과 내 생각을 정리해요. 이전 발표 기록은 이 활동에 그대로 남아요.';
+    : '친구의 인권 발표를 듣고 핵심 내용과 내 생각을 정리해요. 기존 발표 기록은 옮기거나 바꾸지 않고 이곳에 보관해요.';
   const blank = () => ({version: 1, activity, listener: '', records: [], draft: null});
   let state = blank(), active = null, blocked = false, raw = '';
   const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -156,9 +156,9 @@
     } catch { status('현재 활동의 체크 한장 기록 파일인지 확인해 주세요. 기존 기록은 유지됩니다.'); }
   };
   $('clear-notes').onclick = () => {
-    if (!confirm(`${activityLabel}의 읽기 기록과 작성자 학번을 비울까요? 필요한 파일을 먼저 보관하세요. 다른 활동의 기록과 탐구 활동지는 그대로 유지됩니다.`)) return;
+    if (!confirm(`${activityLabel}의 공유 기록과 작성자 학번을 비울까요? 필요한 파일을 먼저 보관하세요. 다른 활동의 기록과 탐구 활동지는 그대로 유지됩니다.`)) return;
     try { localStorage.removeItem(KEY); } catch { status('기록을 비우지 못했어요. 브라우저 저장 설정을 확인해 주세요.'); return; }
-    state = blank(); active = null; blocked = false; raw = ''; $('listener').value = ''; $('presenter').value = ''; $('note-form').reset(); $('note-form').hidden = true; $('editor-empty').hidden = false; $('notes-print').replaceChildren(); list(); status('이 활동의 읽기 기록을 비웠어요.');
+    state = blank(); active = null; blocked = false; raw = ''; $('listener').value = ''; $('presenter').value = ''; $('note-form').reset(); $('note-form').hidden = true; $('editor-empty').hidden = false; $('notes-print').replaceChildren(); list(); status('이 활동의 공유 기록을 비웠어요.');
   };
   function preparePrint() {
     if (blocked) return;
