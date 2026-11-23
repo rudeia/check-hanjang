@@ -23,8 +23,10 @@
 .paper-inquiry-section > p + section,
 .paper-inquiry-section > section + p { margin-top: .45rem; }
 .paper-inquiry-section h4, .paper-inquiry-section h5 { font-size: 1em; margin: 0 0 .13rem; }
-.paper-inquiry-evidence .paper-source-link { font-size: .85em; margin-bottom: .18rem; }
-.paper-inquiry-evidence .paper-evidence-use { margin-top: .15rem; }
+.paper-evidence-table { table-layout: fixed; }
+.paper-evidence-table .paper-source-link { font-size: .88em; font-weight: 400; margin-top: .18rem; overflow-wrap: anywhere; }
+.paper-evidence-table td p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.paper-evidence-table td p + p { margin-top: .28rem; }
 .paper-caption { color: var(--muted); font-size: .9em; }
 .paper-sources { border-top: 1px solid var(--line); margin-top: .45rem; padding-top: .3rem; }
 .paper-sources p { color: var(--muted); font-size: .85em; overflow-wrap: anywhere; }

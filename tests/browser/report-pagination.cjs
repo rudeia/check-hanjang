@@ -51,17 +51,38 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
           });
         }
       }
-      return measurements;
+      poster.innerHTML = `<article class="paper"><h2>자료 정리 보고서</h2>
+        <table class="paper-picked paper-evidence-table"><thead><tr><th>자료와 출처</th><th>확인한 근거</th></tr></thead>
+        <tbody><tr><th scope="row"><a href="https://example.com/source">자료 원문</a></th><td data-long-evidence><p>${longBody}</p></td></tr>
+        <tr><th scope="row">다음 자료</th><td>다음 행의 근거</td></tr></tbody></table></article>`;
+      window.prepareReportPrint();
+      const sheets = [...document.querySelectorAll('.print-pages .print-paper')];
+      const tables = sheets.flatMap(sheet=>[...sheet.querySelectorAll('table')]);
+      const longRow = {
+        parts:tables.flatMap(table=>[...table.querySelectorAll('[data-long-evidence]')]).map(cell=>cell.textContent),
+        expected:longBody,
+        keyCells:tables.flatMap(table=>[...table.tBodies[0].rows]).map(row=>row.cells.length),
+        heads:tables.map(table=>table.tHead?.textContent),
+        sourceCount:document.querySelectorAll('.print-pages a[href="https://example.com/source"]').length,
+        nextRow:sheets.at(-1).textContent.includes('다음 행의 근거')
+      };
+      return {measurements,longRow};
     });
-    for (const result of results) {
+    assert(results.longRow.parts.length>1);
+    assert.equal(results.longRow.parts.join(''),results.longRow.expected);
+    assert(results.longRow.keyCells.every(length=>length===2));
+    assert(results.longRow.heads.every(heading=>heading==='자료와 출처확인한 근거'));
+    assert.equal(results.longRow.sourceCount,1);
+    assert(results.longRow.nextRow);
+    for (const result of results.measurements) {
       assert.equal(result.heading, result.body, 'Heading separated from its body: ' + JSON.stringify(result));
       assert.equal(result.headingCount, result.name === 'long analysis' ? 2 : 1);
       assert(result.contentPreserved, 'Printed content changed: ' + result.name + ' ' + result.height);
       if (result.name === 'long analysis') assert(result.totalPages >= 3);
     }
-    assert(results.some(result => result.heading === 1), 'fixture must exercise the next-page path');
-    assert(results.some(result => result.heading === 0), 'short sections should also use available space');
-    console.log('PASS analysis headings, nested headings, table heading, and long body at 63 page boundaries');
+    assert(results.measurements.some(result => result.heading === 1), 'fixture must exercise the next-page path');
+    assert(results.measurements.some(result => result.heading === 0), 'short sections should also use available space');
+    console.log('PASS 63 page boundaries and an oversized evidence row with intact text, columns and source link');
   } finally {
     await browser.close();
   }

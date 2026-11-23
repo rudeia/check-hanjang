@@ -128,7 +128,7 @@
     }
     function fullBlock(node, path) {
       let remaining = clone(node), attempts = 0;
-      if (node.matches('.paper-sources')) {
+      if (node.matches('.paper-sources, .paper-local-analysis > section')) {
         const parent = host(path);
         parent.append(remaining);
         if (fits()) return;
@@ -180,7 +180,31 @@
         nextPage();
         openTable();
         body.append(copy);
-        if (!fits()) throw new Error('Evidence row cannot fit on an A4 page');
+        if (fits()) continue;
+        copy.remove();
+        let remaining = copy;
+        while (remaining) {
+          const previous = body.lastElementChild;
+          const rest = take(remaining, body);
+          if (!rest) break;
+          const part = body.lastElementChild;
+          if (part === previous || rest.textContent === remaining.textContent)
+            throw new Error('Evidence row cannot fit on an A4 page');
+          // Keep the fragments under their original columns.
+          const blankCell = cell => {
+            const blank = cell.cloneNode(false);
+            blank.setAttribute('aria-hidden', 'true');
+            return blank;
+          };
+          for (const cell of [...remaining.cells].slice(part.cells.length))
+            part.append(blankCell(cell));
+          const firstContinuedColumn = remaining.cells.length - rest.cells.length;
+          for (const cell of [...remaining.cells].slice(0, firstContinuedColumn).reverse())
+            rest.prepend(blankCell(cell));
+          nextPage();
+          openTable();
+          remaining = rest;
+        }
       }
     }
     function visit(node, path) {
