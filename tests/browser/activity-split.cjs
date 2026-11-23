@@ -1,14 +1,23 @@
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert=require('assert');
 (async()=>{const b=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});const c=await b.newContext({viewport:{width:390,height:844}});const p=await c.newPage();const errors=[];p.on('pageerror',e=>errors.push(String(e)));const base=process.env.TEST_BASE_URL || 'http://127.0.0.1:8769/';const key='pyeongga-hanjang-social2-v1';
-await p.goto(base);assert(await p.locator('#home').isVisible());await p.click('a[href="#human"]');await p.fill('#topic','인권 원본 보존');await p.fill('#inquiry','누구의 이동권?');await p.click('a[href="#home"]');await p.click('a[href="#economy"]');await p.waitForFunction(()=>activeTask()==='economy');assert.equal(await p.inputValue('#topic'),'');assert(!(await p.getAttribute('#topic','placeholder')).includes('복지관'));assert((await p.getAttribute('#inquiry','placeholder')).includes('경제')); await p.fill('#topic','지역 고용의 변화');await p.fill('#inquiry','고용은 왜 변화했나?');await p.click('[data-stage="2"]');await p.fill('#economicConclusion','경제적 결론 끝문장');await p.fill('#economicImpact','기업과 노동자의 영향 차이');await p.click('[data-stage="3"]');assert((await p.locator('#step-title').textContent()).includes('보고서'));await p.fill('#practiceResult','자료 조사 실행');assert(!(await p.locator('#poster').textContent()).includes('탐구 포스터'));await p.screenshot({path:'/tmp/check-economy-mobile.png',fullPage:true});assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+await p.goto(base);assert(await p.locator('#home').isVisible());await p.click('a[href="#human"]');await p.fill('#topic','인권 원본 보존');await p.fill('#inquiry','누구의 이동권?');
+await p.click('#mobile-preview');assert(await p.locator('#preview-panel').isVisible());await p.click('#mobile-preview');
+await p.locator('.topbar a[href="#home"]').click();await p.click('a[href="#economy"]');await p.waitForFunction(()=>activeTask()==='economy');
+await p.click('[data-guided-set="custom"]');
+assert(await p.locator('#preview-panel').isHidden());assert(await p.locator('#mobile-preview').isHidden());
+assert.equal(await p.inputValue('#topic'),'');assert(!(await p.getAttribute('#topic','placeholder')).includes('복지관'));assert((await p.getAttribute('#inquiry','placeholder')).includes('경제'));
+await p.fill('#topic','지역 고용의 변화');await p.fill('#inquiry','고용은 왜 변화했나?');await p.click('[data-stage="2"]');await p.fill('#economicImpact','기업과 노동자의 영향 차이');
+await p.click('[data-stage="3"]');assert.equal(await p.locator('#step-title').textContent(),'결과 도출');await p.fill('#economicConclusion','경제적 결론 끝문장');
+await p.getByText('우리 지역에 적용하고 돌아보기',{exact:true}).click();await p.fill('#practiceResult','자료 조사 실행');
+assert(!(await p.locator('#poster').textContent()).includes('탐구 포스터'));await p.screenshot({path:'/tmp/check-economy-mobile.png',fullPage:true});assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 await p.reload();assert.equal(await p.inputValue('#practiceResult'),'자료 조사 실행');
 const before=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);assert.equal(before.answers.topic,'인권 원본 보존');assert.equal(before.economy.answers.topic,'지역 고용의 변화');
 await p.evaluate(async()=>{await document.fonts.ready; window.prepareReportPrint();});await p.pdf({path:'/tmp/check-economy-report.pdf',format:'A4',printBackground:true});
 // Scoped reset
 p.once('dialog',d=>d.accept());await p.click('#reset');const after=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);assert.equal(after.answers.topic,'인권 원본 보존');assert.equal(after.economy.answers.topic,undefined);
 // independent simultaneous task edits and same-activity conflict
-await p.goto(base+'#human');await p.waitForFunction(()=>activeTask()==='human');const q=await c.newPage();await q.goto(base+'#economy');await q.fill('#topic','경제 별도 창');await p.fill('#topic','인권 두 번째');let saved=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);assert.equal(saved.economy.answers.topic,'경제 별도 창');assert.equal(saved.answers.topic,'인권 두 번째');
+await p.goto(base+'#human');await p.waitForFunction(()=>activeTask()==='human');const q=await c.newPage();await q.goto(base+'#economy');await q.click('[data-guided-set="custom"]');await q.fill('#topic','경제 별도 창');await p.fill('#topic','인권 두 번째');let saved=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);assert.equal(saved.economy.answers.topic,'경제 별도 창');assert.equal(saved.answers.topic,'인권 두 번째');
 const r=await c.newPage();await r.goto(base+'#human');await r.fill('#topic','인권 최신 창');await p.fill('#topic','인권 오래된 창');saved=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);assert.equal(saved.answers.topic,'인권 최신 창');assert((await p.locator('#storage-warning').textContent()).includes('다른 창'));
 // Unsaved conflicted draft must not disappear when switching activities.
 await p.evaluate(()=>{location.hash='#economy'});await p.waitForFunction(()=>location.hash==='#human');assert.equal(await p.inputValue('#topic'),'인권 오래된 창');assert.equal(await p.evaluate(()=>activeTask()),'human');

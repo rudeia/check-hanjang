@@ -90,6 +90,14 @@
     }
     function fullBlock(node, path) {
       let remaining = clone(node), attempts = 0;
+      if (node.matches('.paper-sources')) {
+        const parent = host(path);
+        parent.append(remaining);
+        if (fits()) return;
+        const height = remaining.getBoundingClientRect().height;
+        remaining.remove();
+        if (height <= LIMIT / 2 && page.textContent.trim()) nextPage();
+      }
       while (remaining) {
         const parent = host(path), oldText = remaining.textContent;
         const before = parent.childNodes.length;
@@ -116,10 +124,32 @@
         i += 2;
       }
     }
+    function pickedTable(node, path) {
+      let table, body;
+      function openTable() {
+        table = node.cloneNode(false);
+        if (node.tHead) table.append(clone(node.tHead));
+        body = table.createTBody();
+        host(path).append(table);
+      }
+      openTable();
+      for (const row of [...node.tBodies].flatMap(group => [...group.rows])) {
+        const copy = clone(row);
+        body.append(copy);
+        if (fits()) continue;
+        copy.remove();
+        if (!body.rows.length) table.remove();
+        nextPage();
+        openTable();
+        body.append(copy);
+        if (!fits()) throw new Error('Evidence row cannot fit on an A4 page');
+      }
+    }
     function visit(node, path) {
       if (node.matches('.evidence-grid')) grid(node, path);
+      else if (node.matches('.paper-picked')) pickedTable(node, path);
       else if (node.matches('.paper-analysis')) [...node.children].forEach(child => fullBlock(child, [...path, node]));
-      else if (node.querySelector('.evidence-grid, .paper-analysis'))
+      else if (node.querySelector('.evidence-grid, .paper-analysis, .paper-picked'))
         [...node.children].forEach(child => visit(child, [...path, node]));
       else fullBlock(node, path);
     }

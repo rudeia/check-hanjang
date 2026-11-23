@@ -2,10 +2,10 @@
 (() => {
   function route() {
     const activity = location.hash && location.hash !== '#home';
-    if (activity && typeof selectActivityRoute === 'function') selectActivityRoute();
     document.body.classList.toggle('at-home', !activity);
     document.querySelector('#home').hidden = !!activity;
     document.querySelector('#activity-root').hidden = !activity;
+    if (activity && typeof selectActivityRoute === 'function') selectActivityRoute();
   }
   window.addEventListener('hashchange', route);
   route();
