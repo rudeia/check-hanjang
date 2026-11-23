@@ -4,6 +4,7 @@
 (() => {
   const MM = 96 / 25.4;
   const LIMIT = 268 * MM; // A4 minus 12mm margins, with 5mm rounding reserve.
+  const isHeading = node => /^H[1-6]$/.test(node?.tagName);
   let output;
   function clear() {
     output?.remove(); output = null;
@@ -20,17 +21,43 @@
     output.setAttribute('aria-hidden', 'true');
     document.body.append(output);
     let page, containers;
-    function nextPage() {
-      // A newly created section can itself add padding/borders when its first
-      // heading does not fit. Remove only empty layout shells before closing
-      // the previous page; never remove text or images.
-      if (page) [...page.querySelectorAll('section, .paper-analysis, .evidence-grid')].reverse().forEach(node => {
+    function moveTrailingHeadings(from, to) {
+      let tail = from.lastChild;
+      while (tail?.nodeType === 3 && !tail.textContent.trim()) tail = tail.previousSibling;
+      while (isHeading(tail)) {
+        const heading = tail;
+        for (let current = from.lastChild; current !== heading; current = from.lastChild) to.prepend(current);
+        tail = heading.previousSibling;
+        to.prepend(heading);
+        while (tail?.nodeType === 3 && !tail.textContent.trim()) tail = tail.previousSibling;
+      }
+    }
+    function trimEmptyContainers() {
+      [...page.querySelectorAll('section, .paper-analysis, .evidence-grid')].reverse().forEach(node => {
         if (!node.textContent.trim() && !node.querySelector('img')) node.remove();
       });
+    }
+    function nextPage() {
+      const carried = document.createDocumentFragment();
+      const path = [];
+      if (page) {
+        trimEmptyContainers();
+        // A table or a separate analysis block can start on the next page.
+        // Carry any heading left at the end of its layout container.
+        let parent = page;
+        for (const [original, fragment] of containers) {
+          if (fragment !== parent.lastElementChild) continue;
+          parent = fragment;
+          path.push(original);
+        }
+        moveTrailingHeadings(parent, carried);
+        trimEmptyContainers();
+      }
       page = document.createElement('article');
       page.className = 'paper print-paper';
       output.append(page);
       containers = new Map();
+      if (carried.hasChildNodes()) host(path).append(carried);
     }
     function fits(reserve = 0) { return page.getBoundingClientRect().height <= LIMIT - reserve; }
     function host(path) {
@@ -62,7 +89,9 @@
     function take(node, parent, reserve = 0) {
       const full = clone(node); parent.append(full);
       if (fits(reserve)) return null;
+      const moveIntact = isHeading(node) && full.getBoundingClientRect().height <= LIMIT / 2;
       full.remove();
+      if (moveIntact) return full;
       if (node.nodeType === 3) {
         const chars = segments(node.textContent);
         const text = document.createTextNode(''); parent.append(text);
@@ -79,12 +108,21 @@
       if (node.nodeType !== 1 || /^(IMG|BR)$/.test(node.tagName)) return clone(node);
       const part = node.cloneNode(false); parent.append(part);
       const rest = node.cloneNode(false);
-      let split = false;
+      let split = false, splitHeading = false;
       for (const child of node.childNodes) {
         if (split) { rest.append(clone(child)); continue; }
+        const lastChild = part.lastChild;
         const leftover = take(child, part, reserve);
-        if (leftover) { rest.append(leftover); split = true; }
+        if (leftover) {
+          rest.append(leftover);
+          split = true;
+          splitHeading = isHeading(child) && part.lastChild !== lastChild;
+        }
       }
+      // Keep the heading with the start of the continuation if no body
+      // content made it into this fragment.
+      if (split && !splitHeading && (rest.textContent.trim() || rest.querySelector('img')))
+        moveTrailingHeadings(part, rest);
       if (!part.hasChildNodes()) part.remove();
       return split ? rest : null;
     }
@@ -101,7 +139,7 @@
       while (remaining) {
         const parent = host(path), oldText = remaining.textContent;
         const before = parent.childNodes.length;
-        const rest = take(remaining, parent, /^H[1-6]$/.test(node.tagName) ? 40 : 0);
+        const rest = take(remaining, parent, isHeading(node) ? 40 : 0);
         if (!rest) break;
         if (parent.childNodes.length === before && ++attempts > 1)
           throw new Error('Report block cannot fit on an A4 page');
