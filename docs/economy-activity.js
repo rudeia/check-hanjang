@@ -395,9 +395,9 @@ function guidedDecisionFields(set) {
   const [first, second] = set.decision.options;
   const {cause,impact} = ECONOMY_REGION_INQUIRIES[set.id];
   return {
-    criterion: ['판단 기준과 이유', '내 입장에서 두 선택을 비교할 기준 하나를 정하고, 왜 중요한지 적어요.'],
-    initialOpinionV3: ['첫 의견과 이유', '첫 자료를 보고 어느 쪽으로 생각이 기우는지 써요. 판단하기 어렵다면 더 확인할 점을 적어요.'],
-    supplementAnalysis: ['내 판단에 영향을 준 추가 근거', '앞에서 정한 기준으로 두 선택을 다시 봐요. 새 자료에서 비교할 수 있는 차이나 더 확인할 점을 적어요.'],
+    criterion: ['판단 기준과 이유', '내 입장에서 무엇을 가장 중요하게 볼지 정하고, 왜 중요한지 적어요.'],
+    initialOpinionV3: ['첫 의견과 이유', '첫 자료를 보고 탐구 질문에 대한 지금 생각을 적어요. 판단하기 어렵다면 더 확인할 점을 써요.'],
+    supplementAnalysis: ['내 판단에 영향을 준 추가 근거', '앞에서 정한 기준으로 첫 의견을 다시 봐요. 새 자료에서 판단에 도움이 된 점이나 더 확인할 점을 적어요.'],
     optionFirst: [`대안 1 · ${first}`, '주어진 상황에서 이 방안을 택하면 내 입장에서 무엇을 얻고 무엇을 부담하나요? 자료의 수치나 조건을 넣어요.'],
     optionSecond: [`대안 2 · ${second}`, '같은 기준으로 이 방안의 이익과 부담을 따져요. 어느 조건에서 앞의 방안보다 유리한가요?'],
     regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '같은 지표의 두 시점 값과 단위를 넣어 한 줄로 적어요.'],
