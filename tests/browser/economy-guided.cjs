@@ -109,6 +109,10 @@ async function guided(page, topic, index) {
   for(const value of [title,...chapters,'내 계획','최종 결론','친구의 근거','비용이 편익보다']) assert(report.includes(value));
   assert(!/내 계산:|내 선택:|검수용 퀴즈|[A-F] 지역/.test(report));
   assert.equal(await page.locator('.print-pages .paper-evidence-table tbody tr').count(),groups.length+1);
+  assert.equal(await page.locator('.print-pages .paper-official-figure').count(),charts.length);
+  for(const figure of await page.locator('.print-pages .paper-official-figure').all()){
+    assert.equal(await figure.locator('figcaption, img, table, .stat-citation').count(),4);
+  }
   if(output && !useWebkit) await page.pdf({path:path.join(output,topic.id+'.pdf'),format:'A4',printBackground:true});
 }
 

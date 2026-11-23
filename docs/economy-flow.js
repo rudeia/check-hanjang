@@ -11,7 +11,7 @@ function economyInput(key, label, hint, limit, value = work().answers[key]) {
 
 function economyTitle(set) {
   const a = work().answers;
-  return (set && a[guidedKey(set,'topicTitle')]) || a.posterTitle || a.topic || set?.label || '';
+  return set ? a[guidedKey(set,'topicTitle')] || set.label : a.posterTitle || a.topic || '';
 }
 
 function economyPerspective(set) {
@@ -222,8 +222,8 @@ function economyPoster(set) {
     economyQuestionSummary('나의 관점',economyPerspective(set)) +
     economyQuestionSummary('판단 기준',economyCriterion(set)) +
     (set ? guidedReportAnswers(set,['initialOpinion']) : '');
-  const facts = (set ? guidedEvidenceSummary(set,extra) + guidedResearchVisuals(set,true) +
-    guidedRegionReport(set) + guidedReadingReport(set) : guidedEvidenceSummary(null,extra)) +
+  const facts = (set ? guidedEvidenceSummary(set,extra) + guidedRegionReport(set) +
+    guidedResearchVisuals(set,true) + guidedReadingReport(set) : guidedEvidenceSummary(null,extra)) +
     reportEvidenceFigures(media,attachments,true);
   const term = a[economyTermKey(set)];
   const explanation = (set && a[guidedKey(set,'explain')]) || a.concepts;
@@ -239,8 +239,10 @@ function economyPoster(set) {
     <header class="paper-header paper-inquiry-header">
       <h2>${esc(economyTitle(set) || '경제 탐구 보고서')}</h2>
       ${filled(topic) ? `<p class="paper-topic"><strong>탐구 주제</strong> ${esc(topic)}</p>` : ''}
-      <p class="paper-author"><strong>학번</strong> ${esc(a.number || '________')}
-        <strong>이름</strong> ${esc(a.name || '________')} <strong>모둠</strong> ${esc(a.team || '________')}
+      <p class="paper-author">
+        <span><strong>학번</strong> ${esc(a.number || '________')}</span>
+        <span><strong>이름</strong> ${esc(a.name || '________')}</span>
+        <span><strong>모둠</strong> ${esc(a.team || '________')}</span>
         ${filled(a.classroom) ? `<span>${esc(a.classroom)}</span>` : ''}</p>
     </header>
     ${economyPaperChapter('Ⅰ. 탐구 주제와 질문',context)}

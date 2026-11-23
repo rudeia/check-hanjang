@@ -172,7 +172,7 @@ function guidedResearchVisuals(set, forReport = false) {
   if (forReport && !guidedWrittenSources(set).some(group=>filled(group.excerpt)) && !guidedRegionWasUsed(set)) return '';
   const charts = ECONOMY_GUIDED_CHARTS[set.id] || [];
   return forReport ? (charts.length ? `<div class="evidence-grid">${charts.map(id=>
-    `<figure><figcaption>${esc(ECONOMY_DATA.charts[id].title)}</figcaption>${officialGraph(id,true)}</figure>`).join('')}</div>` : '') :
+    `<figure class="paper-official-figure"><figcaption>${esc(ECONOMY_DATA.charts[id].title)}</figcaption>${officialGraph(id,true)}</figure>`).join('')}</div>` : '') :
     charts.map(id=>officialGraph(id)).join('');
 }
 
@@ -251,8 +251,8 @@ function guidedRegionReport(set, data = activeGuidedRegion(set)) {
   const answers = work().answers;
   const parts = ['regionalChange','regionalCause'].filter(part=>filled(answers[guidedKey(set,part)]));
   if (!parts.length) return '';
-  return `<section class="paper-local-analysis"><h4>실제 지역의 변화와 이유 · ${esc(data.region)}</h4>
-    <p class="paper-caption">${esc(data.title)}</p>
+  return `<section class="paper-local-analysis"><h4>실제 지역의 변화와 이유 · ${esc(data.region)}
+      <small class="paper-caption">${esc(data.title)}</small></h4>
     ${guidedRegionTable(data,true)}
     ${parts.map(part=>`<section><h5>${part === 'regionalChange' ? '지역 변화' : '변화의 이유와 자료의 범위'}</h5><p>${esc(answers[guidedKey(set,part)])}</p></section>`).join('')}
     <section class="paper-sources"><h5>지역 자료 출처</h5>${guidedRegionSources(data,true)}</section></section>`;

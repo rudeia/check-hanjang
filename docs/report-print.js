@@ -128,13 +128,15 @@
     }
     function fullBlock(node, path) {
       let remaining = clone(node), attempts = 0;
-      if (node.matches('.paper-sources, .paper-local-analysis > section')) {
+      const officialFigure = node.classList.contains('paper-official-figure');
+      if (officialFigure || node.matches('.paper-sources, .paper-local-analysis > section')) {
         const parent = host(path);
         parent.append(remaining);
         if (fits()) return;
         const height = remaining.getBoundingClientRect().height;
         remaining.remove();
-        if (height <= LIMIT / 2 && page.textContent.trim()) nextPage();
+        const intactLimit = officialFigure ? LIMIT - 60 : LIMIT / 2;
+        if (height <= intactLimit && page.textContent.trim()) nextPage();
       }
       while (remaining) {
         const parent = host(path), oldText = remaining.textContent;
