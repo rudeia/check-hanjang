@@ -7,7 +7,7 @@ function node(sel){return nodes[sel]??= {innerHTML:'',textContent:'',style:{},da
 const document={querySelector:node,querySelectorAll(sel){if(sel==='#question .primary-fields > .field')return Array.from({length:((node('#question').innerHTML.split('<div class="primary-fields">')[1]||'').split('<details class="optional-fields">')[0].match(/class="field"/g)||[]).length},(_,i)=>node('field-'+i));return []},body:node('body')};
 const context={document,localStorage:{getItem(){return saved},setItem(k,v){saved=v;writes++},removeItem(){throw Error('Unexpected reset')}},window:{addEventListener(){}},console,Date,JSON,Number,String,Object,Array,Math,setTimeout(){},confirm(){throw Error('Backup/reset approval must not be triggered')},INQUIRY_CASES:[]};
 vm.createContext(context);
-vm.runInContext(fs.readFileSync('docs/cases.js','utf8')+'\n'+fs.readFileSync('docs/help.js','utf8')+'\n'+fs.readFileSync('docs/media.js','utf8')+'\n'+fs.readFileSync('docs/app.js','utf8'),context);
+vm.runInContext(fs.readFileSync('docs/cases.js','utf8')+'\n'+fs.readFileSync('docs/help.js','utf8')+'\n'+fs.readFileSync('docs/media.js','utf8')+'\n'+fs.readFileSync('archive/legacy/app.js','utf8'),context);
 const run=x=>vm.runInContext(x,context);
 assert.equal(writes,0,'Loading old data does not overwrite it');
 assert.equal(run('data.answers.topic'),seed.answers.topic);assert.equal(run('data.sources[0].title'),seed.sources[0].title);
@@ -22,7 +22,7 @@ run("data.answers.inquiry='내가 직접 쓴 질문';save();buildReport()");asse
 const result=JSON.parse(saved);assert.equal(result.version,1);assert.equal(result.answers.name,seed.answers.name);assert.deepEqual(result.sources,seed.sources);assert.deepEqual(result.checks,seed.checks);
 assert.equal(run("valid({schema:'assessment-one',version:2,step:0,answers:{},sources:[{}],checks:[]})"),false);
 assert.equal(run('INQUIRY_CASES.length'),9);assert(run('INQUIRY_CASES.every(c=>c.sources.length>0&&c.sources.every(s=>s.url.startsWith("https://")))'));
-assert(!/fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket/.test(fs.readFileSync('docs/app.js','utf8')));
+assert(!/fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket/.test(fs.readFileSync('archive/legacy/app.js','utf8')));
 console.log('PASS: v1 untouched load, preserved fields/sources/checks, forward/back focus navigation, 5 flows / 9 legacy step values, focus toggle, 9 cases, own-writing report, no network submission. Browser visual QA not performed.');
 assert.equal(run('INQUIRY_CASES.filter(c=>c.photo).length'),4);
 for(const id of ['mobility','digital','library','heat']){

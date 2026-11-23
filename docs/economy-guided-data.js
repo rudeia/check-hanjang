@@ -278,6 +278,87 @@ ECONOMY_GUIDED_SETS.push(
   )
 );
 
+// Keep the original definitions above so saved notes can still be shown with their original citations.
+const ECONOMY_KOREAN_SOURCES = {
+  'cocoa-buying': {
+    comparison:studyText('코코아 원료값이 오르는 배경','농림축산식품부','가공식품 물가 관련 보도 참고자료',
+      'https://www.mafra.go.kr/bbs/home/792/583119/download.do','본문: 원료 생산량과 국제가격',
+      [['생산량 감소','주요 생산국의 이상기후와 재배 면적 감소 등으로 일부 원료의 생산량이 줄었다.'],
+        ['제품 가격','농식품부는 코코아 같은 원료의 국제가격 상승을 제품값이 오르는 요인으로 설명했다.']]),
+    review:studyText('공정무역 거래 조건','국제공정무역기구','공정무역 최저가격 및 프리미엄 정보',
+      'https://www.fairtrade.net/kr-ko/why-fairtrade/how-we-do-it/standards/fairtrade-minimum-price-and-premium-information.html','최저가격과 프리미엄의 적용',
+      [['최저가격','인증 제품에는 품목별 거래 기준이 있다. 시장 가격이 더 높으면 시장 가격이나 계약 가격을 적용한다.'],
+        ['프리미엄','인증 제품별로 별도의 프리미엄 기준이 공개된다.']])
+  },
+  'exchange-positions': {
+    review:studyText('환율 변화가 기업의 손익에 닿는 경로','한국은행','환율변동이 기업채산성에 미치는 영향',
+      'https://www.bok.or.kr/portal/bbs/P0000551/view.do?menuNo=200484&nttId=83153','Ⅱ. 환율변동과 기업채산성간의 관계',
+      [['영향이 다른 이유','같은 환율 변화에도 비용 구조와 가격을 정하는 방식에 따라 기업의 수익성이 달라질 수 있다.'],
+        ['비교할 점','회사 매출과 원료 구입비를 거래 통화별로 나누어 비교한다.']])
+  },
+  'domestic-global-stocks': {
+    review:studyText('해외 주식 수익과 환율','전국투자자교육협의회','해외주식 투자에서 놓치기 쉬운 점',
+      'https://www.kcie.or.kr/mobile/guide/series/3/66/web_view?content_idx=1968&series_idx=66','본문: 해외주식과 환율',
+      [['원화 환산','현지 통화로 수익이 나도 해당 통화의 환율이 내리면 원화로 바꾼 수익이 줄거나 손실이 날 수 있다.'],
+        ['거래 비용','실제 수익을 비교할 때 거래 방식과 세금·수수료 적용을 함께 살핀다.']])
+  },
+  'stock-diversification': {
+    primary:studyText('자산을 나눠 투자하는 이유','전국투자자교육협의회','금융투자 교육자료 · 자산배분',
+      'https://www.kcie.or.kr/assets/download/main_down/fund_2015.pdf','자산배분 설명',
+      [['자산배분','주식, 채권, 현금성 자산은 수익과 위험이 다르게 움직인다.'],
+        ['분산의 목적','한 자산의 손실이 투자금 전체에 미치는 영향을 줄이도록 서로 다른 자산에 나눈다.']]),
+    review:studyText('여러 종목을 골라도 위험이 겹칠 수 있다','전국투자자교육협의회','올바른 분산투자를 하는 방법',
+      'https://www.kcie.or.kr/guide/24/31/web_view?content_idx=1198&series_idx=','본문: 투자 대상과 투자 지역의 분산',
+      [['같은 움직임','수익률이 비슷하게 움직이는 자산을 여러 개 넣어도 한 사건에 함께 영향을 받을 수 있다.'],
+        ['비교할 점','자산 종류와 투자 지역을 함께 보고 실제 위험이 나뉘는지 확인한다.']])
+  },
+  'stock-rate-news': {
+    review:studyText('대출 금리가 바뀌는 방식','한국은행','가계대출 금리 선택의 폭 넓어지다',
+      'https://www.bok.or.kr/portal/bbs/B0000218/view.do?menuNo=200147&nttId=10017570','본문: 고정금리와 변동금리',
+      [['변동금리','계약에서 정한 시점과 기준에 따라 대출 금리가 달라진다.'],
+        ['고정금리','고정으로 약정한 기간 동안에는 계약 금리를 적용한다.']])
+  },
+  'stock-news-surge': {
+    review:studyText('온라인 종목 소문을 확인하는 법','금융위원회','핀플루언서 관련 불공정거래와 투자자 유의사항',
+      'https://www.fsc.go.kr/no070300/86510','투자자 유의사항',
+      [['확인할 위험','인터넷 추천 글에는 작성자의 이해관계가 공개되지 않거나 근거 없는 소문이 섞일 수 있다.'],
+        ['확인할 근거','투자 정보의 출처와 기업 공시를 확인한다.']])
+  },
+  'tariff-choices': {
+    primary:studyText('수입 신고 가격과 관세','관세청','수입물품 가격신고 제도',
+      'https://www.customs.go.kr/kcs/cm/cntnts/cntntsView.do?cntntsId=821&mi=2823','가격신고와 과세가격',
+      [['과세가격','수입물품의 과세가격은 관세를 계산할 때 사용하는 기준이다.'],
+        ['비교할 점','통관할 때 쓰는 과세가격과 국내 매장에서 내는 가격을 나누어 살핀다.']]),
+    review:studyText('수입 과일과 장바구니 가격','농림축산식품부','농축산물 가격안정 대책 관련 보도자료',
+      'https://www.mafra.go.kr/bbs/home/792/576259/download.do','1쪽: 수입 과일 공급 및 가격 안정',
+      [['수입 단계','농식품부가 수입 과일 공급을 늘리고 유통업체에 할인 공급한 사례가 있다.'],
+        ['매장 단계','수입 단계의 조치와 함께 소비자 할인지원도 쓰였다. 소비자가격의 변화는 따로 확인한다.']])
+  },
+  'trade-suppliers': {
+    primary:studyText('조달이 중단될 때의 대응','산업통상자원부','2025년 산업통상자원부 주요업무 추진계획',
+      'https://www.korea.kr/news/policyFocusView.do?newsId=148938434&pkgId=49500818','공급망 안정 정책',
+      [['공급망 위험','외부 충격에 취약한 핵심 품목의 공급망을 점검한다.'],
+        ['검토 기준','필요한 품목을 안정적으로 조달할 수 있는지 확인한다.']]),
+    comparison:studyText('수입선 다변화와 비축','공급망안정화위원회','경제안보품목 확대 및 공급망 취약 고리 보강',
+      'https://www.korea.kr/news/policyNewsView.do?newsId=148973318','본문: 비축·수입선 다변화 지원',
+      [['공급망 대응','전략물자를 비축하고 수입선 다변화를 지원하는 정책을 추진한다.'],
+        ['비교할 점','공급이 끊길 위험과 새로운 공급처를 찾는 부담을 함께 검토한다.']])
+  }
+};
+
+const ECONOMY_GUIDED_CHARTS = {
+  'tourism-consumption':['jeju-visitors','jeju-retail'],
+  'production-income':['regional-growth'],
+  'renewable-sharing':['renewable-share'],
+  'online-choice':['online-sales'],
+  'fruit-purchasing':['apple-output'],
+  'aging-employment':['aging-share'],
+  'household-budget':['household-spending'],
+  'childcare-choice':['dual-income'],
+  'cocoa-buying':['cocoa-price'],
+  'saving-goal':['household-spending']
+};
+
 // Separate classroom cases. Keep published sources and their saved row IDs intact.
 const ECONOMY_REVIEW_CASES = {
   'tourism-consumption': {

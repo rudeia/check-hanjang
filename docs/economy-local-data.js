@@ -10,7 +10,7 @@ function localStudy(region, title, periods, rows, clue, task, sources) {
   return { region, title, periods, rows, clue, task, sources };
 }
 
-const ECONOMY_LOCAL_CASES = {
+const ECONOMY_REGIONAL_SERIES = {
   'tourism-consumption': localStudy('제주','면세점과 숙박·음식점의 연간 지수',
     ['2024년','2025년 잠정'],
     [['면세점 소매판매액지수(2020=100)',98.0,85.0],['숙박·음식점 생산지수(2020=100)',117.3,115.6]],
@@ -133,6 +133,12 @@ const ECONOMY_LOCAL_CASES = {
     [['제주특별자치도 농업기술원','제주의 감귤 생산 변화','https://agri.jeju.go.kr/stats/jeju-agri/detail/8','재배면적·생산량·조수입 요약 지표']])
 };
 
+const ARCHIVED_ECONOMY_REGIONS = new Set([
+  'cocoa-buying','saving-goal','domestic-global-stocks','stock-diversification','stock-rate-news','stock-news-surge'
+]);
+const ECONOMY_LOCAL_CASES = Object.fromEntries(Object.entries(ECONOMY_REGIONAL_SERIES)
+  .filter(([id])=>!ARCHIVED_ECONOMY_REGIONS.has(id)));
+
 const ECONOMY_INQUIRY_STAKES = {
   'tourism-consumption': '홍보 예산으로 모든 가게를 돕기는 어려워요. 손님이 줄어든 가게에 손님을 다시 데려올 방법을 골라야 해요.',
   'production-income': '같은 예산을 공장 유치에 쓰거나 주민의 취업에 직접 쓸 수 있어요. 어떤 방식이 주민에게 더 많은 일자리를 줄지 정해야 해요.',
@@ -222,21 +228,4 @@ const ECONOMY_THINKING_CLUES = {
     '원문에서 관세를 내는 사람과 매장 가격을 정하는 사람을 구분해요. 관세 인하로 줄어드는 비용도 계산해요.',
     '같은 품질의 수입 과일을 비교해 관세가 줄어든 만큼 매장값이 내려갔는지 봐요. 제주 감귤의 생산량과 조수입도 따로 살펴봐요.'
   ]
-};
-
-const ECONOMY_SOURCE_READING = {
-  'https://www.elibrary.imf.org/view/journals/006/2020/005/article-A001-en.xml': {
-    find:'imported inputs', pdf:'https://www.imf.org/-/media/files/publications/sdn/2020/english/sdnea2020005.pdf'
-  },
-  'https://www.elibrary.imf.org/view/journals/087/2025/001/article-A001-en.xml': {
-    find:'floating rates', pdf:'https://www.imf.org/-/media/files/publications/dp/2025/english/csvhlirea.pdf'
-  },
-  'https://www.imf.org/en/publications/wp/issues/2019/11/02/tariff-passthrough-at-the-border-48769': {
-    find:'retail prices', pdf:'https://www.imf.org/-/media/files/publications/wp/2019/wpiea2019238-print-pdf.pdf'
-  },
-  'https://www.finra.org/investors/insights/concentration-risk': {find:'Correlated assets'},
-  'https://www.investor.gov/introduction-investing/getting-started/asset-allocation': {find:'Diversification'},
-  'https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins/international-investing': {find:'currency exchange rates'},
-  'https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins/social-media-stock-scams': {find:'rumors'},
-  'https://www.oecd.org/en/publications/oecd-supply-chain-resilience-review_94e3a8ea-en/full-report/executive-summary_647b6287.html': {find:'concentration'}
 };

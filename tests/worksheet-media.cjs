@@ -2,7 +2,7 @@
 // Browser image decoding/encoding are mocked: this is not physical-device QA.
 const fs = require('fs'), vm = require('vm'), assert = require('assert');
 const core = fs.readFileSync('docs/workbook-storage.js', 'utf8');
-const app = ['cases', 'topic-ideas', 'workbook-storage', 'economy-data', 'economy-activity', 'worksheet'].map(name => fs.readFileSync(`docs/${name}.js`, 'utf8')).join('\n');
+const app = ['cases', 'topic-ideas', 'workbook-storage', 'economy-data', 'economy-guided-data', 'economy-local-data', 'economy-activity', 'economy-flow', 'worksheet'].map(name => fs.readFileSync(`docs/${name}.js`, 'utf8')).join('\n');
 const photo = 'data:image/jpeg;base64,AAAA';
 const seed = () => ({ schema: 'assessment-one', version: 1, step: 1, worksheetStep: 1,
   answers: { topic: 'Synthetic topic', reflection: 'KEEP MY ANSWER' }, sources: [{ title: 'KEEP SOURCE', _photo: photo }], checks: [] });
@@ -31,7 +31,7 @@ function environment(full = false, initial = seed()) {
     disk: JSON.stringify(initial), writes: 0, failSave: false };
   const nodes = {};
   const node = selector => nodes[selector] ??= { innerHTML: '', textContent: '', hidden: false, dataset: {}, style: {}, handlers: {},
-    classList: { toggle() {} }, setAttribute() {}, getAttribute() {}, focus() {}, click() {}, scrollIntoView() {},
+    classList: { toggle() {} }, setAttribute() {}, getAttribute() {}, removeAttribute() {}, focus() {}, click() {}, scrollIntoView() {},
     addEventListener(name, fn) { this.handlers[name] = fn; }, querySelectorAll() { return []; }, querySelector() { return node('child'); } };
   class MockImage {
     get naturalWidth() { return state.width; } get naturalHeight() { return state.height; }

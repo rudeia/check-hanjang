@@ -45,11 +45,11 @@ console.log('PASS 9 case packs, 10 checked official series, offline SVG assets, 
 // Regression: answering the reading questions must retain the graph in the report,
 // even when the student did not separately copy it into an evidence card.
 const work = { answers: { ideaId: 'global-prices' }, sources: [{}] };
-const context = { activeTask: () => 'economy', work: () => work, filled: value => Boolean(value?.trim()), Intl };
+const context = { activeTask: () => 'economy', work: () => work, answer: key => work.answers[key], filled: value => Boolean(value?.trim()), Intl };
 vm.createContext(context);
-vm.runInContext(['workbook-storage', 'topic-ideas', 'economy-data', 'economy-activity']
+vm.runInContext(['workbook-storage', 'topic-ideas', 'economy-data', 'economy-activity', 'economy-flow']
   .map(name => fs.readFileSync('docs/' + name + '.js', 'utf8')).join('\n'), context);
-const report = () => vm.runInContext('economyReadingReport()', context);
+const report = () => vm.runInContext('economyLegacyReport(null)', context);
 assert.equal(report(), '');
 work.answers['reading_global-prices_compare'] = '7.33 and 2.39 were compared';
 assert.match(report(), /assets\/economy\/cocoa-price.svg/);
@@ -57,5 +57,5 @@ assert.match(report(), /7.33 and 2.39 were compared/);
 work.sources = [{ statId: 'cocoa-price' }];
 assert.doesNotMatch(report(), /<img/); // The evidence card already prints the same graph.
 work.answers.economyPackId = 'living-costs';
-assert.equal(report(), ''); // Old answers must not appear under a different data pack.
+assert.match(report(), /7.33 and 2.39 were compared/); // Source-specific notes stay named in the appendix.
 console.log('PASS reading-only graph inclusion, no duplicate evidence graph, and case-isolated report answers.');

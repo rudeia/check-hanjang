@@ -8,6 +8,17 @@
   --accent: #006653;
   --accent-hover: #004f40;
   --wash: #e4f3ed;
+  --fact-bg: #f2f8f5;
+  --fact-border: #006653;
+  --fact-badge-bg: #daf0e7;
+  --fact-badge-ink: #004f40;
+  --sim-bg: #fdf8ee;
+  --sim-border: #b7791f;
+  --sim-badge-bg: #f6e7c6;
+  --sim-badge-ink: #744210;
+  --write-bg: #fff;
+  --write-border: #cbd6d2;
+  --placeholder-ink: #849690;
   font-family: Pretendard, "Pretendard Variable", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   font-size: 100%;
   font-synthesis: none;
@@ -72,7 +83,6 @@ button:disabled { cursor: wait; opacity: .65; }
   padding: .5rem .75rem; font-size: .92rem; color: var(--muted);
 }
 .steps button[aria-current="step"] { border-color: var(--accent); background: var(--wash); color: var(--accent); }
-.economy-decision .steps { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .step-number {
   width: 1.65rem; height: 1.65rem; flex: 0 0 auto; display: grid; place-items: center;
   border-radius: 50%; background: var(--background); font-size: .83rem; font-variant-numeric: tabular-nums;
@@ -288,14 +298,11 @@ dialog li + li { margin-top: .5rem; }
 .stat-table-wrap { max-width: 100%; overflow-x: auto; }
 .stat-table { width: 100%; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }
 .stat-table caption { text-align: left; font-size: .84rem; margin-bottom: .25rem; }
-.stat-table th, .stat-table td { padding: .3rem .35rem; border-bottom: 1px solid var(--line); text-align: right; }
-.stat-table th:first-child { text-align: left; }
+.stat-table th, .stat-table td { padding: .45rem .55rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.stat-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .guided-review-case .stat-table th, .guided-review-case .stat-table td { text-align: left; vertical-align: top; }
 .guided-review-case .stat-table th:first-child { width: 32%; }
 .guided-source-locations { margin-block: .45rem .8rem; padding-inline-start: 1.2rem; font-size: .86rem; color: var(--muted); }
-.guided-report-details { margin-block: 0 1rem; }
-.guided-report-details > p { margin-bottom: .7rem; word-break: keep-all; }
-.guided-student-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .guided-region-graph { margin-block: .55rem .15rem; font-size: .88rem; }
 .guided-region-graph figcaption { font-weight: 650; margin-bottom: .35rem; }
 .guided-region-bar { display: grid; grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr) auto; gap: .45rem; align-items: center; margin-bottom: .35rem; }
@@ -306,12 +313,39 @@ dialog li + li { margin-top: .5rem; }
 .guided-evidence-list { padding-inline-start: 1.25rem; }
 .guided-evidence-list li + li { margin-top: .45rem; }
 .guided-evidence-list span { display: block; }
-@media (max-width: 540px) {
-  .guided-comparison-fields .field { gap: .25rem; margin-bottom: .55rem; }
-  .guided-comparison-fields textarea { min-height: 4.25rem; }
+.view-tabs {
+  position: sticky; top: .5rem; z-index: 5;
+  display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .25rem;
+  max-width: 760px; margin: 0 auto .9rem; padding: .25rem;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
 }
+.view-tabs button { border-color: transparent; }
+.view-tabs button[aria-selected="true"] { color: var(--accent); background: var(--wash); }
+.economy-context, .economy-reminder { padding: .8rem 0; border-bottom: 1px solid var(--line); margin-bottom: 1rem; }
+.economy-context p + p { margin-top: .55rem; }
+.economy-context ul { margin-block: .5rem 0; }
+.economy-write, .card-fact, .card-simulation { margin-block: 1rem; padding: .9rem; border-radius: 8px; min-width: 0; }
+.economy-write { border: 1px solid var(--write-border); background: var(--write-bg); }
+.economy-write > .field:first-child { margin-top: 0; }
+.card-fact { border-inline-start: 4px solid var(--fact-border); background: var(--fact-bg); }
+.card-simulation { border-inline-start: 4px solid var(--sim-border); background: var(--sim-bg); }
+.economy-card-label { display: inline-block; border-radius: 6px; padding: .15rem .45rem; margin-bottom: .5rem; font-size: .83rem; font-weight: 700; }
+.card-fact .economy-card-label { background: var(--fact-badge-bg); color: var(--fact-badge-ink); }
+.card-simulation .economy-card-label { background: var(--sim-badge-bg); color: var(--sim-badge-ink); }
+.guided-source .stat-citation { margin-bottom: .8rem; }
+.guided-source .stat-table-wrap + .stat-table-wrap { margin-top: .65rem; }
+.guided-region-material { padding-bottom: .8rem; border-bottom: 1px solid var(--line); margin-bottom: .8rem; }
+.economy-research-links { display: flex; flex-wrap: wrap; gap: .65rem 1rem; margin-bottom: .7rem; }
+.economy-workspace #editor h1 { font-size: clamp(1.6rem, 2.8vw, 2rem); font-weight: 800; color: #101c1a; }
+.economy-workspace #editor h2 { font-size: 1.22rem; font-weight: 750; margin-bottom: .7rem; }
+.economy-workspace #editor .field label { font-size: 1.02rem; font-weight: 700; color: #132220; }
+.economy-workspace #editor .field-hint { font-size: .88rem; }
+.economy-workspace #editor .field ::placeholder { color: var(--placeholder-ink); }
 @media screen {
-  .economy-workspace .split { display: block; max-width: 820px; margin-inline: auto; }
+  .economy-workspace .split { display: block; max-width: 760px; margin-inline: auto; }
+  .economy-workspace #preview-panel:not([hidden]) { display: block; position: static; max-height: none; overflow: visible; }
+  .economy-workspace #preview-print:not([hidden]) { display: inline-flex; }
+  .economy-workspace .preview-bar { flex-wrap: wrap; }
   .economy-workspace .shell { padding-bottom: 2rem; }
 }
 .paper .official-graph { font-size: .9em; }
@@ -319,8 +353,11 @@ dialog li + li { margin-top: .5rem; }
 .paper .official-graph .stat-table, .paper .official-graph caption { font-size: 1em; }
 @media (max-width: 440px) {
   .economy-materials, .official-card { padding: .55rem; }
+  .economy-write, .card-fact, .card-simulation { padding: .7rem; }
+  .view-tabs button { font-size: .86rem; }
 }
 @media print {
   .stat-table-wrap { overflow: visible; }
   .official-graph .stat-image { break-inside: avoid; }
+  .view-tabs { display: none !important; }
 }

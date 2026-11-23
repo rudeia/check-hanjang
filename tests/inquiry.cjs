@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const scripts=['cases','help','media','app','inquiry'].map(n=>fs.readFileSync('docs/'+n+'.js','utf8')).join('\n');
+const scripts=['cases','help','media','app','inquiry'].map(n=>fs.readFileSync((['app','inquiry'].includes(n)?'archive/legacy/':'docs/')+n+'.js','utf8')).join('\n');
 const fixture=()=>({schema:'assessment-one',version:1,step:1,answers:{topic:'가상 탐구'},sources:[{title:'가상 자료',author:'기관',url:'https://example.org'}],checks:[true]});
 function setup(raw=JSON.stringify(fixture()),fail={}){
  let disk=raw, writes=0,removes=0,downloads=[],printed=0,objects=new Map(),seq=0;

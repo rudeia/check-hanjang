@@ -1,263 +1,186 @@
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
-const assert=require('assert');
-(async()=>{
- const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
- const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(String(e)));
- await page.goto((process.env.TEST_BASE_URL||'http://127.0.0.1:8769/')+'#economy');
- const sets=await page.evaluate(()=>ECONOMY_GUIDED_SETS);assert.equal(sets.length,17);
- const reviews=await page.evaluate(()=>ECONOMY_REVIEW_CASES);
- const regions=await page.evaluate(()=>ECONOMY_LOCAL_CASES);
- const clues=await page.evaluate(()=>ECONOMY_THINKING_CLUES);
- const stakes=await page.evaluate(()=>ECONOMY_INQUIRY_STAKES);
- const addenda=await page.evaluate(()=>ECONOMY_REVIEW_ADDENDA);
- assert.deepEqual(Object.keys(reviews).sort(),sets.map(set=>set.id).sort());
- assert.equal(Object.keys(addenda).length,10);
- assert(await page.locator('#preview-panel').isHidden());assert(await page.locator('#mobile-preview').isHidden());
- assert(await page.locator('#steps').isHidden());
- assert.equal(await page.locator('.economy-topics button small').count(),17);
- const list=async()=>{await page.locator('.guided-context a').click();await page.waitForURL(/#economy$/);await page.locator('.economy-topics').waitFor()};
- const select=async id=>{await page.locator(`[data-guided-set="${id}"]`).click();await page.waitForURL(/#economy-work$/);await page.locator('.guided-context').waitFor()};
- await select('custom');
- await page.fill('#topic','내가 정한 경제 탐구');await page.fill('#inquiry','내 질문은 유지되나요?');
- for(const set of sets){
-  await list();await select(set.id);
-  assert.equal(await page.locator('[data-guided-set]').count(),0);
-  assert.equal(await page.locator('#steps button').count(),5);
-  assert(await page.locator('.economy-materials').isVisible());
-  assert((await page.locator('.economy-materials').innerText()).includes(set.primary.sourceTitle));
-  assert.equal(await page.locator('.economy-materials a').first().getAttribute('href'),set.primary.sourceUrl);
-  assert(!/학습용 지역 가명|실제 지역명|이전 기록은 자동|출처 번호가 같으면/.test(await page.locator('.economy-materials').innerText()));
+const assert = require('node:assert/strict');
+const { chromium, webkit } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const fs = require('node:fs');
+const path = require('node:path');
+const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:8769/';
+const output = process.env.QA_OUTPUT;
+const useWebkit = process.env.BROWSER === 'webkit';
+const chapters = ['Ⅰ. 탐구 주제와 질문','Ⅱ. 자료로 확인한 경제 변화','Ⅲ. 경제 개념 적용과 비교 분석','Ⅳ. 결론 및 지역사회 변화 방안','Ⅴ. 탐구 성찰 및 참고 출처'];
+
+async function preview(page, phrase, keyboard = false) {
+  await page.locator('#tab-write').focus();
+  if (keyboard) await page.keyboard.press('End');
+  else await page.locator('#tab-preview').click();
+  await page.locator('#preview-panel').waitFor();
+  assert(await page.locator('#workspace').isHidden());
+  assert(await page.locator('#preview-print').isVisible());
+  assert.deepEqual((await page.locator('#poster .paper-inquiry-section > h3').allTextContents()).slice(0,5),chapters);
+  assert((await page.locator('#poster').textContent()).includes(phrase));
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  const key=part=>`#guided_${set.id}_${part}`;
-  const question=await page.evaluate(()=>economyInquiry());
-  assert.equal(question,set.decision.question);
-  assert((await page.locator('#editor').innerText()).includes(clues[set.id][0]));
-  assert((await page.locator('[data-next]').innerText()).includes('해석한 자료로 입장 정하기'));
-  assert.equal(await page.locator('#economy-role').count(),0);
-  const metadata=page.locator('.guided-report-details');
-  assert(await metadata.evaluate(node=>Boolean(node.compareDocumentPosition(document.querySelector('.official-card')) & Node.DOCUMENT_POSITION_FOLLOWING)));
-  assert((await metadata.innerText()).includes(set.label));
-  await metadata.locator(key('topicTitle')).fill(`나의 탐구 · ${set.label}`);
-  await metadata.locator('#number').fill('20513');
-  await metadata.locator('#name').fill('시연 학생');
-  const groups=await page.evaluate(()=>guidedSourceGroups(economyGuided()));
-  const legacy=set===sets[0];
-  if(legacy)await page.evaluate(id=>{
-   editAnswer('guided_'+id+'_initialInquiry','전에 적은 출발 질문');
-   editAnswer('guided_'+id+'_refinedInquiry','전에 적은 수정 질문');
-   editAnswer('guided_'+id+'_evidence_comparison_0','yes');
-   editAnswer('guided_'+id+'_source_1_use','이전 활동에서 적어 둔 활용 이유');
-  },set.id);
-  const answer=part=>`검수용 ${set.id} ${part} 끝문장`;
-  async function record(sources){
-   for(const {sourceNumber,table,entries,first} of sources){
-    const excerpt='source_'+sourceNumber+'_excerpt', use='source_'+sourceNumber+'_use';
-    const card=page.locator(`[data-source-number="${sourceNumber}"]`);
-    assert.equal(await card.getByRole('link',{name:table.sourceTitle,exact:true}).getAttribute('href'),table.sourceUrl);
-    assert((await card.innerText()).includes(table.sourcePage));
-    assert(await card.locator('table').first().isVisible());
-    assert.equal(await card.locator('tbody tr').count(),entries.reduce((sum,{table})=>sum+table.rows.length,0));
-    assert.equal(await card.locator('iframe').count(),0);
-    await page.fill(key(excerpt),answer(excerpt));
-    if(first)assert.equal(await page.locator(key(use)).count(),0);
-    else await page.fill(key(use),answer(use));
-   }
-  }
-  assert.equal(await page.locator(`${key('initialInquiry')},${key('refinedInquiry')},input[data-evidence]`).count(),0);
-  assert.equal(await page.locator('.guided-review-case').count(),0);
-  const primary=groups.filter(group=>group.first);
-  assert.equal(await page.locator('.economy-materials .official-card').count(),primary.length);
-  await record(primary);
-  await page.fill(key('read'),answer('read'));
+  if (keyboard) await page.keyboard.press('Home');
+  else await page.locator('#tab-write').click();
+  assert(await page.locator('#workspace').isVisible());
+}
+
+async function guided(page, topic, index) {
+  await page.goto(base+'#economy');
+  await page.locator('[data-guided-set="'+topic.id+'"]').click();
+  await page.waitForURL(/#economy-work$/);
+  const key=part=>'#guided_'+topic.id+'_'+part;
+  const write=(part,value)=>page.fill(key(part),value);
+  const title='탐구 검수 '+topic.id;
+  assert.equal(await page.locator('#steps button').count(),4);
+  await page.getByRole('heading',{name:topic.decision.question,exact:true}).waitFor();
+  await write('topicTitle',title);
+  for (const [field,value] of Object.entries({number:'20513',name:'시연 학생',team:'2모둠'})) await page.fill('#'+field,value);
+  assert.equal(await page.evaluate(()=>economyInquiry()),topic.decision.question);
+  await write('inquiryV2','자료가 두 방안의 판단에 어떤 영향을 줄까요?');
+  await page.selectOption('#economy-role',topic.roles[0]);
+  await write('criterion','내 입장에서 비교한 비용과 편익');
+  await write('initialOpinion','자료를 보기 전에는 첫 대안을 생각했다.');
+  await preview(page,title,index===0);
+
   await page.locator('[data-next]').click();
-  assert.equal(await page.locator('#step-title').innerText(),'입장과 첫 의견');
-  assert((await page.locator('#editor').innerText()).includes(answer('read')));
-  assert((await page.locator('.guided-topic').innerText()).includes(stakes[set.id]));
-  if(set.decision.scenario)assert((await page.locator('#editor').innerText()).includes(set.decision.scenario));
-  await page.selectOption('#economy-role',set.roles[0]);
-  assert((await page.locator('#editor').innerText()).includes(set.roles[0]));
-  for(const part of ['criterion','initialOpinion'])await page.fill(key(part),answer(part));
-  await page.locator('[data-next]').click();
-  assert.equal(await page.locator('#step-title').innerText(),'추가 자료 조사');
-  assert((await page.locator('#editor').innerText()).includes(question));
-  assert((await page.locator('#editor').innerText()).includes(clues[set.id][1]));
-  assert((await page.locator('#editor').innerText()).includes(answer('criterion')));
-  assert((await page.locator('#editor').innerText()).includes(answer('initialOpinion')));
-  const region=regions[set.id];
-  const regionalMaterial=page.locator('.guided-region-material');
-  assert(await regionalMaterial.isVisible());
-  assert(await regionalMaterial.locator('table').isVisible());
-  await regionalMaterial.getByText('변화의 이유를 찾는 단서',{exact:true}).click();
-  const regionalText=await regionalMaterial.innerText();
-  for(const value of [region.region,region.clue,region.task,...region.periods])assert(regionalText.includes(value));
-  assert.equal(await regionalMaterial.locator('tbody tr').count(),region.rows.length);
-  const graph=regionalMaterial.getByText('막대그래프로 보기',{exact:true});
-  const graphRow=region.rows.find(([, ...values])=>values.every(value=>typeof value==='number'&&value>=0)&&values.some(value=>value>0));
-  assert.equal(await graph.count(),Number(Boolean(graphRow)));
-  if(await graph.count()){
-   await graph.click();
-   const shown=regionalMaterial.locator('.guided-region-graph');
-   assert(await shown.isVisible());
-   assert.equal(await shown.locator('.guided-region-bar').count(),region.periods.length);
-   for(const period of region.periods)assert((await shown.innerText()).includes(period));
-   assert.deepEqual(await shown.locator('.guided-region-bar strong').allTextContents(),
-    graphRow.slice(1).map(value=>new Intl.NumberFormat('ko-KR').format(value)));
+  assert.equal(await page.locator('#step-title').textContent(),'자료로 사실 확인');
+  assert.equal(await page.locator('#economy-pack').count(),0);
+  assert.equal(await page.locator('#editor .card-fact').count(),2);
+  assert.equal(await page.locator('#extra-sources .source-card').count(),1);
+  assert.equal(await page.locator('.economy-research-links a').count(),3);
+  const {groups,charts,region}=await page.evaluate(()=>{
+    const set=economyGuided();
+    return {groups:guidedSourceGroups(set),charts:ECONOMY_GUIDED_CHARTS[set.id] || [],region:activeGuidedRegion(set)};
+  });
+  for(const chart of charts) assert(await page.locator('img[src="assets/economy/'+chart+'.svg"]').isVisible());
+  assert.equal(await page.locator('.guided-region-material').count(),Number(Boolean(region)));
+  if (region) {
+    assert(await page.locator('.guided-region-material table').isVisible());
+    if (typeof region.rows[0][2]==='number') assert(await page.locator('.guided-region-graph').isVisible());
+    await write('regionalChange','실제 지역 자료의 두 시점을 비교했다.');
+    await write('regionalCause','자료에서 설명할 수 있는 범위를 따졌다.');
   }
-  const review=page.locator('.guided-review-case');
-  assert(await review.isVisible());
-  assert.equal(await review.locator('tbody tr').count(),2);
-  for (const row of reviews[set.id].rows) assert((await review.innerText()).includes(row[1]));
-  const extra=review.locator('.guided-review-support');
-  assert.equal(await extra.count(),Number(Boolean(addenda[set.id])));
-  if(addenda[set.id])assert((await extra.innerText()).includes(addenda[set.id][1]));
-  if(set.id==='tariff-choices')assert((await review.innerText()).includes('수입 신고 가격 × 관세율'));
-  assert.equal(await review.locator('input').count(),0);
-  assert(!(await page.locator('#extra-sources').evaluate(details=>details.open)));
-  if(legacy){
-   await page.getByText('외부 자료 찾기 (선택)',{exact:true}).click();
-   await page.fill('#source-0-title','따로 찾은 자료 검수');
-   await page.fill('#source-0-fact','외부 자료에서 기록한 근거');
-   await page.fill('#source-0-thought','외부 근거가 내 판단에 준 영향');
-   await page.fill('#source-0-url','https://example.org/market');
+  for(const [position,group] of groups.entries()){
+    if(position===2)await page.getByText('보충 발췌 자료',{exact:true}).click();
+    const card=page.locator('[data-source-number="'+group.sourceNumber+'"]');
+    assert.equal(await card.getByRole('link',{name:group.table.sourceTitle,exact:true}).getAttribute('href'),group.table.sourceUrl);
+    const value=group.entries[0].table.rows[0][1];
+    assert.equal(await card.locator('td').first().evaluate(node=>getComputedStyle(node).textAlign),typeof value==='number' ? 'right' : 'left');
+    await write('source_'+group.storageId+'_excerpt','출처에서 기록한 근거 '+position);
+    await write('source_'+group.storageId+'_use','내 판단과 근거의 연결 '+position);
   }
-  assert.equal(await page.locator(key('evidenceQuestion')).count(),0);
-  for(const part of ['regionalChange','regionalCause'])await regionalMaterial.locator(key(part)).fill(answer(part));
-  assert.equal(await page.locator('input[data-evidence]').count(),0);
-  const supplemental=groups.filter(group=>!group.first);
-  await record(supplemental);
-  assert((await page.locator('[data-stage="2"]').innerText()).includes('✓'));
+  for (const [field,value] of Object.entries({title:'직접 조사한 자료',url:'https://example.com/student-research-'+index,author:'시연 기관',date:'2026년 11월',fact:'직접 확인한 수치와 범위',thought:'추가 자료를 예상 비용에 반영했다.'}))
+    await page.fill('#source-0-'+field,value);
+  await preview(page,'직접 확인한 수치와 범위');
+
   await page.locator('[data-next]').click();
-  assert.equal(await page.locator('#step-title').innerText(),'자료 정리·비교');
-  const evidence=page.locator('.guided-comparison-evidence');
-  assert.equal(await evidence.evaluate(details=>details.open),false);
-  const evidenceToggle=evidence.locator(':scope > summary');
-  assert(await evidenceToggle.isVisible());
-  const comparisonInputs=page.locator('.guided-comparison-fields textarea');
-  assert.deepEqual(await comparisonInputs.evaluateAll(fields=>fields.map(field=>field.id)),
-   ['supplementAnalysis','optionFirst','optionSecond'].map(part=>key(part).slice(1)));
-  assert(await comparisonInputs.evaluateAll(fields=>fields.every(field=>{
-   const {top}=field.getBoundingClientRect();
-   return top>=0 && top<innerHeight;
-  })),set.id+' comparison fields should start in the mobile viewport');
-  await evidenceToggle.click();
-  assert.equal(await evidence.evaluate(details=>details.open),true);
-  const written=page.locator('.guided-comparison-evidence > .paper-evidence-table');
-  assert.equal(await written.locator('tbody tr').count(),3+Number(legacy));
-  assert((await written.innerText()).includes(answer('source_1_excerpt')));
-  assert((await written.innerText()).includes(answer('source_'+supplemental[0].sourceNumber+'_use')));
-  assert((await page.locator('#editor').innerText()).includes(question));
-  assert((await page.locator('#editor').innerText()).includes(answer('criterion')));
-  assert((await evidence.innerText()).includes(answer('regionalCause')));
-  assert((await evidence.innerText()).includes(answer('read')));
-  await page.getByText('실제 지역 원문 다시 보기',{exact:true}).click();
-  assert(await regionalMaterial.isVisible());
-  await page.getByText('모의 비교 자료 다시 보기',{exact:true}).click();
-  assert(await review.isVisible());
-  if(addenda[set.id])assert(await extra.isVisible());
-  for(const part of ['supplementAnalysis','optionFirst','optionSecond'])await page.fill(key(part),answer(part));
-  assert.equal(await page.locator(key('regionalChange')).count(),0);
-  assert((await page.locator('[data-stage="3"]').innerText()).includes('✓'));
-  await evidenceToggle.click();
-  assert.equal(await evidence.evaluate(details=>details.open),false);
-  assert.equal(await page.inputValue(key('optionFirst')),answer('optionFirst'));
-  await evidenceToggle.click();
-  await page.selectOption('#economy-term',set.concepts[0]);
-  assert((await page.locator('#economy-term-method').innerText()).length>15);
-  if(set.interpretation){
-   await page.getByText('계산과 자료 해석 연습',{exact:true}).click();
-   if(set.numeric)await page.fill(key('calculation'),String(set.numeric.answer+123));
-   await page.check(key('interpretation')+` input[value="${(set.interpretation.correctIndex+1)%set.interpretation.options.length}"]`);await page.click('#guided-check');assert((await page.locator('#guided-feedback').textContent()).includes('다시'));
-   if(set.numeric)await page.fill(key('calculation'),String(set.numeric.answer));
-   await page.check(key('interpretation')+` input[value="${set.interpretation.correctIndex}"]`);await page.click('#guided-check');assert((await page.locator('#guided-feedback').textContent()).includes('적절해요'));
-  }
-  await page.getByText('경제 용어를 적용한 설명 더 쓰기',{exact:true}).click();
-  await page.fill(key('explain'),answer('explain'));
-  await page.getByText('분석 더 적기',{exact:true}).click();
-  await page.fill(key('check'),answer('check'));
-  await page.fill('#economicImpact','주체별 편익과 부담 검수');
-  await page.reload();assert.equal(await page.inputValue(key('explain')),`검수용 ${set.id} explain 끝문장`);
-  await evidenceToggle.click();
-  assert((await evidence.innerText()).includes(answer('regionalCause')));
-  assert.equal(await page.inputValue('#economy-term'),set.concepts[0]);
-  assert.equal(await written.locator('tbody tr').count(),3+Number(legacy));
+  assert.equal(await page.locator('#step-title').textContent(),'경제 개념과 대안 비교');
+  assert((await page.locator('#editor').textContent()).includes('출처에서 기록한 근거'));
+  assert(await page.locator('.card-simulation').isVisible());
+  assert(await page.locator('.card-simulation').evaluate(node=>Boolean(node.compareDocumentPosition(document.querySelector('textarea[id$="_optionFirst"]')) & Node.DOCUMENT_POSITION_FOLLOWING)));
+  await page.selectOption('#economy-term',topic.concepts[0]);
+  assert.equal(await page.locator('#poster h4').filter({hasText:'경제 개념 적용'}).count(),0);
+  await write('explain','경제 개념을 실제 자료와 비교 조건에 적용했다.');
+  await write('supplementAnalysis','처음 자료와 보충 자료의 범위를 구분했다.');
+  await write('optionFirst','첫 대안의 이익과 부담');
+  await write('optionSecond','둘째 대안의 이익과 부담');
+  await preview(page,'경제 개념을 실제 자료와 비교 조건에 적용했다.');
+  assert.equal(await page.locator('#poster .paper-inquiry-section').nth(2).locator('.paper-comparison-table tbody tr').count(),2);
+
   await page.locator('[data-next]').click();
-  assert((await page.locator('#editor').innerText()).includes(set.concepts[0]));
-  assert((await page.locator('#editor').innerText()).includes(question));
-  assert(!(await page.locator('#editor').innerText()).includes('내 질문은 유지되나요?'));
-  assert((await page.locator('#editor').innerText()).includes(set.roles[0]));
-  for(const part of ['finalChoice','changeCondition'])await page.fill(key(part),answer(part));
-  await page.getByText('탐구 돌아보기',{exact:true}).click();
-  await page.fill(key('decisionSummary'),answer('decisionSummary'));
-  assert((await page.locator('[data-stage="4"]').innerText()).includes('✓'));
+  assert.equal(await page.locator('#step-title').textContent(),'결론·방안·보고서 완성');
+  await write('finalChoice','자료에 근거해 선택한 최종 결론');
+  await write('changeCondition','비용이 편익보다 커질 때 선택을 바꾼다.');
+  for (const [field,value] of Object.entries({economicPlan:'관련 주체와 실천 방안',practicePlan:'모둠과 조사할 내 계획',practiceResult:'조사에 참여한 기록',reflection:'비교하며 달라진 생각',role:'모둠에서 자료 정리',peerLearning:'친구의 근거 제시 방식'}))
+    await page.fill('#'+field,value);
+  for (const step of await page.locator('#steps button').allTextContents()) assert(step.includes('✓'));
   await page.reload();
-  assert.equal(await page.inputValue(key('changeCondition')),answer('changeCondition'));
-  await page.getByText('우리 지역에 적용하고 돌아보기',{exact:true}).click();
-  await page.fill(key('local'),`검수용 ${set.id} local 끝문장`);
-  await page.fill('#practiceResult','계획과 실행 결과 구분 검수');
-  await page.evaluate(()=>{window.print=()=>{window.printWasCalled=true};});
-  await page.click('#print');
-  await page.waitForFunction(()=>window.printWasCalled);
-  await page.evaluate(()=>{window.printWasCalled=false;});
-  const print=page.locator('.print-pages');
-  const text=await print.textContent();assert(text.includes(`검수용 ${set.id} local 끝문장`));assert(!/학습용 지역 가명|실제 지역명|이전 기록은 자동/.test(text));
-  assert.equal(await print.locator('.paper-header h2').textContent(),`나의 탐구 · ${set.label}`);
-  assert((await print.locator('.paper-topic').textContent()).includes(set.label));
-  assert.match(await print.locator('.paper-author').textContent(),/학번 20513 이름 시연 학생/);
-  if(legacy)for(const phrase of ['이전에 표시한 자료','전에 적은 출발 질문','전에 적은 수정 질문','이전 활동에서 적어 둔 활용 이유'])assert(text.includes(phrase));
-  if(set.decision.scenario)assert(text.replace(/\s/g,'').includes(set.decision.scenario.replace(/\s/g,'')));
-  assert((await page.locator('.print-pages .paper-perspective').textContent()).includes(set.roles[0]));
-  assert.equal(await page.locator('.print-pages .official-card').count(),0);
-  assert.equal(await page.locator('#poster .paper-evidence-table').count(),2);
-  assert.equal(await page.locator('.print-pages .paper-evidence-table tbody tr').count(),3+Number(legacy));
-  assert.equal(await page.locator('.print-pages .paper-picked:not(.paper-local-table,.paper-comparison-table,.paper-evidence-table) tbody tr').count(),Number(legacy));
-  assert.equal(await page.locator('.print-pages .paper-comparison-table tbody tr').count(),2);
-  assert.equal(await page.locator('.print-pages .paper-local-table tbody tr').count(),region.rows.length);
-  assert.equal(await page.locator('.print-pages .paper-picked thead').count(),await page.locator('.print-pages .paper-picked').count());
-  assert(!text.includes('근거를 기록한 원문 3곳'));
-  assert.equal(await page.locator('.print-pages .paper-sources a, .print-pages .paper-source-link a').count(),3+region.sources.length+Number(legacy));
-  if(legacy){
-   const own=print.locator('.paper-evidence-table tbody tr').filter({hasText:'따로 찾은 자료 검수'});
-   assert.match(await own.textContent(),/외부 자료에서 기록한 근거/);
-   assert.match(await own.textContent(),/외부 근거가 내 판단에 준 영향/);
-   assert.equal(await own.locator('a').getAttribute('href'),'https://example.org/market');
-  }
-  const localReport=page.locator('.print-pages .paper-local-analysis');
-  const localText=(await localReport.allTextContents()).join('');
-  assert(localText.includes(region.region)&&localText.includes(region.title));
-  for(const source of region.sources)assert(await localReport.locator('a').evaluateAll((links,url)=>links.some(link=>link.getAttribute('href')===url),source[2]));
-  for(const table of set.additional)assert(await page.locator('.print-pages a').evaluateAll((links,url)=>links.some(link=>link.getAttribute('href')===url),table.sourceUrl));
-  for(const entry of [question, ...['source_1_excerpt','source_'+supplemental[0].sourceNumber+'_use','read','initialOpinion','supplementAnalysis','optionFirst','optionSecond','regionalChange','regionalCause','finalChoice','changeCondition','decisionSummary'].map(answer)])assert(text.includes(entry));
-  const flow=['source_1_excerpt','read','initialOpinion','source_'+supplemental[0].sourceNumber+'_excerpt','regionalChange','regionalCause','supplementAnalysis','optionFirst','optionSecond','finalChoice','changeCondition'];
-  assert.deepEqual(flow.map(part=>text.indexOf(answer(part))),flow.map(part=>text.indexOf(answer(part))).sort((a,b)=>a-b));
-  if(set.id==='renewable-sharing'||set.id==='saving-goal')await page.pdf({path:`/tmp/check-guided-${set.id}-role.pdf`,format:'A4',printBackground:true});
-  if(legacy)await page.evaluate(()=>change(patchTask({sources:[{}]})));
- }
- await list();await select('custom');assert.equal(await page.inputValue('#topic'),'내가 정한 경제 탐구');
- assert.equal(await page.inputValue('#inquiry'),'내 질문은 유지되나요?');
- const saved=await page.evaluate(()=>work().answers);for(const set of sets)assert(saved[`guided_${set.id}_source_1_excerpt`].endsWith('끝문장'));
- await page.click('[data-stage="1"]');
- assert.equal(await page.inputValue('#refinedInquiry'),'');
- await page.fill('#refinedInquiry','   ');
- await page.click('[data-stage="3"]');
- assert((await page.locator('#editor').innerText()).includes('내 질문은 유지되나요?'));
- await page.click('[data-stage="2"]');await page.selectOption('#economy-term','시장실패');await page.fill('#concepts','선택한 자료를 경제 용어로 설명');
- await list();await select(sets[0].id);
- assert.equal(await page.locator('#step-title').innerText(),'최종 의견');
- await page.click('[data-stage="0"]');
- assert.equal(await page.inputValue(`#guided_${sets[0].id}_source_1_excerpt`),`검수용 ${sets[0].id} source_1_excerpt 끝문장`);
- assert.equal(saved[`guided_${sets[0].id}_evidence_comparison_0`],'yes');
- assert.equal(saved[`guided_${sets[0].id}_refinedInquiry`],'전에 적은 수정 질문');
- await page.click('[data-stage="4"]');
- assert.equal(await page.inputValue(`#guided_${sets[0].id}_finalChoice`),`검수용 ${sets[0].id} finalChoice 끝문장`);
- assert(!(await page.locator('#editor').innerText()).includes('전에 적은 수정 질문'));
- // Storage failure must not switch data sets or discard the in-memory draft.
- await page.click('[data-stage="0"]');
- await page.fill(`#guided_${sets[0].id}_source_1_excerpt`,'저장 실패 전 기존 답');
- await page.evaluate(()=>{window.originalSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new DOMException('quota','QuotaExceededError')};});
- await page.fill(`#guided_${sets[0].id}_source_1_excerpt`,'저장 실패 중 내 답');
- await list();await page.click(`[data-guided-set="${sets[1].id}"]`);
- assert.equal(await page.evaluate(()=>work().answers.guidedSetId),sets[0].id);
- assert.equal(await page.evaluate(id=>work().answers[`guided_${id}_source_1_excerpt`],sets[0].id),'저장 실패 중 내 답');
- await page.evaluate(()=>{Storage.prototype.setItem=window.originalSetItem});
- assert.deepEqual(errors,[]);await browser.close();console.log('PASS all 17 five-step topics, scenarios, three sources, roles, reports, scoped drafts and save failure');
-})().catch(e=>{console.error(e);process.exit(1)});
+  assert.equal(await page.inputValue(key('finalChoice')),'자료에 근거해 선택한 최종 결론');
+  await preview(page,'관련 주체와 실천 방안');
+
+  await page.evaluate(()=>{
+    const set=economyGuided();
+    editAnswer(guidedKey(set,'calculation'),'검수용 퀴즈 수치');
+    editAnswer(guidedKey(set,'interpretation'),'1');
+    window.print=()=>{window.printRequested=true;};
+  });
+  await page.locator('#tab-preview').click();
+  await page.locator('#preview-print').click();
+  await page.waitForFunction(()=>window.printRequested);
+  const report=await page.locator('.print-pages').textContent();
+  for(const value of [title,...chapters,'내 계획','최종 결론','친구의 근거','비용이 편익보다']) assert(report.includes(value));
+  assert(!/내 계산:|내 선택:|검수용 퀴즈|[A-F] 지역/.test(report));
+  assert.equal(await page.locator('.print-pages .paper-evidence-table tbody tr').count(),groups.length+1);
+  if(output && !useWebkit) await page.pdf({path:path.join(output,topic.id+'.pdf'),format:'A4',printBackground:true});
+}
+
+async function legacy(browser) {
+  const context=await browser.newContext({viewport:{width:375,height:844}});
+  try {
+    const page=await context.newPage();
+    await page.addInitScript(()=>{
+      const draft={schema:'assessment-one',version:1,step:0,answers:{},sources:[{}],checks:[]};
+      const economy={...draft,answers:{
+        guidedSetId:'stock-diversification',
+        'guided_stock-diversification_phase':'4',
+        'guided_stock-diversification_source_1_excerpt':'기존 미국 자료에서 쓴 근거',
+        'guided_stock-diversification_regionalChange':'이전에 쓴 제주 지역 변화',
+        'guided_stock-diversification_evidenceQuestion':'이전에 확인하려던 정보',
+        'reading_global-prices_compare':'이전 통계 팩 답안'
+      }};
+      if(!localStorage.getItem('pyeongga-hanjang-social2-v1'))
+        localStorage.setItem('pyeongga-hanjang-social2-v1',JSON.stringify({...draft,economy,inquiry:{version:1,active:'economy'}}));
+    });
+    await page.goto(base+'#economy-work');
+    await page.getByRole('heading',{name:'결론·방안·보고서 완성',level:1,exact:true}).waitFor();
+    await page.locator('[data-stage="1"]').click();
+    assert.equal(await page.inputValue('#guided_stock-diversification_source_ko_primary_excerpt'),'');
+    await page.reload();
+    assert.equal(await page.locator('#step-title').textContent(),'자료로 사실 확인');
+    await page.locator('#tab-preview').click();
+    const archive=page.locator('#poster .paper-inquiry-section').filter({has:page.getByRole('heading',{name:'부록. 이전 활동에서 쓴 기록',exact:true})});
+    const history=await archive.textContent();
+    for(const value of ['기존 미국 자료에서 쓴 근거','이전에 쓴 제주 지역 변화','이전에 확인하려던 정보','이전 통계 팩 답안'])assert(history.includes(value));
+    assert.equal(await archive.locator('a[href*="investor.gov"]').count(),1);
+    if(!useWebkit) {
+      await page.locator('#open-files').click();
+      const started=page.waitForEvent('download');
+      await page.locator('#backup').click();
+      const download=await started;
+      const file=await download.path();
+      const backup=JSON.parse(fs.readFileSync(file,'utf8'));
+      assert.equal(backup.task.answers['guided_stock-diversification_phaseV2'],'1');
+      assert.equal(backup.task.answers['guided_stock-diversification_source_1_excerpt'],'기존 미국 자료에서 쓴 근거');
+      page.once('dialog',dialog=>dialog.accept());
+      await page.locator('#file').setInputFiles(file);
+      await page.getByText('보관한 파일을 불러왔어요.',{exact:true}).waitFor();
+      assert.equal(await page.locator('#step-title').textContent(),'자료로 사실 확인');
+    }
+  } finally {await context.close();}
+}
+
+(async()=>{
+  if(output)fs.mkdirSync(output,{recursive:true});
+  const browser=useWebkit ? await webkit.launch({executablePath:process.env.WEBKIT_EXECUTABLE}) : await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--disk-cache-size=16777216']});
+  try{
+    const initial=await browser.newPage();
+    await initial.goto(base+'#economy');
+    const topics=await initial.evaluate(()=>ECONOMY_GUIDED_SETS);
+    assert.equal(topics.length,17);
+    assert(await initial.locator('#economy-view-tabs').isHidden());
+    await initial.close();
+    for(const [index,topic] of topics.entries()){
+      if(process.env.TOPIC_FILTER && !process.env.TOPIC_FILTER.split(',').includes(topic.id))continue;
+      const context=await browser.newContext({viewport:{width:index%2===0 ? 375 : 1024,height:844}});
+      try{
+        const page=await context.newPage();
+        page.setDefaultTimeout(9000);
+        const errors=[];
+        page.on('pageerror',error=>errors.push(error.message));
+        await guided(page,topic,index);
+        assert.deepEqual(errors,[]);
+      }catch(error){throw new Error(topic.id+': '+error.message,{cause:error});}
+      finally{await context.close();}
+    }
+    await legacy(browser);
+    console.log('PASS four-stage topics, desktop and mobile previews, report chapters, source routing, versioned legacy drafts');
+  } finally {await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

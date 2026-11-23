@@ -39,11 +39,15 @@
 .paper-local-table th:first-child { width: 52%; }
 .paper-picked th span { display: block; font-weight: 400; color: var(--muted); }
 .paper-picked td span { display: block; margin-top: .25em; }
+.paper-picked .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.paper .paper-link-print { display: none; }
 @media print {
   .has-print-pages .poster { display: none; }
   .has-print-pages .print-pages { position: static; left: auto; visibility: visible; }
   .print-paper { break-after: page; page-break-after: always; }
   .print-paper:last-child { break-after: auto; page-break-after: auto; }
+  .paper .paper-link-screen { display: none; }
+  .paper .paper-link-print { display: inline; }
 }
 
 /* Reading order comes first: prose is full width; compact evidence may pair. */
