@@ -10,12 +10,12 @@ vm.runInContext(modules.map(name=>fs.readFileSync('docs/'+name+'.js','utf8')).jo
   const work = () => draft;
   const filled = value => Boolean(value?.trim());
   this.sets=ECONOMY_GUIDED_SETS;this.regions=ECONOMY_LOCAL_CASES;this.draft=draft;
-  this.archived=ARCHIVED_ECONOMY_REGIONS;this.charts=ECONOMY_GUIDED_CHARTS;
+  this.inquiries=ECONOMY_REGION_INQUIRIES;this.charts=ECONOMY_GUIDED_CHARTS;
 `,ctx);
 const run = code => vm.runInContext(code,ctx);
 assert.equal(ctx.sets.length,17);
-assert.equal(Object.keys(ctx.regions).length,11);
-assert.equal(ctx.archived.size,6);
+assert.equal(Object.keys(ctx.regions).length,17);
+assert.equal(Object.keys(ctx.inquiries).length,17);
 assert.equal(new Set(Object.values(ctx.charts).flat()).size,10);
 for (const topic of ctx.sets) {
   ctx.draft.answers = { guidedSetId:topic.id };
@@ -33,12 +33,12 @@ for (const topic of ctx.sets) {
   }
   assert.equal(run('guidedWrittenSources(economyGuided()).length'),groups.filter(group=>typeof group.storageId==='number').length);
   const region = ctx.regions[topic.id];
-  if (region) {
-    assert(region.region && region.clue && region.task);
-    assert.equal(new Set(region.periods).size,2);
-    assert(region.rows.every(row=>row.length===3));
-  } else assert(ctx.archived.has(topic.id));
+  assert(region.region && region.clue && region.task);
+  assert.equal(new Set(region.periods).size,2);
+  assert(region.rows.every(row=>row.length===3));
+  assert.equal(ctx.inquiries[topic.id].length,4);
+  assert(ctx.inquiries[topic.id].every(text=>text.trim().length>0));
 }
 ctx.draft.answers={guidedSetId:'renewable-sharing', 'guided_renewable-sharing_read':'학생이 직접 쓴 신안 기록'};
 assert.match(run('guidedReadingReport(economyGuided())'),/학생이 직접 쓴 신안 기록/);
-console.log('PASS 17 topics, 10 visuals, active and archived regional sources, and source-specific preservation across replacements');
+console.log('PASS 17 topics, 10 visuals, 17 regional connections, and source-specific preservation across replacements');

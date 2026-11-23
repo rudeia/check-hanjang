@@ -699,7 +699,7 @@ $('#editor').addEventListener('change', event => {
   const field = event.target;
   if (field.dataset.guidedRole !== undefined) {
     const set = economyGuided();
-    if (set && (!field.value || set.roles.includes(field.value))) editAnswer(guidedKey(set,'position'),field.value);
+    if (set && (!field.value || guidedRoles(set).includes(field.value))) editAnswer(guidedKey(set,'position'),field.value);
   }
   if (field.dataset.termKey) {
     editAnswer(field.dataset.termKey, field.value);

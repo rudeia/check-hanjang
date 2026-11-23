@@ -34,6 +34,7 @@ assert.equal(await p.inputValue('#topic'),'');
 assert.equal(await p.locator('#editor .source-card').count(),1);
 assert.equal(await p.locator('#inquiry').count(),0);
 await p.fill('#topic','지역 고용의 변화');
+await p.fill('#region','제주');await p.fill('#economicPeriod','2024년과 2025년');
 const fieldPlace='제주시 중앙시장 직접 방문';
 for(const [key,value] of Object.entries({title:'가게 방문 기록',url:fieldPlace,fact:'점포 두 곳에서 주말 일손이 더 필요했다.',thought:'첫 자료에는 주말 인력 수요가 나타났다.'}))
  await p.fill('#source-0-'+key,value);

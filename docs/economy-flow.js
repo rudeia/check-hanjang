@@ -31,7 +31,7 @@ function economyInitialEditor(set) {
   return heading(ECONOMY_STEPS[0], '자료에서 비교할 사실을 찾고, 어떤 변화나 차이가 보이는지 적어요.') +
     `<section class="economy-write">
       ${input(titleKey,'탐구 보고서 제목',set?.label || '예: 우리 동네 상권의 변화와 선택',a[titleKey],{limit:60})}
-      ${set ? `<p><strong>탐구 주제</strong> ${esc(set.label)}</p>` : input('topic','탐구 주제','예: 전통시장 방문객과 점포 매출',a.topic,{limit:60})}
+      ${set ? `<p><strong>탐구 주제</strong> ${esc(set.label)} · ${esc(activeGuidedRegion(set).region)}</p>` : input('topic','탐구 주제','예: 전통시장 방문객과 점포 매출',a.topic,{limit:60})}
       <div class="field-grid student-fields">
         ${input('number','학번','예: 20513',a.number,{limit:10})}
         ${input('name','이름','예: 김하늘',a.name,{limit:10})}
@@ -53,7 +53,7 @@ function economyOpinionEditor(set) {
     '읽은 자료에 나온 지역·시점·경제 현상 중 하나를 바꿔 써도 좋아요. 예: 방문객이 늘면 시장 점포 매출도 늘까요?';
   return heading(ECONOMY_STEPS[1], '방금 읽은 사실을 바탕으로 누구의 입장에서 판단할지 정해요.') +
     (reminder ? `<section class="economy-reminder"><h2>1단계에서 내가 읽은 자료</h2>${reminder}</section>` : '') +
-    (set ? `<section class="economy-context"><h2>${esc(set.decision.question)}</h2>${guidedDecisionPrompt(set)}</section>` : '') +
+    (set ? `<section class="economy-context"><h2>${esc(ECONOMY_REGION_INQUIRIES[set.id][0])}</h2></section>` : '') +
     `<section class="economy-write">
       ${economyInput(economyQuestionKey(set),set ? '다듬은 탐구 질문 (선택)' : '탐구 질문',question,150)}
       ${set ? guidedRolePicker(set) + guidedDecisionInputs(set,['criterion','initialOpinionV3']) :
@@ -136,17 +136,26 @@ function economyFactsList(set) {
 }
 
 function economyAnalysisEditor(set) {
-  return heading(ECONOMY_STEPS[3], '같은 기준으로 대안이나 경제 주체별 영향을 비교해요.') + economyFactsList(set) +
-    (set ? `<details class="supplement"><summary>자료 표 다시 보기</summary>${guidedInitialMaterials(set,false)}${guidedSupplementMaterials(set,false)}</details>` : '') +
+  const context = heading(ECONOMY_STEPS[3], '지역 경제가 달라진 이유와 영향을 자료로 설명해요.') + economyFactsList(set);
+  if (!set) return context + economyTermGuide(set) +
+    `<section class="economy-write"><h2>변화의 원인과 경제 주체별 영향</h2>
+      ${prompt('economicChange')}${prompt('economicCause')}${prompt('economicImpact')}
+      ${economyInput('economyEvidenceImpact','내 판단에 영향을 준 추가 근거','추가로 확인한 사실 중 하나를 골라 내 첫 의견에 어떤 영향을 주었는지 적어요.',250)}</section>`;
+  return context +
+    `<details class="supplement"><summary>자료 표 다시 보기</summary>${guidedInitialMaterials(set,false)}${guidedSupplementMaterials(set,false)}</details>
+    <section class="economy-write"><h2>${esc(activeGuidedRegion(set).region)}의 변화 원인과 영향</h2>
+      ${guidedDecisionInputs(set,['regionalCause','regionalImpact'])}</section>` +
     economyTermGuide(set) +
-    (set ? guidedReviewCase(set) +
-      `<section class="economy-write"><h2>두 대안의 이익과 부담</h2>
-        ${economyQuestionSummary('판단 기준',economyCriterion(set))}
-        ${guidedDecisionInputs(set,['supplementAnalysis','optionFirst','optionSecond'])}</section>` :
-      `<section class="economy-write"><h2>변화의 원인과 경제 주체별 영향</h2>
-        ${prompt('economicChange')}${prompt('economicCause')}${prompt('economicImpact')}
-        ${economyInput('economyEvidenceImpact','내 판단에 영향을 준 추가 근거','추가로 확인한 사실 중 하나를 골라 내 첫 의견에 어떤 영향을 주었는지 적어요.',250)}</section>`);
+    `<section class="economy-write"><h2>추가 자료를 보고 내 판단을 다시 살펴보기</h2>
+      ${economyQuestionSummary('판단 기준',economyCriterion(set))}
+      ${guidedDecisionInputs(set,['supplementAnalysis'])}</section>
+    <details class="supplement economy-simulation"><summary>두 대안 비교 · 가상 상황 (선택)</summary>
+      ${guidedDecisionPrompt(set)}
+      ${guidedReviewCase(set)}
+      ${guidedDecisionInputs(set,['optionFirst','optionSecond'])}</details>`;
 }
+
+const ECONOMY_PRACTICE_STATUS = { plan:'아직 실천 전', done:'실제로 실천함' };
 
 function economyConclusionEditor(set) {
   const a = work().answers;
@@ -160,6 +169,8 @@ function economyConclusionEditor(set) {
       <div class="economy-review-columns">
         <div>${economyQuestionSummary('첫 의견',a[economyOpinionKey(set)])}</div>
         <div>
+          ${set ? economyQuestionSummary('지역에서 확인한 변화',a[guidedKey(set,'regionalChange')]) +
+              economyQuestionSummary('지역 경제 주체별 영향',a[guidedKey(set,'regionalImpact')]) : ''}
           ${economyQuestionSummary('판단에 영향을 준 근거',economyJudgmentEvidence(set))}
           ${economyQuestionSummary('적용한 경제 개념',a[economyTermKey(set)])}
           ${options}
@@ -170,10 +181,15 @@ function economyConclusionEditor(set) {
       ${set ? guidedDecisionInputs(set,['finalChoice','changeCondition']) :
         prompt('economicConclusion') + economyInput('limits','판단이 바뀔 수 있는 조건과 자료의 한계','어떤 자료나 상황이 바뀌면 다른 판단을 할지 적어요.',200)}
     </section>
-    <section class="economy-write"><h2>변화 방안과 실천 계획</h2>
-      ${prompt('economicPlan')}${prompt('practicePlan')}${prompt('practiceResult')}</section>
+    <section class="economy-write"><h2>지역사회 변화 방안과 실천</h2>
+      ${set ? `<p class="field-hint">실천 예시 · ${esc(ECONOMY_REGION_INQUIRIES[set.id][3])}</p>` : ''}
+      ${prompt('economicPlan')}
+      <fieldset class="checklist"><legend>실천 상태</legend>${Object.entries(ECONOMY_PRACTICE_STATUS).map(([key,label])=>
+        `<label><input type="radio" name="practice-status" data-key="practiceStatus" value="${key}"${a.practiceStatus===key ? ' checked' : ''}> <span>${label}</span></label>`).join('')}</fieldset>
+      ${prompt('practicePlan')}${prompt('practiceResult')}</section>
     <section class="economy-write"><h2>협업과 탐구 성찰</h2>
-      ${prompt('reflection')}${prompt('role')}${prompt('peerLearning')}</section>
+      ${prompt('reflection')}${prompt('role')}${prompt('peerLearning')}
+      <a href="listening.html?task=economy" target="_blank" rel="noopener">친구 발표 듣고 기록하기 (새 탭)</a></section>
     <details class="supplement"><summary>인쇄·공유 전 점검</summary>
       ${checklist('인쇄 전 확인할 내용',CHECKLIST.map(text=>text.replace('포스터','보고서')))}
       ${checklist('경제 탐구 공유 전 점검',taskRehearsal(),CHECKLIST.length)}</details>`;
@@ -196,21 +212,20 @@ function economyCompleted(set) {
   const first = sources[0] || {};
   const groups = set ? guidedSourceGroups(set) : [];
   const initial = set ? guidedSourceRecorded(set,groups[0]) && filled(a[guidedKey(set,'read')]) :
-    filled(a.topic) && economyFactRecorded(first) && filled(sourceThought(first));
-  const region = set && activeGuidedRegion(set);
-  const officialReview = set && (guidedWrittenSources(set).some(group=>group.storageId!==groups[0].storageId && filled(group.excerpt) && filled(group.use)) ||
-    (region && ['regionalChange','regionalCause'].every(part=>filled(a[guidedKey(set,part)]))));
+    [a.topic,a.region,a.economicPeriod].every(filled) && economyFactRecorded(first) && filled(sourceThought(first));
+  const officialReview = set && guidedWrittenSources(set).some(group=>group.storageId!==groups[0].storageId && filled(group.excerpt) && filled(group.use));
   const recordedSupplement = sources.slice(set ? 0 : 1).some(source=>economyFactRecorded(source) && filled(sourceThought(source)));
   const term = a[economyTermKey(set)];
   const explained = set ? a[guidedKey(set,'explain')] || a.concepts : a.concepts;
   return [
     Boolean(filled(economyTitle(set)) && initial),
     [economyInquiry(),economyPerspective(set),economyCriterion(set),a[economyOpinionKey(set)]].every(filled),
-    Boolean(set ? officialReview || recordedSupplement : recordedSupplement && economySourceCount(null)>=2),
-    Boolean(filled(term) && filled(explained) && (set ? ['optionFirst','optionSecond'].every(part=>filled(a[guidedKey(set,part)])) :
+    Boolean(set ? filled(a[guidedKey(set,'regionalChange')]) && (officialReview || recordedSupplement) : recordedSupplement && economySourceCount(null)>=2),
+    Boolean(filled(term) && filled(explained) && (set ? ['regionalCause','regionalImpact','supplementAnalysis'].every(part=>filled(a[guidedKey(set,part)])) :
       [answer('economicCause'),answer('economicImpact')].every(filled))),
     [set ? a[guidedKey(set,'finalChoice')] || a.economicConclusion : a.economicConclusion,
-      set ? a[guidedKey(set,'changeCondition')] : a.limits,answer('economicPlan'),a.practicePlan,a.reflection].every(filled)
+      set ? a[guidedKey(set,'changeCondition')] : a.limits,answer('economicPlan'),
+      a.practiceStatus==='done' ? a.practiceResult : a.practicePlan,a.reflection].every(filled)
   ];
 }
 
@@ -308,7 +323,7 @@ function economyPoster(set) {
     economyPaperFields(['region','economicPeriod']) + guidedEvidenceTable([],initialText,'자료 해석') +
     reportEvidenceFigures(initialSources.filter(source=>!initialText.includes(source)),[],true);
   const context = economyPaperItem('탐구 질문',economyInquiry()) +
-    (set ? economyPaperItem(set.decision.scenario ? '모의 상황' : '문제 상황',set.decision.scenario || ECONOMY_INQUIRY_STAKES[set.id]) : '') +
+    (set ? economyPaperItem('조사 지역',activeGuidedRegion(set).region) : '') +
     economyPaperItem('나의 관점',economyPerspective(set)) +
     economyPaperItem('판단 기준',economyCriterion(set)) +
     economyPaperItem('첫 의견과 이유',a[economyOpinionKey(set)]);
@@ -320,14 +335,18 @@ function economyPoster(set) {
   const term = a[economyTermKey(set)];
   const explanation = (set && a[guidedKey(set,'explain')]) || a.concepts;
   const concept = filled(explanation) ? `<section><h4>경제 개념 적용${filled(term) ? ' · '+esc(term) : ''}</h4><p>${esc(explanation)}</p></section>` : '';
-  const comparisons = concept + (set ? guidedReadingReport(set,['compare']) + guidedComparisonReport(set) :
+  const comparisons = (set ? guidedReportAnswers(set,['regionalCause','regionalImpact']) : '') + concept +
+    (set ? guidedReadingReport(set,['compare']) + guidedComparisonReport(set) :
     economyPaperFields(['economicChange','economicCause','economicImpact']) +
     economyPaperItem('내 판단에 영향을 준 추가 근거',economyJudgmentEvidence(set)));
   const conclusion = economyPaperFields(['economicConclusion']);
   const opinions = (set ? guidedReportAnswers(set,['finalChoice','changeCondition']) +
     (filled(a[guidedKey(set,'finalChoice')]) ? '' : conclusion) :
     conclusion + economyPaperItem('판단이 바뀔 수 있는 조건과 자료의 한계',a.limits)) +
-    economyPaperFields(['economicPlan','practicePlan','practiceResult']);
+    economyPaperFields(['economicPlan']) +
+    (Object.hasOwn(ECONOMY_PRACTICE_STATUS,a.practiceStatus) ?
+      economyPaperItem('실천 상태',ECONOMY_PRACTICE_STATUS[a.practiceStatus]) : '') +
+    economyPaperFields(['practicePlan','practiceResult']);
   const reflections = economyPaperFields(['reflection','role','peerLearning']) +
     (set ? guidedReportAnswers(set,['decisionSummary']) : '') + economyPaperReference(set,sources);
   const topic = set?.label || a.topic;
