@@ -389,6 +389,7 @@ function guidedCollectionStage() {
     economyQuestionSummary('내 탐구 질문',economyInquiry()) +
     economyQuestionSummary('내 판단 기준',work().answers[guidedKey(set,'criterion')]) +
     guidedDecisionSummary(set,'initialOpinion') + guidedDecisionInputs(set,['evidenceQuestion']) +
+    guidedRegionMaterial(ECONOMY_LOCAL_CASES[set.id]) +
     guidedReviewCase(set) +
     (set.decision.supplementHint ? `<p class="field-hint">${guidedEsc(set.decision.supplementHint)}</p>` : '') +
     guidedMaterials(set,'supplement') + extraEconomySources();
@@ -406,6 +407,7 @@ function guidedComparisonStage() {
       ${economyQuestionSummary('내 역할',guidedRole(set))}
       ${guidedDecisionSummary(set,'initialOpinion')}
       ${economyQuestionSummary('처음 모의 상황',set.decision.scenario)}</details>` +
+    guidedRegionAnalysis(set) +
     economyTermGuide(set,true) +
     `<details class="supplement"><summary>분석 더 적기</summary>${previous.map(prompt).join('')}${guidedWriting(set,['check'])}</details>`;
 }
@@ -454,7 +456,7 @@ function finalEditor() {
         ${filled(question) ? `<p class="field-hint"><strong>내 탐구 질문</strong> ${esc(question)}</p>` : ''}
         ${filled(term) ? `<p class="field-hint"><strong>적용한 경제 용어</strong> ${esc(term)}</p>` : ''}
         ${set ? economyQuestionSummary('내 입장',guidedRole(set)) + guidedDecisionSummary(set,'criterion') + guidedDecisionSummary(set,'initialOpinion') +
-          `<details class="supplement"><summary>내가 비교한 내용</summary>${['supplementAnalysis','optionFirst','optionSecond'].map(part=>guidedDecisionSummary(set,part)).join('')}</details>` +
+          `<details class="supplement"><summary>내가 비교한 내용</summary>${['supplementAnalysis','optionFirst','optionSecond','regionalChange','regionalCause'].map(part=>guidedDecisionSummary(set,part)).join('')}</details>` +
           guidedDecisionInputs(set,['finalChoice','changeCondition']) +
           `<details class="supplement"><summary>탐구 돌아보기</summary>${guidedDecisionInputs(set,['decisionSummary'])}</details>` +
           (filled(answer('economicConclusion')) ? `<details class="supplement"><summary>이전에 쓴 결론</summary>${prompt('economicConclusion')}</details>` : '')
@@ -500,7 +502,7 @@ function renderProgress() {
     Boolean(guidedRole(guided)) && guidedSourceEntries(guided).slice(0,2).some(entry => guidedSourcePicked(guided,entry)) && hasGuided('read'),
     Boolean(guidedRole(guided)) && hasGuided('criterion','initialOpinion'),
     hasGuided('evidenceQuestion') && (guidedSourceEntries(guided).slice(2).some(entry => guidedSourcePicked(guided,entry)) || written.length > 0),
-    hasGuided('supplementAnalysis','optionFirst','optionSecond'),
+    hasGuided('supplementAnalysis','optionFirst','optionSecond','regionalChange','regionalCause'),
     hasGuided('finalChoice','changeCondition')
   ] : activeTask() === 'economy' ? [
     filled(a.topic) && filled(a.inquiry),
@@ -578,6 +580,7 @@ function renderPoster() {
     </section>
     ${set ? guidedDecisionReport(set,'첫 의견',['criterion','initialOpinion','evidenceQuestion']) +
       guidedSupplementReport(set) + guidedDecisionReport(set,'새 근거로 비교한 두 방안',['supplementAnalysis','optionFirst','optionSecond']) +
+      guidedRegionReport(set) +
       guidedDecisionReport(set,'판단이 바뀌는 조건',['changeCondition','decisionSummary']) : ''}
     ${solutionFields ? `<section class="paper-section"><h3>${set ? '지역사회 대응 방안과 실천' : economics ? '3. 지역사회 대응 방안과 실천' : '3. 제안하기 (우리가 찾은 해결책)'}</h3>
       <div class="paper-analysis">${solutionFields}</div></section>` : ''}

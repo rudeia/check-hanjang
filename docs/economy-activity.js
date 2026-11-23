@@ -282,6 +282,48 @@ function guidedReviewCase(set) {
     </section>`;
 }
 
+function guidedRegionTable(data, forReport = false) {
+  const value = cell => esc(typeof cell === 'number' ? guidedNumberFormat.format(cell) : cell);
+  return `<table class="${forReport ? 'paper-picked paper-local-table' : 'stat-table'}">
+    ${forReport ? '' : `<caption>${esc(data.title)}</caption>`}
+    <thead><tr><th scope="col">지표</th>${data.periods.map(period=>`<th scope="col">${esc(period)}</th>`).join('')}</tr></thead>
+    <tbody>${data.rows.map(([label,...cells])=>`<tr><th scope="row">${esc(label)}</th>${cells.map(cell=>`<td>${value(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>`;
+}
+
+function guidedRegionSources(data) {
+  return data.sources.map(([publisher,title,url,section]) =>
+    `<p>${esc(publisher)} · <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a> · ${esc(section)}</p>`).join('');
+}
+
+function guidedRegionMaterial(data) {
+  return `<section class="economy-materials guided-region-material"><h2>실제 지역 자료 · ${esc(data.region)}</h2>
+    <div class="stat-table-wrap">${guidedRegionTable(data)}</div>
+    <p><strong>변화의 단서</strong> ${esc(data.clue)}</p>
+    <p>${esc(data.task)}</p>
+    <div class="stat-citation">${guidedRegionSources(data)}</div></section>`;
+}
+
+function guidedRegionAnalysis(set) {
+  const data = ECONOMY_LOCAL_CASES[set.id];
+  return `<section class="worksheet-section thought guided-region-analysis"><h2>${esc(data.region)}의 변화 분석</h2>
+    <details class="supplement"><summary>실제 지역 자료 다시 보기</summary>${guidedRegionMaterial(data)}</details>
+    ${guidedDecisionInputs(set,['regionalChange','regionalCause'])}</section>`;
+}
+
+function guidedRegionReport(set) {
+  const data = ECONOMY_LOCAL_CASES[set.id];
+  const fields = guidedDecisionFields(set);
+  const answers = work().answers;
+  const parts = ['regionalChange','regionalCause'].filter(part=>filled(answers[guidedKey(set,part)]));
+  if (!parts.length) return '';
+  return `<section class="paper-section paper-local-analysis"><h3>실제 지역의 변화와 이유 · ${esc(data.region)}</h3>
+    <h4>${esc(data.title)}</h4>
+    ${guidedRegionTable(data,true)}
+    ${parts.map(part=>`<section><h4>${esc(fields[part][0])}</h4><p>${esc(answers[guidedKey(set,part)])}</p></section>`).join('')}
+    <section class="paper-sources"><h4>지역 자료 출처</h4>${guidedRegionSources(data)}</section></section>`;
+}
+
 function guidedSelectedRows(set) {
   return guidedSourceEntries(set).flatMap(({ kind, title, table, sourceNumber }) =>
     table.rows.flatMap((row,index) => guidedRowPicked(set,kind,index)
@@ -341,7 +383,9 @@ function guidedDecisionFields(set) {
     supplementAnalysis: ['새 자료에서 알게 된 점', '새 자료에서 확인한 수치나 조건이 첫 의견을 유지하거나 바꾸는 데 어떻게 도움이 됐나요?'],
     optionFirst: [first, '내가 정한 기준으로 이 방안에서 얻는 점과 부담을 적어요. 근거가 된 수치나 조건을 넣어요.'],
     optionSecond: [second, '같은 기준으로 이 방안과 앞의 방안을 비교해요. 어느 조건에서 이 방안이 나은지 살펴봐요.'],
-    finalChoice: ['내 최종 의견과 그 이유', '내 입장에서 어떤 선택을 할지, 그 선택이 다른 경제 주체에게 어떤 영향을 줄지도 적어요.'],
+    regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '같은 지표의 두 시점 값과 단위를 써요. 두 값의 차이를 구하고, 어떤 사람이나 업종과 관련 있는지 짚어요.'],
+    regionalCause: ['무엇이 이 변화를 설명하나요?', '표의 다른 행이나 자료 설명에서 단서를 하나 골라 변화와 연결해요. 아직 알 수 없다면 더 확인할 자료나 다른 가능한 이유를 적어요.'],
+    finalChoice: ['내 최종 의견과 그 이유', '지역에서 확인한 변화가 내 선택에 어떤 영향을 주었는지 써요. 다른 경제 주체에게 미칠 영향도 생각해요.'],
     changeCondition: ['언제 내 판단이 바뀔까요?', '어떤 사실이 확인되면 다른 방안을 고를지, 누가 무엇을 확인하면 좋을지 적어요.'],
     decisionSummary: ['탐구 내용 한 줄 정리', '처음 생각과 비교해 무엇이 달라졌거나 더 분명해졌나요?']
   };

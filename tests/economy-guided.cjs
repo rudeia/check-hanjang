@@ -1,13 +1,19 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const ctx=vm.createContext({Intl});
-vm.runInContext(['economy-data','economy-guided-data','economy-activity'].map(name=>fs.readFileSync(`docs/${name}.js`,'utf8')).join('\n')+`
+vm.runInContext(['economy-data','economy-guided-data','economy-local-data','economy-activity'].map(name=>fs.readFileSync(`docs/${name}.js`,'utf8')).join('\n')+`
 let draft={answers:{}};const activeTask=()=> 'economy';const work=()=>draft;
 const esc=x=>String(x??'').replaceAll('<','&lt;');const filled=x=>Boolean(x?.trim());
-this.sets=ECONOMY_GUIDED_SETS;this.draft=draft;
+this.sets=ECONOMY_GUIDED_SETS;this.regions=ECONOMY_LOCAL_CASES;this.draft=draft;
 `,ctx);
 assert(ctx.sets.length>=10);
+assert.deepEqual(Object.keys(ctx.regions).sort(),Array.from(ctx.sets, set=>set.id).sort());
 for(const set of ctx.sets){
  assert(set.id && set.label && set.decision.options.length===2 && set.roles.length>=2);
+ const regional=ctx.regions[set.id];
+ assert(regional.region&&regional.clue&&regional.task);
+ assert.equal(new Set(regional.periods).size,2);
+ assert(regional.rows.length&&regional.rows.every(row=>row.length===3&&row[1]!==row[2]));
+ assert(regional.sources.length&&regional.sources.every(([name,title,url,section])=>name&&title&&url.startsWith('https://')&&section));
  const sources=[set.primary,set.comparison,...set.additional];
  assert(new Set(sources.map(source=>source.sourceUrl)).size>=3);
  assert(new Set(sources.map(source=>source.publisher)).size>=3);
