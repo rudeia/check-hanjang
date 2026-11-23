@@ -54,7 +54,12 @@ async function guided(page, topic, index) {
   assert.equal(await page.locator('#editor .card-fact table').count(),1);
   assert.equal(await page.locator('#editor .card-fact textarea').count(),2);
   const mobile=page.viewportSize().width<=440;
+  const startsOnScreen = selector => page.locator(selector).first().evaluate(node=>node.getBoundingClientRect().top+scrollY<innerHeight);
   assert.equal(await page.locator('.student-fields').evaluate(node=>getComputedStyle(node).gridTemplateColumns.split(' ').length),mobile ? 2 : 3);
+  if(mobile){
+    assert(await startsOnScreen('#editor .card-fact h2'));
+    assert(await page.locator('.economy-identity .character-count').first().isHidden());
+  }
   assert.equal(await page.locator('#economy-view-tabs').evaluate(node=>getComputedStyle(node).position),'sticky');
   assert.equal(await page.locator('#editor .stat-image').count(),Number(sharedChartSources.has(topic.id)));
   if(tourism) assert((await page.locator('#editor .card-fact').textContent()).includes('어느 집단의 소비는 줄었나요?'));
@@ -83,7 +88,7 @@ async function guided(page, topic, index) {
   assert.equal(await page.locator('#extra-sources .source-card').count(),1);
   const cards=page.locator('.economy-facts > .card-fact');
   assert.deepEqual(await cards.locator('.economy-card-label').allTextContents(),region ? ['실제 지역 자료','추가 공식 자료'] : ['추가 공식 자료']);
-  assert.equal(await cards.first().locator('textarea').count(),1);
+  assert.equal(await cards.first().locator('.stat-table-wrap + .field textarea').count(),1);
   assert.equal(await cards.last().locator('textarea').count(),2);
   if(region) {
     await write('regionalChange','실제 지역 자료의 두 시점을 비교했다.');
@@ -130,8 +135,16 @@ async function guided(page, topic, index) {
 
   await next();
   assert.equal(await page.locator('#step-title').textContent(),'최종 의견·보고서 완성');
-  const review=await page.locator('.economy-conclusion-review').textContent();
-  for(const phrase of [opinion,decisive,'주민과 지역 사업자가 받는 영향의 차이']) assert(review.includes(phrase));
+  const review=page.locator('.economy-conclusion-review');
+  const snippets=await review.locator('.economy-review-snippet').allTextContents();
+  assert.equal(snippets.length,2);
+  assert(snippets[0].includes(opinion) && snippets[1].includes(decisive));
+  if(mobile) assert(await startsOnScreen(key('finalChoice')));
+  const details=review.locator('details');
+  assert(await details.evaluate(node=>!node.open));
+  await details.locator('summary').click();
+  assert(await details.getByText('주민과 지역 사업자가 받는 영향의 차이',{exact:false}).isVisible());
+  await details.locator('summary').click();
   await write('finalChoice',conclusion);
   await write('changeCondition','비용이 편익보다 커질 때 선택을 바꾼다.');
   await page.getByRole('radio',{name:'아직 실천 전'}).check();
@@ -225,7 +238,7 @@ async function legacy(browser) {
     await initial.close();
     for(const [index,topic] of topics.entries()){
       if(process.env.TOPIC_FILTER && !process.env.TOPIC_FILTER.split(',').includes(topic.id))continue;
-      const context=await browser.newContext({viewport:{width:index%2===0 ? 375 : 1024,height:844}});
+      const context=await browser.newContext({viewport:{width:index%2===0 ? 375 : 1024,height:812}});
       try{
         const page=await context.newPage();
         page.setDefaultTimeout(9000);

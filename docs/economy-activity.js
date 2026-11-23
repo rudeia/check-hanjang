@@ -254,7 +254,7 @@ function guidedReviewCase(set) {
 
 function guidedRegionTable(data, forReport = false) {
   return `<table class="${forReport ? 'paper-picked paper-local-table' : 'stat-table'}">
-    ${forReport ? '' : `<caption>${esc(data.title)}</caption>`}
+    ${forReport ? '' : `<caption class="sr-only">${esc(data.title)}</caption>`}
     <thead><tr><th scope="col">지표</th>${data.periods.map((period,index)=>`<th scope="col"${data.rows.every(row=>typeof row[index+1] === 'number') ? ' class="num"' : ''}>${esc(period)}</th>`).join('')}</tr></thead>
     <tbody>${data.rows.map(([label,...cells])=>`<tr><th scope="row">${esc(label)}</th>${cells.map(cell=>`<td${numericCell(cell)}>${esc(guidedValue(cell))}</td>`).join('')}</tr>`).join('')}</tbody>
     </table>`;
@@ -282,11 +282,10 @@ function guidedRegionMaterial(data, answers = '') {
   const graph = guidedRegionGraph(data);
   return `<section class="card-fact guided-region-material"><span class="economy-card-label">실제 지역 자료</span>
     <h2>${esc(data.region)} · ${esc(data.title)}</h2>
-    <p>${esc(data.task)}</p>
-    <div class="stat-table-wrap">${guidedRegionTable(data)}</div>
+    <div class="stat-table-wrap">${guidedRegionTable(data)}</div>${answers}
     ${graph}
     <div class="stat-citation">${guidedRegionSources(data)}</div>
-    <details class="supplement"><summary>변화의 이유를 찾는 단서</summary><p>${esc(data.clue)}</p></details>${answers}</section>`;
+    <details class="supplement"><summary>자료를 읽는 단서</summary><p>${esc(data.task)}</p><p>${esc(data.clue)}</p></details></section>`;
 }
 
 function guidedRegionReport(set, data = activeGuidedRegion(set)) {
@@ -388,7 +387,7 @@ function guidedDecisionFields(set) {
     supplementAnalysis: ['내 판단에 영향을 준 추가 근거', '새로 확인한 수치나 내용을 하나 골라, 내 첫 의견에 어떤 영향을 주었는지 적어요.'],
     optionFirst: [`대안 1 · ${first}`, '주어진 상황에서 이 방안을 택하면 내 입장에서 무엇을 얻고 무엇을 부담하나요? 자료의 수치나 조건을 넣어요.'],
     optionSecond: [`대안 2 · ${second}`, '같은 기준으로 이 방안의 이익과 부담을 따져요. 어느 조건에서 앞의 방안보다 유리한가요?'],
-    regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '같은 지표의 두 시점 값과 단위를 적고 차이를 구해요.'],
+    regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '같은 지표의 두 시점 값과 단위를 넣어 한 줄로 적어요.'],
     regionalCause: ['어떤 이유로 지역 경제가 달라졌나요?', cause],
     regionalImpact: ['지역에서 누가 어떤 영향을 받나요?', impact],
     finalChoice: ['최종 의견과 지역에 주는 시사점', '지역 변화와 영향을 근거로, 첫 의견을 유지하거나 바꾼 이유와 지역에서 무엇을 먼저 해야 할지 적어요.'],
@@ -403,7 +402,7 @@ const GUIDED_PLACEHOLDERS = {
   supplementAnalysis: '예: 추가 자료를 보니 앞 자료에서 보이지 않던 ○○의 차이가 드러났다.',
   optionFirst: '이 대안에서 얻는 점과 부담을 자료의 수치나 조건과 연결해요.',
   optionSecond: '같은 기준으로 얻는 점과 부담을 적고 대안 1과 비교해요.',
-  regionalChange: '예: ○○년 ○○에서 △△년 △△로 바뀌어 □□만큼 줄었다.',
+  regionalChange: '예: ○○년 ○○에서 △△년 △△로 바뀌었다. 차이는 □□이다.',
   regionalCause: '예: 자료는 ○○의 영향을 짚었다. 이 설명을 확인하려면 △△ 자료가 필요하다.',
   regionalImpact: '예: ○○는 이익을 얻지만 △△는 이 비용을 부담할 수 있다.',
   finalChoice: '예: 내 입장에서는 ○○ 방안을 선택한다. 근거 자료에서 확인한 점은 …',

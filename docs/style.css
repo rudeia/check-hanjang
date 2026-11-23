@@ -309,7 +309,9 @@ dialog li + li { margin-top: .5rem; }
 .guided-region-track { display: block; height: .7rem; background: var(--wash); }
 .guided-region-track span { display: block; height: 100%; background: var(--accent); }
 .guided-topic > p + p { margin-top: .5rem; }
-.guided-region-material > details + .field { margin-top: .8rem; }
+.guided-region-material > .stat-table-wrap + .field { margin-top: .8rem; }
+.guided-region-material .stat-table th { word-break: keep-all; }
+.guided-region-material .stat-table td { white-space: nowrap; }
 .guided-evidence-list { padding-inline-start: 1.25rem; }
 .guided-evidence-list li + li { margin-top: .45rem; }
 .guided-evidence-list span { display: block; }
@@ -355,9 +357,19 @@ dialog li + li { margin-top: .5rem; }
   .economy-source-list .source-card .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .economy-workspace .steps { grid-template-columns: repeat(5,minmax(0,1fr)); }
-.economy-review-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .65rem; margin-top: .55rem; }
-.economy-review-columns > div { padding: .65rem; background: var(--wash); border-radius: 6px; }
-.economy-review-columns > div:empty { display: none; }
+.economy-review-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .45rem; }
+.economy-review-snippet {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden; padding: 0 .55rem; background: var(--wash); border-radius: 6px;
+  font-size: .9rem; line-height: 1.45; overflow-wrap: anywhere;
+}
+.economy-supplement-review, .economy-conclusion-review { padding-block: .25rem; margin-bottom: .6rem; }
+.economy-review-details { margin: 0; }
+.economy-review-details summary { padding: .45rem 0; }
+.economy-review-details > div { padding: 0 .55rem .4rem; overflow-wrap: anywhere; }
+.economy-review-details p { margin: .25rem 0; }
+.economy-place-fields { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.economy-topic-location { margin-bottom: .45rem; font-size: .88rem; }
 @media (max-width: 839px) {
   .economy-workspace .steps {
     grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(5.8rem,1fr);
@@ -371,6 +383,14 @@ dialog li + li { margin-top: .5rem; }
   .view-tabs button { font-size: .86rem; }
   .economy-workspace .student-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .economy-review-columns { grid-template-columns: 1fr; }
+  .economy-initial .step-kicker, .economy-final .step-kicker { display: none; }
+  .economy-initial .step-heading, .economy-final .step-heading { margin-bottom: .45rem; }
+  .economy-identity { margin-block: .45rem .65rem; padding: .55rem .65rem; }
+  .economy-identity .field { gap: .15rem; margin-bottom: .35rem; }
+  .economy-identity .character-count { display: none; }
+  .economy-place-fields textarea { min-height: 44px; }
+  .economy-identity .student-fields > .field:last-child { margin-bottom: 0; }
+  .economy-final .economy-conclusion-review + .economy-write { margin-top: .6rem; }
 }
 @media print {
   .stat-table-wrap { overflow: visible; }
