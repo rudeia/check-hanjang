@@ -727,6 +727,7 @@ $('#editor').addEventListener('click', event => {
       const answers = { ...work().answers, guidedSetId: id === 'custom' ? '' : id, economyPackId: 'custom' };
       if (id !== 'custom') {
         const topic = ECONOMY_GUIDED_SETS.find(set=>set.id===id);
+        answers[guidedQuestionVersionKey(topic)] ??= usesPreviousGuidedQuestion(topic,answers) ? '1' : '2';
         if (answers[guidedKey(topic,'phase')] === undefined && answers[guidedKey(topic,'phaseV2')] === undefined)
           answers[economyPhase(topic)] ??= '0';
       }

@@ -36,9 +36,17 @@ for (const topic of ctx.sets) {
   assert(region.region && region.clue && region.task);
   assert.equal(new Set(region.periods).size,2);
   assert(region.rows.every(row=>row.length===3));
-  assert.equal(ctx.inquiries[topic.id].length,4);
-  assert(ctx.inquiries[topic.id].every(text=>text.trim().length>0));
+  const guide = ctx.inquiries[topic.id];
+  assert([guide.question,guide.previousQuestion,guide.cause,guide.impact,guide.practice].every(text=>text.trim().length>0));
+  assert.equal(new Set(guide.criteria).size,2);
+  assert(guide.criteria.every(text=>text.trim().length>0));
 }
 ctx.draft.answers={guidedSetId:'renewable-sharing', 'guided_renewable-sharing_read':'학생이 직접 쓴 신안 기록'};
 assert.match(run('guidedReadingReport(economyGuided())'),/학생이 직접 쓴 신안 기록/);
+ctx.draft.answers['guided_renewable-sharing_initialOpinionV3']='기존 질문에 쓴 내 첫 의견';
+assert.equal(run('economyInquiry()'),ctx.inquiries['renewable-sharing'].previousQuestion);
+ctx.draft.answers['guided_renewable-sharing_decisionGuideVersion']='2';
+assert.equal(run('economyInquiry()'),ctx.inquiries['renewable-sharing'].question);
+ctx.draft.answers['guided_renewable-sharing_inquiryV2']='학생이 직접 좁힌 질문';
+assert.equal(run('economyInquiry()'),'학생이 직접 좁힌 질문');
 console.log('PASS 17 topics, 10 visuals, 17 regional connections, and source-specific preservation across replacements');

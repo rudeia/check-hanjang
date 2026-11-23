@@ -35,9 +35,9 @@ async function guided(page, topic, index) {
   const title='탐구 검수 '+topic.id;
   const tourism=topic.id==='tourism-consumption';
   const compareSimulated=topic.id==='renewable-sharing';
-  const {groups,charts,region,question}=await page.evaluate(()=>{
+  const {groups,charts,region,guide}=await page.evaluate(()=>{
     const set=economyGuided();
-    return {groups:guidedSourceGroups(set),charts:guidedChartIds(set),region:activeGuidedRegion(set),question:ECONOMY_REGION_INQUIRIES[set.id][0]};
+    return {groups:guidedSourceGroups(set),charts:guidedChartIds(set),region:activeGuidedRegion(set),guide:ECONOMY_REGION_INQUIRIES[set.id]};
   });
   const [first,second,third]=groups;
   const firstFact='첫 자료에서 확인한 사실';
@@ -72,10 +72,14 @@ async function guided(page, topic, index) {
   await next();
   assert.equal(await page.locator('#step-title').textContent(),'입장과 첫 의견');
   assert((await page.locator('#editor .economy-reminder').textContent()).includes(initialRead));
-  await page.getByRole('heading',{name:question,exact:true}).waitFor();
-  assert.equal(await page.evaluate(()=>economyInquiry()),question);
+  await page.getByRole('heading',{name:guide.question,exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>economyInquiry()),guide.question);
+  assert(await page.locator(key('inquiryV2')).isHidden());
+  const criteria = page.locator('.economy-criterion-examples > span');
+  assert.deepEqual(await criteria.allTextContents(),guide.criteria.map(item=>item+'?'));
   await page.selectOption('#economy-role',topic.roles[0]);
-  await write('criterion','내 입장에서 비교한 비용과 편익');
+  const criterion='내 입장에서 비교한 비용과 편익';
+  await write('criterion',criterion);
   await write('initialOpinionV3',opinion);
   await preview(page,opinion);
   const intro=page.locator('#poster .paper-inquiry-section').nth(1);
@@ -84,6 +88,7 @@ async function guided(page, topic, index) {
   await next();
   assert.equal(await page.locator('#step-title').textContent(),'보충 자료 조사');
   assert((await page.locator('#editor .economy-reminder').textContent()).includes(opinion));
+  assert((await page.locator('.economy-supplement-review > .economy-review-snippet').first().textContent()).includes(criterion));
   assert(await page.locator('#extra-sources').evaluate(details=>!details.open));
   assert.equal(await page.locator('#extra-sources .source-card').count(),1);
   const cards=page.locator('.economy-facts > .card-fact');
@@ -115,6 +120,8 @@ async function guided(page, topic, index) {
 
   await next();
   assert.equal(await page.locator('#step-title').textContent(),'자료 정리와 개념 비교');
+  const comparison=page.locator('.economy-write').filter({has:page.getByRole('heading',{name:'같은 기준으로 다시 판단하기'})});
+  assert((await comparison.textContent()).includes(criterion) && (await comparison.textContent()).includes(guide.question));
   const factList=page.locator('.economy-reminder .guided-evidence-list');
   assert((await factList.textContent()).includes(firstFact));
   if(region) assert.equal(await factList.getByText(region.region+' 지역 자료',{exact:true}).count(),1);

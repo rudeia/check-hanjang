@@ -43,11 +43,24 @@ function economyGuided() {
 }
 function guidedKey(set, part) { return `guided_${set.id}_${part}`; }
 
+const guidedQuestionVersionKey = set => guidedKey(set,'decisionGuideVersion');
+
+function usesPreviousGuidedQuestion(set, answers = work().answers) {
+  const version = answers[guidedQuestionVersionKey(set)];
+  if (version) return version === '1';
+  return ['initialOpinionV3','criterion','finalChoice'].some(part=>filled(answers[guidedKey(set,part)]));
+}
+
+function guidedQuestion(set) {
+  const guide = ECONOMY_REGION_INQUIRIES[set.id];
+  return usesPreviousGuidedQuestion(set) ? guide.previousQuestion : guide.question;
+}
+
 function economyInquiry() {
   const set = economyGuided();
   const a = work().answers;
   const current = a[economyQuestionKey(set)];
-  return filled(current) ? current : (set ? ECONOMY_REGION_INQUIRIES[set.id][0] : a.refinedInquiry || a.inquiry);
+  return filled(current) ? current : (set ? guidedQuestion(set) : a.refinedInquiry || a.inquiry);
 }
 
 function economyQuestionSummary(heading, question) {
@@ -100,7 +113,7 @@ function guidedExplorer() {
   }
   return `<div class="economy-topics">${[...groups].map(([group,sets]) => `<section><h2>${esc(group)}</h2>
     <ul class="economy-topic-grid">${sets.map(set => `<li><button type="button" data-guided-set="${esc(set.id)}">
-    <span><strong>${esc(set.label)}</strong><small>${esc(ECONOMY_REGION_INQUIRIES[set.id][0])}</small></span>
+    <span><strong>${esc(set.label)}</strong><small>${esc(ECONOMY_REGION_INQUIRIES[set.id].question)}</small></span>
     ${set.id === selected?.id ? '<span class="topic-resume">이어서</span>' : ''}</button></li>`).join('')}</ul></section>`).join('')}</div>
     <button type="button" data-guided-set="custom">직접 정한 주제로 탐구하기</button>`;
 }
@@ -161,7 +174,7 @@ function guidedSource(set, {table,entries,sourceNumber,storageId}, editable, ini
     <p class="stat-citation">${esc(table.publisher)} · <a href="${esc(table.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(table.sourceTitle)}</a> · ${studyDate(table)}
       ${entries.map(({table})=>esc(table.sourcePage)).filter((location,index,all)=>all.indexOf(location)===index).join(' · ')}</p>
     ${editable ? economyInput(guidedSourceKey(set,storageId,'excerpt'),'자료에서 확인한 사실','수치라면 비교한 대상·시점·단위도 적어요.',220) : ''}
-    ${editable && !initial ? economyInput(guidedSourceKey(set,storageId,'use'),'이 사실은 내 첫 의견에 어떤 영향을 주나요?','첫 의견을 유지하거나 바꾸는 이유를 한 줄로 적어요.',180) : ''}
+    ${editable && !initial ? economyInput(guidedSourceKey(set,storageId,'use'),'이 사실은 내 첫 의견에 어떤 영향을 주나요?','내가 정한 기준과 연결해 첫 의견을 다시 판단해요.',180) : ''}
     </div>`;
 }
 
@@ -374,17 +387,17 @@ function guidedRole(set) {
 function guidedRolePicker(set) {
   const selected = guidedRole(set);
   return `<div class="field"><label for="economy-role">이 지역의 변화를 누구의 입장에서 볼까요?</label>
-    <select id="economy-role" data-guided-role><option value="">경제 주체 고르기</option>${guidedRoles(set).map(role =>
+    <select id="economy-role" data-guided-role><option value="">입장 고르기</option>${guidedRoles(set).map(role =>
       `<option value="${esc(role)}"${role === selected ? ' selected' : ''}>${esc(role)}</option>`).join('')}</select></div>`;
 }
 
 function guidedDecisionFields(set) {
   const [first, second] = set.decision.options;
-  const [,cause,impact] = ECONOMY_REGION_INQUIRIES[set.id];
+  const {cause,impact} = ECONOMY_REGION_INQUIRIES[set.id];
   return {
-    criterion: ['가장 중요한 판단 기준', set.decision.criterionHint || '내가 맡은 역할에서 무엇을 가장 중요하게 볼지 정해요.'],
-    initialOpinionV3: ['첫 의견과 이유', '첫 자료에서 알게 된 점으로 지역 질문에 잠정 답을 써요. 지역 자료에서 확인하고 싶은 점도 생각해요.'],
-    supplementAnalysis: ['내 판단에 영향을 준 추가 근거', '새로 확인한 수치나 내용을 하나 골라, 내 첫 의견에 어떤 영향을 주었는지 적어요.'],
+    criterion: ['판단 기준과 이유', '내 입장에서 두 선택을 비교할 기준 하나를 정하고, 왜 중요한지 적어요.'],
+    initialOpinionV3: ['첫 의견과 이유', '첫 자료를 보고 어느 쪽으로 생각이 기우는지 써요. 판단하기 어렵다면 더 확인할 점을 적어요.'],
+    supplementAnalysis: ['내 판단에 영향을 준 추가 근거', '앞에서 정한 기준으로 두 선택을 다시 봐요. 새 자료에서 비교할 수 있는 차이나 더 확인할 점을 적어요.'],
     optionFirst: [`대안 1 · ${first}`, '주어진 상황에서 이 방안을 택하면 내 입장에서 무엇을 얻고 무엇을 부담하나요? 자료의 수치나 조건을 넣어요.'],
     optionSecond: [`대안 2 · ${second}`, '같은 기준으로 이 방안의 이익과 부담을 따져요. 어느 조건에서 앞의 방안보다 유리한가요?'],
     regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '같은 지표의 두 시점 값과 단위를 넣어 한 줄로 적어요.'],
@@ -397,7 +410,7 @@ function guidedDecisionFields(set) {
 }
 
 const GUIDED_PLACEHOLDERS = {
-  criterion: '예: 도움이 필요한 사람에게 혜택이 닿는지를 가장 중요하게 본다.',
+  criterion: '내가 중요하게 보는 기준과 그 이유를 적어요.',
   initialOpinionV3: '예: 지금은 ○○ 방안이 더 낫다고 생각한다. 그 이유는 …',
   supplementAnalysis: '예: 추가 자료를 보니 앞 자료에서 보이지 않던 ○○의 차이가 드러났다.',
   optionFirst: '이 대안에서 얻는 점과 부담을 자료의 수치나 조건과 연결해요.',
@@ -416,7 +429,12 @@ function guidedDecisionInputs(set, parts) {
     const key = guidedKey(set,part);
     const [title,hint] = fields[part];
     const limit = ({criterion:180,initialOpinionV3:220,finalChoice:320,changeCondition:200,decisionSummary:100})[part] || 250;
-    return input(key,esc(title),GUIDED_PLACEHOLDERS[part],work().answers[key],{area:part !== 'decisionSummary',limit,hint:esc(hint)});
+    const previousCriterion = part === 'criterion' && usesPreviousGuidedQuestion(set) && !filled(work().answers[economyQuestionKey(set)]);
+    const examples = part === 'criterion' && !previousCriterion
+      ? `<span class="economy-criterion-examples"><strong>기준 예시</strong>${ECONOMY_REGION_INQUIRIES[set.id].criteria.map(item=>`<span>${esc(item)}?</span>`).join('')}</span>`
+      : '';
+    const help = previousCriterion ? set.decision.criterionHint || '내가 맡은 역할에서 무엇을 가장 중요하게 보는지, 그 이유와 함께 적어요.' : hint;
+    return input(key,esc(title),GUIDED_PLACEHOLDERS[part],work().answers[key],{area:part !== 'decisionSummary',limit,hint:esc(help)+examples});
   }).join('');
 }
 

@@ -49,16 +49,22 @@ function economyOpinionEditor(set) {
   const initialFact = set ? guidedSourceAnswer(set,guidedSourceGroups(set)[0].storageId,'excerpt') : sourceFact(source);
   const initialRead = set ? a[guidedKey(set,'read')] : sourceThought(source);
   const reminder = economyQuestionSummary('확인한 사실',initialFact) + economyQuestionSummary('내 해석',initialRead);
-  const question = set ? '기본 질문을 써도 좋아요. 범위를 좁히고 싶을 때만 고쳐 적어요.' :
-    '읽은 자료에 나온 지역·시점·경제 현상 중 하나를 바꿔 써도 좋아요. 예: 방문객이 늘면 시장 점포 매출도 늘까요?';
-  return heading(ECONOMY_STEPS[1], '방금 읽은 사실을 바탕으로 누구의 입장에서 판단할지 정해요.') +
-    (reminder ? `<section class="economy-reminder"><h2>1단계에서 내가 읽은 자료</h2>${reminder}</section>` : '') +
-    (set ? `<section class="economy-context"><h2>${esc(ECONOMY_REGION_INQUIRIES[set.id][0])}</h2></section>` : '') +
+  const questionKey = economyQuestionKey(set);
+  const guidedQuestionEdit = set ? `<details class="supplement"${filled(a[questionKey]) ? ' open' : ''}>
+    <summary>탐구 질문 좁히기 (선택)</summary>
+    ${economyInput(questionKey,'내 탐구 질문','살펴볼 사람, 지역, 시점 중 하나를 더 구체적으로 써요.',150)}
+  </details>` : '';
+  return heading(ECONOMY_STEPS[1], '첫 자료를 읽었으니, 이제 누구의 입장에서 무엇을 결정할지 생각해요.') +
+    (reminder ? `<div class="economy-reminder economy-supplement-review">
+      ${economyReviewSnippet('1단계에서 읽은 점',filled(initialRead) ? initialRead : initialFact)}
+      ${economyReviewDetails('1단계에서 쓴 사실과 해석 보기',reminder)}
+    </div>` : '') +
+    (set ? `<section class="economy-context"><h2>${esc(economyInquiry())}</h2></section>` : '') +
     `<section class="economy-write">
-      ${economyInput(economyQuestionKey(set),set ? '다듬은 탐구 질문 (선택)' : '탐구 질문',question,150)}
-      ${set ? guidedRolePicker(set) + guidedDecisionInputs(set,['criterion','initialOpinionV3']) :
-        economyInput('economyPerspective','나의 관점과 관련 경제 주체','소비자, 상인, 노동자, 기업 중 어떤 입장에서 살펴볼지 적어요.',150) +
-        economyInput('economyCriterion','가장 중요한 판단 기준','예: 같은 비용으로 도움을 받는 사람이 얼마나 늘어나는가.',180) +
+      ${set ? guidedRolePicker(set) + guidedDecisionInputs(set,['criterion','initialOpinionV3']) + guidedQuestionEdit :
+        economyInput(questionKey,'탐구 질문','읽은 자료를 바탕으로 누구의 어떤 선택을 살펴볼지 적어요. 예: 시장 상인이라면 주말 영업을 늘릴까요?',150) +
+        economyInput('economyPerspective','누구의 입장에서 볼까요?','소비자, 상인, 노동자, 기업 중 어떤 입장에서 살펴볼지 적어요.',150) +
+        economyInput('economyCriterion','판단 기준과 이유','예를 들어 비용이나 혜택을 받는 사람의 범위 중 하나를 골라, 내 입장에서 왜 중요한지 적어요.',180) +
         economyInput(economyOpinionKey(set),'첫 의견과 이유','1단계 자료에서 확인한 사실을 들어 설명해요.',220)}
       ${set && filled(a[guidedKey(set,'initialOpinion')]) ?
         `<details class="supplement"><summary>이전 활동에서 쓴 첫 의견</summary><p>${esc(a[guidedKey(set,'initialOpinion')])}</p></details>` : ''}
@@ -111,13 +117,15 @@ function economySupplementEditor(set) {
   const ownCards = sourceCards(set ? 0 : 1);
   const research = `${economyResearchBar()}${ownCards}`;
   const opinion = work().answers[economyOpinionKey(set)];
+  const criterion = economyCriterion(set);
   const context = economyQuestionSummary('탐구 질문',economyInquiry()) +
-    economyQuestionSummary('입장과 기준',[economyPerspective(set),economyCriterion(set)].filter(filled).join(' · ')) +
+    economyQuestionSummary('입장과 기준',[economyPerspective(set),criterion].filter(filled).join(' · ')) +
     economyQuestionSummary('첫 의견',opinion);
   const count = '<p id="source-count" class="field-hint" role="status"></p>';
-  const instruction = set ? '지역 표에서 두 시점의 값을 비교해요.' : '첫 의견을 다시 살펴볼 자료를 한 곳에서 더 찾아요.';
+  const instruction = set ? '지역 표를 읽고 내 기준과 관련된 근거를 찾아요.' : '내 기준으로 첫 의견을 다시 살펴볼 자료를 한 곳에서 더 찾아요.';
   return heading(ECONOMY_STEPS[2],instruction) +
     (context ? `<div class="economy-reminder economy-supplement-review">
+      ${economyReviewSnippet('내 기준',criterion)}
       ${economyReviewSnippet('첫 의견',opinion)}
       ${economyReviewDetails('탐구 질문과 첫 의견 보기',context)}
     </div>` : '') +
@@ -151,15 +159,17 @@ function economyAnalysisEditor(set) {
   const context = heading(ECONOMY_STEPS[3], '지역 경제가 달라진 이유와 영향을 자료로 설명해요.') + economyFactsList(set);
   if (!set) return context + economyTermGuide(set) +
     `<section class="economy-write"><h2>변화의 원인과 경제 주체별 영향</h2>
+      ${economyQuestionSummary('2단계에서 정한 기준',economyCriterion(set))}
       ${prompt('economicChange')}${prompt('economicCause')}${prompt('economicImpact')}
-      ${economyInput('economyEvidenceImpact','내 판단에 영향을 준 추가 근거','추가로 확인한 사실 중 하나를 골라 내 첫 의견에 어떤 영향을 주었는지 적어요.',250)}</section>`;
+      ${economyInput('economyEvidenceImpact','내 판단에 영향을 준 추가 근거','2단계에서 정한 기준으로 새로 확인한 사실을 살펴보고, 첫 의견에 어떤 영향을 주었는지 적어요.',250)}</section>`;
   return context +
     `<details class="supplement"><summary>자료 표 다시 보기</summary>${guidedInitialMaterials(set,false)}${guidedSupplementMaterials(set,false)}</details>
     <section class="economy-write"><h2>${esc(activeGuidedRegion(set).region)}의 변화 원인과 영향</h2>
       ${guidedDecisionInputs(set,['regionalCause','regionalImpact'])}</section>` +
     economyTermGuide(set) +
-    `<section class="economy-write"><h2>추가 자료를 보고 내 판단을 다시 살펴보기</h2>
-      ${economyQuestionSummary('판단 기준',economyCriterion(set))}
+    `<section class="economy-write"><h2>같은 기준으로 다시 판단하기</h2>
+      ${economyQuestionSummary('탐구 질문',economyInquiry())}
+      ${economyQuestionSummary('2단계에서 정한 기준',economyCriterion(set))}
       ${guidedDecisionInputs(set,['supplementAnalysis'])}</section>
     <details class="supplement economy-simulation"><summary>두 대안 비교 · 가상 상황 (선택)</summary>
       ${guidedDecisionPrompt(set)}
@@ -196,7 +206,7 @@ function economyConclusionEditor(set) {
         prompt('economicConclusion') + economyInput('limits','판단이 바뀔 수 있는 조건과 자료의 한계','어떤 자료나 상황이 바뀌면 다른 판단을 할지 적어요.',200)}
     </section>
     <section class="economy-write"><h2>지역사회 변화 방안과 실천</h2>
-      ${set ? `<p class="field-hint">실천 예시 · ${esc(ECONOMY_REGION_INQUIRIES[set.id][3])}</p>` : ''}
+      ${set ? `<p class="field-hint">실천 예시 · ${esc(ECONOMY_REGION_INQUIRIES[set.id].practice)}</p>` : ''}
       ${prompt('economicPlan')}
       <fieldset class="checklist"><legend>실천 상태</legend>${Object.entries(ECONOMY_PRACTICE_STATUS).map(([key,label])=>
         `<label><input type="radio" name="practice-status" data-key="practiceStatus" value="${key}"${a.practiceStatus===key ? ' checked' : ''}> <span>${label}</span></label>`).join('')}</fieldset>
