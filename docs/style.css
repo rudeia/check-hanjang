@@ -352,13 +352,25 @@ dialog li + li { margin-top: .5rem; }
 .paper .official-graph .stat-meta, .paper .official-graph .stat-citation { font-size: .9em; }
 .paper .official-graph .stat-table, .paper .official-graph caption { font-size: 1em; }
 @media (min-width: 541px) {
-  #extra-sources .source-card .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .economy-source-list .source-card .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.economy-workspace .steps { grid-template-columns: repeat(5,minmax(0,1fr)); }
+.economy-review-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .65rem; margin-top: .55rem; }
+.economy-review-columns > div { padding: .65rem; background: var(--wash); border-radius: 6px; }
+.economy-review-columns > div:empty { display: none; }
+@media (max-width: 839px) {
+  .economy-workspace .steps {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(5.8rem,1fr);
+    overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: .25rem;
+  }
+  .economy-workspace .steps li { position: relative; scroll-snap-align: start; }
 }
 @media (max-width: 440px) {
   .economy-materials, .official-card { padding: .55rem; }
   .economy-write, .card-fact, .card-simulation { padding: .7rem; }
   .view-tabs button { font-size: .86rem; }
   .economy-workspace .student-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .economy-review-columns { grid-template-columns: 1fr; }
 }
 @media print {
   .stat-table-wrap { overflow: visible; }

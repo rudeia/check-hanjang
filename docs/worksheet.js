@@ -75,12 +75,18 @@ const activeTask = () => data.inquiry?.active || 'human';
 const work = () => activeTask() === 'economy' ? data.economy : data;
 function stage() {
   const previous = work().worksheetStep ?? [0, 0, 1, 1, 2, 3, 3, 3, 3][work().step];
+  if (activeTask() !== 'economy') return previous;
   const set = economyGuided();
-  if (!set) return previous;
-  const current = work().answers[economyPhase(set)];
-  if (/^[0-3]$/.test(current)) return Number(current);
-  const prior = work().answers[guidedKey(set,'phase')];
-  return /^[0-4]$/.test(prior) ? [0,0,1,2,3][prior] : previous;
+  const a = work().answers;
+  const current = a[economyPhase(set)];
+  if (/^[0-4]$/.test(current)) return Number(current);
+  if (set) {
+    const v2 = a[guidedKey(set,'phaseV2')];
+    if (/^[0-3]$/.test(v2)) return [0,2,3,4][Number(v2)];
+    const original = a[guidedKey(set,'phase')];
+    if (/^[0-4]$/.test(original)) return Number(original);
+  }
+  return [0,2,3,4][previous] ?? 0;
 }
 const filled = value => Boolean(value?.trim());
 const sourceFact = source => source.fact ?? source.evidence ?? '';
@@ -189,6 +195,7 @@ function promptDefinition(key) {
     economicCause: ['경제 변화의 원인은 무엇인가요?', '변화를 설명하는 원인과 이를 뒷받침하는 자료를 연결해요.', '함께 변한 지표만으로 원인을 확정하지 않고, 다른 가능한 원인과 확인할 자료도 살펴요.'],
     economicPlan: ['지역사회에 어떤 대응 방안을 제안하나요?', '누가 무엇을 실행하면 좋을지 적어요.', '앞의 경제 분석을 근거로 기대 효과와 필요한 비용·부담을 비교해요.'],
     practicePlan: ['나는 어떤 일을 실천할 계획인가요?', '언제, 누구와, 무엇을 하고 결과를 어떻게 확인할지 적어요.'],
+    economicConclusion: ['내 탐구 질문에 어떤 답을 얻었나요?', '첫 의견과 추가로 확인한 근거, 비교 결과를 연결해 결론을 적어요.', '처음 생각을 유지했는지, 바꿨다면 어떤 근거 때문인지 밝혀요.'],
     reflection: ['경제 탐구를 통해 생각이 어떻게 달라졌나요?', '탐구 과정에서 잘한 점과 보완할 점, 자료를 보고 달라진 생각을 적어요.']
   })[key] || PROMPTS[key];
 }
@@ -211,8 +218,8 @@ function prompt(key) {
 
 function economyPromptLimit(key) {
   if (activeTask() !== 'economy') return 120;
-  return ({economicConclusion:300,economicChange:250,economicCause:250,economicImpact:250,
-    economicPlan:250,practicePlan:200,reflection:250,role:200})[key] || 120;
+  return ({economicConclusion:320,economicChange:250,economicCause:250,economicImpact:250,
+    economicPlan:250,practicePlan:200,practiceResult:200,reflection:250,role:200,peerLearning:150})[key] || 120;
 }
 
 function heading(title, description) {
@@ -353,7 +360,8 @@ function sourceCard(source, i) {
 }
 
 const researchLink = '<a class="research-link" href="https://www.bigkinds.or.kr/" target="_blank" rel="noopener noreferrer">빅카인즈에서 뉴스 찾기 <small>(새 탭)</small></a>';
-const sourceCards = () => sourceSlots().map(sourceCard).join('') + '<button type="button" id="add-source" class="add-source">+ 근거 자료 카드 추가</button>';
+const sourceCards = (start = 0) => sourceSlots().slice(start).map((source, index)=>sourceCard(source,index+start)).join('') +
+  '<button type="button" id="add-source" class="add-source">+ 근거 자료 카드 추가</button>';
 
 function evidenceEditor() {
   return heading(taskSteps()[1], '믿을 만한 자료를 찾아 비교해요. 자료 3개 이상은 탐구를 충실히 하기 위한 목표예요.') +
@@ -401,11 +409,12 @@ function finalEditor() {
 function renderProgress() {
   const { answers:a,sources } = work();
   const economics = activeTask() === 'economy';
-  const sourceCount = sources.filter(economics ? economyFactRecorded : completeSource).length;
   const count = $('#source-count');
   const set = economyGuided();
+  const sourceCount = economics ? economySourceCount(set) : sources.filter(completeSource).length;
   if (count) count.textContent = economics
-    ? `직접 찾은 자료 ${sourceCount} / ${set ? 1 : 2}곳 이상 권장 (출처와 확인한 사실을 적으면 반영돼요)`
+    ? (set ? `기록한 출처 ${sourceCount}곳 · 서로 다른 출처 3곳을 살펴보면 좋아요.` :
+      `기록한 출처 ${sourceCount}곳 · 처음 자료와 추가 자료를 함께 써요.`)
     : `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (자료 조사 목표: 3개 이상)`;
   const completed = economics ? economyCompleted(set) : [
     [a.number,a.name,a.team,a.topic,a.inquiry].every(filled),
@@ -530,7 +539,10 @@ function render(focus = false) {
   applyEconomyView();
   renderProgress();
   renderPoster();
-  if (focus) (economics && !waiting && economyView === 'preview' ? $('#tab-preview') : $('#step-title')).focus();
+  if (focus) {
+    if (economics && !waiting && mobile.matches) $('#steps [aria-current="step"]')?.scrollIntoView?.({block:'nearest',inline:'nearest'});
+    (economics && !waiting && economyView === 'preview' ? $('#tab-preview') : $('#step-title')).focus();
+  }
 }
 
 function move(index) {
@@ -547,7 +559,7 @@ function move(index) {
   openIdeaId = '';
   const set = economyGuided();
   economyView = 'write';
-  if (set) editAnswer(economyPhase(set),String(index));
+  if (activeTask() === 'economy') editAnswer(economyPhase(set),String(index));
   else change(patchTask({ worksheetStep: index }));
   showMobilePreview(false);
   notice('#message', '');
@@ -594,13 +606,14 @@ function editSource(i, updates) {
 function removeSource(index) {
   const removed = work().sources[index];
   if (hasSource(removed) && !confirm(`근거 자료 ${index + 1}의 글과 이미지를 지울까요?`)) return;
-  const sources = work().sources.filter((_, i) => i !== index);
+  const sources = activeTask() === 'economy' && !economyGuided() && index === 0
+    ? [{},...work().sources.slice(1)] : work().sources.filter((_, i) => i !== index);
   // Older bookmarks index cards by position. Fall back to the saved worksheet step.
   const patch = { sources: sources.length ? sources : [{}] };
   if (work().position?.group === 1) deletePosition(patch);
   else change(patchTask(patch));
   render();
-  ($('#card-' + Math.min(index, sources.length - 1)) || $('#add-source')).focus();
+  ($('#card-' + Math.min(index, sources.length - 1)) || $('#add-source') || $('#step-title')).focus();
 }
 
 function deletePosition(patch) {
@@ -636,9 +649,9 @@ async function attachPhoto(input) {
     const backupBytes = new Blob([JSON.stringify({ ...candidate, exportedAt: new Date().toISOString() }, null, 2)]).size;
     if (backupBytes > BACKUP_LIMIT_BYTES) throw new Error('전체 보관 용량을 넘어서 이미지를 추가하지 않았어요. 기존 글과 사진은 그대로 있어요. 작업을 파일로 보관한 뒤 필요 없는 사진을 정리해 주세요.');
     if (!change(candidate, true)) throw new Error('기기 저장 공간이 부족하거나 저장이 허용되지 않아 이미지를 추가하지 않았어요. 기존 글과 사진은 그대로 있어요. 작업을 파일로 보관해 주세요.');
-    if (stage() === 1) {
+    if (task === 'economy' ? [0,2].includes(stage()) : stage() === 1) {
       render();
-      $('#photo-' + index).focus();
+      $('#photo-' + index)?.focus();
     }
     notice('#message', activeTask() === 'economy' ? '이미지를 첨부했어요. 자료 카드에서 사진을 확인해 주세요.' : '이미지를 첨부했어요. 글자가 있는 사진은 미리보기에서 선명도를 확인해 주세요.');
   } catch (error) {
@@ -714,7 +727,8 @@ $('#editor').addEventListener('click', event => {
       const answers = { ...work().answers, guidedSetId: id === 'custom' ? '' : id, economyPackId: 'custom' };
       if (id !== 'custom') {
         const topic = ECONOMY_GUIDED_SETS.find(set=>set.id===id);
-        if (answers[guidedKey(topic,'phase')] === undefined) answers[economyPhase(topic)] ??= '0';
+        if (answers[guidedKey(topic,'phase')] === undefined && answers[guidedKey(topic,'phaseV2')] === undefined)
+          answers[economyPhase(topic)] ??= '0';
       }
       economyView = 'write';
       if (!change(patchTask({answers}), true)) return;
@@ -730,7 +744,7 @@ $('#editor').addEventListener('click', event => {
     const index = sources.length;
     change(patchTask({ sources: [...sources, {}] }));
     render();
-    $('#source-' + index + '-title').focus();
+    $('#source-' + index + '-title')?.focus();
   }
   if (button.dataset.delete !== undefined) removeSource(Number(button.dataset.delete));
   if (button.dataset.removePhoto !== undefined) {
