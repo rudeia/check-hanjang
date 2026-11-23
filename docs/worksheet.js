@@ -207,7 +207,7 @@ function prompt(key) {
 
 function heading(title, description) {
   const set = economyGuided();
-  const context = activeTask() === 'economy' ? `<div class="guided-context">${set ? `<strong>${guidedEsc(set.label)}</strong>` : '<strong>직접 정한 주제</strong>'}<a href="#economy">주제 목록으로</a></div>` : '';
+  const context = activeTask() === 'economy' ? `<div class="guided-context">${set ? `<strong>${esc(set.label)}</strong>` : '<strong>직접 정한 주제</strong>'}<a href="#economy">주제 목록으로</a></div>` : '';
   return `${context}<div class="step-heading"><span class="step-kicker">Step ${stage() + 1} / ${taskSteps().length}</span><h1 id="step-title" tabindex="-1">${title}</h1>${description ? `<p>${description}</p>` : ''}</div>`;
 }
 
@@ -541,7 +541,7 @@ function renderPoster() {
   const readingReport = economyReadingReport();
   const economics = activeTask() === 'economy';
   const set = economyGuided();
-  const title = set ? a[guidedKey(set,'topicTitle')] || anonymizeGuidedText(set.label) : a.posterTitle || a.topic || '나의 탐구 주제';
+  const title = set ? a[guidedKey(set,'topicTitle')] || set.label : a.posterTitle || a.topic || '나의 탐구 주제';
   const presentFields = keys => posterFields(set ? keys.filter(key => filled(answer(key))) : keys);
   const solutionFields = presentFields([...solutions, ...prior.filter(key => key === 'proposal')]);
   const reflections = presentFields(reflectionKeys());

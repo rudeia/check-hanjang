@@ -215,7 +215,7 @@ function guidedExplorer() {
   }
   return `<div class="economy-topics">${[...groups].map(([group,sets]) => `<section><h2>${esc(group)}</h2>
     <ul class="economy-topic-grid">${sets.map(set => `<li><button type="button" data-guided-set="${esc(set.id)}">
-    <span><strong>${guidedEsc(set.label)}</strong><small>${guidedEsc(set.decision.question)}</small></span>
+    <span><strong>${esc(set.label)}</strong><small>${esc(set.decision.question)}</small></span>
     ${set.id === selected?.id ? '<span class="topic-resume">이어서</span>' : ''}</button></li>`).join('')}</ul></section>`).join('')}</div>
     <button type="button" data-guided-set="custom">직접 정한 주제로 탐구하기</button>`;
 }

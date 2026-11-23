@@ -172,6 +172,7 @@ const assert=require('assert');
   await page.evaluate(()=>{window.printWasCalled=false;});
   const print=page.locator('.print-pages');
   const text=await print.textContent();assert(text.includes(`검수용 ${set.id} local 끝문장`));assert(!/학습용 지역 가명|실제 지역명|이전 기록은 자동/.test(text));
+  assert.equal(await print.locator('.paper-header h2').innerText(),set.label);
   if(legacy)for(const phrase of ['이전에 표시한 자료','전에 적은 출발 질문','전에 적은 수정 질문'])assert(text.includes(phrase));
   if(set.decision.scenario)assert(text.replace(/\s/g,'').includes(set.decision.scenario.replace(/\s/g,'')));
   assert((await page.locator('.print-pages .paper-stance').textContent()).includes(set.roles[0]));
