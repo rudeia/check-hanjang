@@ -5,12 +5,21 @@
 .home-shell h1 { margin: .6rem 0 1rem; font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.25; }
 .home-intro, .home-foot { color: var(--muted); }
 .home-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 1.3rem; margin: 2.4rem 0 1.3rem; }
-.home-card { display: block; padding: 2rem; border: 1px solid var(--line); border-radius: 18px; background: white; text-decoration: none; color: var(--ink); transition: border-color .15s, background .15s; }
+.home-card { display: flex; flex-direction: column; align-items: flex-start; padding: 2rem; border: 1px solid var(--line); border-radius: 18px; background: white; color: var(--ink); transition: border-color .15s, background .15s; }
 .home-card:hover { border-color: var(--accent); background: #fafffc; }
-.card-number { display: inline-grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 12px; background: var(--wash); color: var(--accent); font-weight: 800; }
+.card-category { justify-self: start; padding: .25rem .65rem; border-radius: 8px; background: var(--wash); color: var(--accent); font-size: .9rem; font-weight: 750; }
 .home-card h2 { font-size: 1.7rem; margin: 1rem 0 .5rem; }
-.home-card p { color: var(--muted); line-height: 1.7; }
-.card-link { display: block; margin-top: 2rem; font-weight: 750; color: var(--accent); }
+.home-card p { color: var(--muted); line-height: 1.7; word-break: keep-all; }
+.home-card-actions { display: grid; justify-items: start; margin-top: auto; padding-top: 1.2rem; }
+.card-link { display: inline-flex; align-items: center; min-height: 44px; font-weight: 750; color: var(--accent); }
+@supports (grid-template-rows: subgrid) {
+  @media (min-width: 701px) {
+    .home-choices { row-gap: .65rem; }
+    .home-card { display: grid; grid-row: span 4; grid-template-rows: subgrid; }
+    .home-card h2 { margin: 0; }
+    .home-card-actions { margin-top: 0; padding-top: .4rem; }
+  }
+}
 .at-home #activity-root { display: none; }
 .listening-heading { margin: .8rem 0 1.6rem; }
 .listening-heading h1 { margin: .35rem 0 .5rem; }
@@ -45,8 +54,7 @@
   .home-shell > .home-brand { margin-bottom: 2.5rem; }
   .home-choices { grid-template-columns: 1fr; }
   .home-card { padding: 1.5rem; }
-  .home-card p br { display: none; }
-  .card-link { margin-top: 1rem; }
+  .home-card-actions { padding-top: .8rem; }
   .listening-layout { grid-template-columns: 1fr; }
   .listener-bar { display: grid; gap: .7rem; }
   .listening-page .top-inner { flex-wrap: wrap; }
@@ -95,5 +103,5 @@
 /* Header actions share the same height and baseline, including compact screens. */
 .listening-page .top-inner { display: flex; flex-wrap: wrap; align-items: center; }
 .listening-page .top-inner .tools { display: flex; align-items: center; gap: .5rem; }
-.listening-page .top-inner .research-link,
 .listening-page .top-inner [data-export-pdf] { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin: 0; padding: .65rem .85rem; }
+.listening-page .top-inner > .home-brand { display: inline-flex; align-items: center; min-height: 44px; }

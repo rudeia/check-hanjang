@@ -21,13 +21,29 @@
 </head>
 <body class="at-home">
   <main id="home" class="home-shell">
-    <a class="home-brand" href="./">체크 한장</a>
+    <a class="home-brand" href="#home">체크 한장</a>
     <p class="step-kicker">통합사회 · 탐구와 발표</p>
     <h1>내 생각을 만들고,<br>친구의 생각을 이어 보세요.</h1>
     <p class="home-intro">오늘 할 활동을 골라 시작하세요. 작성한 내용은 이 기기에 보관돼요.</p>
     <div class="home-choices">
-      <section class="home-card"><span class="card-number">01 · 인권</span><h2>보이는 탐구, 말하는 사회</h2><p>인권과 불평등의 원인을 살펴보고<br>권리 보장 방안을 포스터와 발표로 전해요.</p><a href="#human" class="card-link">인권 탐구 작성하기 →</a><br><a href="listening.html?task=human" class="card-link">인권 발표 정리하기 →</a></section>
-      <section class="home-card"><span class="card-number">02 · 경제</span><h2>경제 탐구 보고서</h2><p>소비자, 상인, 노동자처럼 한 사람의 입장에서 경제 문제를 보고 내 의견을 써요.</p><a href="#economy" class="card-link">경제 탐구 시작하기 →</a><br><a href="listening.html?task=economy" class="card-link">경제 탐구 공유 기록하기 →</a></section>
+      <section class="home-card">
+        <span class="card-category">인권</span>
+        <h2>보이는 탐구, 말하는 사회</h2>
+        <p>인권과 불평등의 원인을 살펴보고 권리 보장 방안을 포스터와 발표로 전해요.</p>
+        <div class="home-card-actions">
+          <a href="#human" class="card-link">인권 탐구 작성하기 →</a>
+          <a href="listening.html?task=human" class="card-link">인권 발표 정리하기 →</a>
+        </div>
+      </section>
+      <section class="home-card">
+        <span class="card-category">경제</span>
+        <h2>경제 탐구 보고서</h2>
+        <p>소비자, 상인, 노동자처럼 한 사람의 입장에서 경제 문제를 보고 내 의견을 써요.</p>
+        <div class="home-card-actions">
+          <a href="#economy" class="card-link">경제 탐구 시작하기 →</a>
+          <a href="listening.html?task=economy" class="card-link">경제 탐구 공유 기록하기 →</a>
+        </div>
+      </section>
     </div>
     <p class="home-foot">두 활동의 답안·자료·진행 상황과 공유 기록을 각각 보관해요. 같은 학번으로 참여해도 서로 바뀌지 않아요.</p>
   </main>
@@ -35,12 +51,11 @@
   <a class="skip" href="#workspace">작성 화면으로 건너뛰기</a>
   <header class="topbar">
     <div class="top-inner">
-      <div class="brand">
+      <a href="#home" class="brand" aria-label="체크 한장 대문으로 가기">
         <svg aria-hidden="true" width="34" height="34" viewBox="0 0 34 34" fill="none"><rect width="34" height="34" rx="9" fill="currentColor"/><path d="M11 9h9l4 4v12H11V9Z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/><path d="m14 17 2.2 2.2 4.5-4.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div><strong>체크 한장</strong><small>통합사회2 탐구 활동지</small></div>
-      </div>
+        <span><strong>체크 한장</strong><small>통합사회2 탐구 활동지</small></span>
+      </a>
       <div class="tools">
-        <a href="#home" class="research-link">대문</a>
         <span id="save-status" class="save-status" role="status">이 기기에 자동 저장</span>
         <button id="open-files" type="button">작업 저장·불러오기</button>
         <button id="reset" type="button">이 활동 초기화</button>

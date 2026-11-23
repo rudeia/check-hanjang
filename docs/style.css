@@ -45,6 +45,8 @@ button:disabled { cursor: wait; opacity: .65; }
 .top-inner, .shell { width: min(100% - 3rem, 1240px); margin-inline: auto; }
 .top-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: .7rem; }
 .brand, .tools { display: flex; align-items: center; gap: .6rem; }
+.brand { width: fit-content; min-height: 44px; color: var(--ink); text-decoration: none; }
+.brand:hover strong { color: var(--accent); }
 .brand svg { color: var(--accent); flex-shrink: 0; }
 .brand strong, .brand small { display: block; white-space: nowrap; line-height: 1.35; }
 .brand strong { font-size: 1.13rem; letter-spacing: -.02em; }
