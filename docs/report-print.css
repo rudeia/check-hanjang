@@ -9,16 +9,29 @@
 .print-paper .evidence-grid figure, .print-paper .paper-analysis section { margin: 0 0 3mm; }
 .print-paper .evidence-grid img { max-height: 43mm; }
 .print-paper .paper-section, .print-paper .paper-evidence { margin-top: 3mm; }
-.paper-stance { border-inline-start: 3px solid var(--accent); background: var(--wash); padding: .65rem .8rem; margin-block: .65rem .9rem; }
-.paper-stance h3 { color: var(--accent); font-size: 1.12em; margin-block: .16rem .32rem; }
-.paper-perspective { color: var(--accent); font-weight: 700; }
-.paper-stance p { overflow-wrap: anywhere; }
+.paper-inquiry-header { padding-bottom: .4rem; }
+.paper-perspective { color: var(--muted); margin-top: .25rem; }
+.paper-inquiry-section { line-height: 1.6; word-break: keep-all; }
+.paper-inquiry-section > h3 {
+  color: var(--accent); border-bottom: 1px solid var(--line);
+  font-size: 1.16em; padding-bottom: .22rem; margin-bottom: .5rem;
+}
+.paper-inquiry-section section + section,
+.paper-inquiry-section > p + section,
+.paper-inquiry-section > section + p { margin-top: .45rem; }
+.paper-inquiry-section h4, .paper-inquiry-section h5 { font-size: 1em; margin: 0 0 .13rem; }
+.paper-inquiry-evidence .paper-source-link { font-size: .85em; margin-bottom: .18rem; }
+.paper-inquiry-evidence .paper-evidence-use { margin-top: .15rem; }
+.paper-caption { color: var(--muted); font-size: .9em; }
 .paper-sources { border-top: 1px solid var(--line); margin-top: .45rem; padding-top: .3rem; }
 .paper-sources p { color: var(--muted); font-size: .85em; overflow-wrap: anywhere; }
 .paper-picked { width: 100%; border-collapse: collapse; font-size: .93em; margin-block: .35rem .55rem; }
 .paper-picked th, .paper-picked td { text-align: left; vertical-align: top; padding: .32rem .4rem; border-bottom: 1px solid var(--line); }
 .paper-picked thead { background: var(--wash); }
 .paper-picked th:first-child { width: 34%; }
+.paper-comparison-table th:first-child { width: 26%; }
+.paper-comparison-table td { white-space: pre-wrap; }
+.paper-local-table th:first-child { width: 52%; }
 .paper-picked th span { display: block; font-weight: 400; color: var(--muted); }
 .paper-picked td span { display: block; margin-top: .25em; }
 @media print {

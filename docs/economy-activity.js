@@ -300,7 +300,7 @@ function guidedReviewCase(set) {
   const review = ECONOMY_REVIEW_CASES[set.id];
   if (!review) return '';
   const extra = ECONOMY_REVIEW_ADDENDA[set.id];
-  return `<section class="economy-materials guided-review-case"><h2>첫 의견을 다시 볼 자료</h2>
+  return `<section class="economy-materials guided-review-case"><h2>조건이 달라지면 · 모의 자료</h2>
     <h3>${guidedEsc(review.title)}</h3>
     <p>${guidedEsc(review.common)}</p>
     <div class="stat-table-wrap"><table class="stat-table">
@@ -326,34 +326,30 @@ function guidedRegionSources(data) {
     `<p>${esc(publisher)} · <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a> · ${esc(section)}</p>`).join('');
 }
 
-function guidedRegionMaterial(data) {
+function guidedRegionMaterial(data, answers = '') {
   return `<section class="economy-materials guided-region-material"><h2>실제 지역 자료 · ${esc(data.region)}</h2>
     <h3>${esc(data.title)}</h3>
     <p>${esc(data.task)}</p>
     <div class="stat-citation">${guidedRegionSources(data)}</div>
     <details class="supplement"><summary>찾은 수치 대조하기</summary>
       <div class="stat-table-wrap">${guidedRegionTable(data)}</div>
-      <p>${esc(data.clue)}</p></details></section>`;
+      <p>${esc(data.clue)}</p></details>${answers}</section>`;
 }
 
 function guidedRegionAnalysis(set) {
-  const data = ECONOMY_LOCAL_CASES[set.id];
-  return `<section class="worksheet-section thought guided-region-analysis"><h2>${esc(data.region)}의 변화 분석</h2>
-    <details class="supplement"><summary>실제 지역 자료 다시 보기</summary>${guidedRegionMaterial(data)}</details>
-    ${guidedDecisionInputs(set,['regionalChange','regionalCause'])}</section>`;
+  return guidedRegionMaterial(ECONOMY_LOCAL_CASES[set.id],guidedDecisionInputs(set,['regionalChange','regionalCause']));
 }
 
 function guidedRegionReport(set) {
   const data = ECONOMY_LOCAL_CASES[set.id];
-  const fields = guidedDecisionFields(set);
   const answers = work().answers;
   const parts = ['regionalChange','regionalCause'].filter(part=>filled(answers[guidedKey(set,part)]));
   if (!parts.length) return '';
-  return `<section class="paper-section paper-local-analysis"><h3>실제 지역의 변화와 이유 · ${esc(data.region)}</h3>
-    <h4>${esc(data.title)}</h4>
+  return `<section class="paper-local-analysis"><h4>실제 지역의 변화와 이유 · ${esc(data.region)}</h4>
+    <p class="paper-caption">${esc(data.title)}</p>
     ${guidedRegionTable(data,true)}
-    ${parts.map(part=>`<section><h4>${esc(fields[part][0])}</h4><p>${esc(answers[guidedKey(set,part)])}</p></section>`).join('')}
-    <section class="paper-sources"><h4>지역 자료 출처</h4>${guidedRegionSources(data)}</section></section>`;
+    ${parts.map(part=>`<section><h5>${part === 'regionalChange' ? '지역 변화' : '변화의 이유와 자료의 범위'}</h5><p>${esc(answers[guidedKey(set,part)])}</p></section>`).join('')}
+    <section class="paper-sources"><h5>지역 자료 출처</h5>${guidedRegionSources(data)}</section></section>`;
 }
 
 function guidedSelectedRows(set) {
@@ -369,10 +365,12 @@ function guidedEvidenceSummary(set, forReport = false) {
   const selected = guidedSelectedRows(set);
   const count = `<p class="field-hint">근거를 기록한 원문 ${guidedSourceCount(set,true)}곳</p>`;
   if (forReport) {
-    const written = groups.length ? count + `<table class="paper-picked">
-      <thead><tr><th scope="col">원문</th><th scope="col">찾은 근거와 활용</th></tr></thead><tbody>
-      ${groups.map(({sourceNumber,table,excerpt,use})=>`<tr><th scope="row">${sourceNumber}. ${esc(table.publisher)}</th><td>
-        ${esc(excerpt)}${filled(use) ? `<span><strong>이 근거로 설명할 점</strong> ${esc(use)}</span>` : ''}</td></tr>`).join('')}</tbody></table>` : '';
+    const written = groups.map(({table,excerpt,use})=>`<section class="paper-inquiry-evidence">
+      <h4>${esc(table.publisher)}</h4>
+      <p class="paper-source-link"><a href="${esc(table.sourceUrl)}">${esc(table.sourceTitle)}</a></p>
+      ${filled(excerpt) ? `<p>${esc(excerpt)}</p>` : ''}
+      ${filled(use) ? `<p class="paper-evidence-use"><strong>판단에 쓴 점</strong> ${esc(use)}</p>` : ''}
+      </section>`).join('');
     const legacy = selected.length ? `<h4>이전에 표시한 자료</h4><table class="paper-picked">
       <thead><tr><th scope="col">표시한 항목</th><th scope="col">자료 내용</th></tr></thead><tbody>
       ${selected.map(({label,sourceNumber,detail})=>`<tr><th scope="row">${label}<span>출처 ${sourceNumber}</span></th><td>${detail}</td></tr>`).join('')}</tbody></table>` : '';
@@ -415,6 +413,7 @@ function guidedWriting(set, kinds) {
 
 function guidedDecisionPrompt(set) {
   return `<p><strong>${esc(set.decision.question)}</strong></p>
+    <p>${esc(ECONOMY_INQUIRY_STAKES[set.id])}</p>
     ${set.decision.scenario ? economyQuestionSummary('모의 상황',set.decision.scenario) : ''}
     <ul class="guided-evidence-list">${set.decision.options.map(option => `<li>${guidedEsc(option)}</li>`).join('')}</ul>`;
 }
@@ -436,13 +435,13 @@ function guidedDecisionFields(set) {
   return {
     criterion: ['내 입장에서 가장 중요한 기준', set.decision.criterionHint || '내가 맡은 역할에서 무엇을 가장 중요하게 볼지 정해요.'],
     initialOpinion: ['지금 내 의견과 그 이유', '내 입장에서 무엇을 선택할지, 그 이유를 처음 읽은 자료와 연결해요.'],
-    evidenceQuestion: ['먼저 확인할 단서', '위 단서에서 먼저 찾아볼 수치나 내용을 하나 적어요.'],
-    supplementAnalysis: ['새 자료에서 알게 된 점', '새 자료에서 확인한 수치나 조건이 첫 의견을 유지하거나 바꾸는 데 어떻게 도움이 됐나요?'],
+    evidenceQuestion: ['먼저 확인하려던 단서'],
+    supplementAnalysis: ['새 자료에서 알게 된 점', '처음에는 몰랐던 사실 하나를 써요. 그 사실을 알고 나니 어떤 방안이 유리해 보이나요?'],
     optionFirst: [first, '내가 정한 기준으로 이 방안에서 얻는 점과 부담을 적어요. 근거가 된 수치나 조건을 넣어요.'],
     optionSecond: [second, '같은 기준으로 이 방안과 앞의 방안을 비교해요. 어느 조건에서 이 방안이 나은지 살펴봐요.'],
     regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '원문 쪽수나 표 이름, 같은 지표의 두 시점 값과 단위를 적고 차이를 구해요.'],
     regionalCause: ['무엇이 이 변화를 설명하나요?', '원문의 설명이나 표의 다른 수치를 근거로 써요. 이유를 확인하기 어렵다면 어떤 정보가 더 필요한지 적어요.'],
-    finalChoice: ['내 최종 의견과 그 이유', '지역에서 확인한 변화가 내 선택에 어떤 영향을 주었는지 써요. 다른 경제 주체에게 미칠 영향도 생각해요.'],
+    finalChoice: ['내 최종 의견과 그 이유', '내 역할에서 어느 방안을 고르겠어요? 실제 지역에서 확인한 변화가 그 선택에 어떤 영향을 줬나요?'],
     changeCondition: ['언제 내 판단이 바뀔까요?', '어떤 사실이 확인되면 다른 방안을 고를지, 누가 무엇을 확인하면 좋을지 적어요.'],
     decisionSummary: ['탐구 내용 한 줄 정리', '처음 생각과 비교해 무엇이 달라졌거나 더 분명해졌나요?']
   };
@@ -461,12 +460,31 @@ function guidedDecisionSummary(set, part) {
   return economyQuestionSummary(guidedEsc(guidedDecisionFields(set)[part][0]),work().answers[guidedKey(set,part)]);
 }
 
-function guidedDecisionReport(set, title, parts) {
+function guidedReportAnswers(set, parts) {
   const fields = guidedDecisionFields(set);
+  const reportLabels = {
+    criterion:'판단 기준', initialOpinion:'첫 판단', supplementAnalysis:'새로 확인한 점',
+    finalChoice:'최종 판단', changeCondition:'판단이 바뀌는 조건', decisionSummary:'탐구를 통해 달라진 생각'
+  };
   const written = parts.filter(part => filled(work().answers[guidedKey(set,part)]));
-  if (!written.length) return '';
-  return `<section class="paper-section"><h3>${esc(title)}</h3>${written.map(part =>
-    `<section><h4>${guidedEsc(fields[part][0])}</h4><p>${esc(work().answers[guidedKey(set,part)])}</p></section>`).join('')}</section>`;
+  return written.map(part =>
+    `<section><h4>${guidedEsc(reportLabels[part] || fields[part][0])}</h4><p>${esc(work().answers[guidedKey(set,part)])}</p></section>`).join('');
+}
+
+function guidedComparisonReport(set) {
+  const options = ['optionFirst','optionSecond'].flatMap((part,index)=>{
+    const value = work().answers[guidedKey(set,part)];
+    return filled(value) ? [[set.decision.options[index],value]] : [];
+  });
+  const comparison = options.length ? `<table class="paper-picked paper-comparison-table">
+    <thead><tr><th scope="col">대안</th><th scope="col">내 판단 기준으로 비교한 결과</th></tr></thead>
+    <tbody>${options.map(([label,value])=>`<tr><th scope="row">${guidedEsc(label)}</th><td>${esc(value)}</td></tr>`).join('')}</tbody>
+    </table>` : '';
+  return guidedReportSection('두 대안 비교', guidedReportAnswers(set,['supplementAnalysis']) + comparison);
+}
+
+function guidedReportSection(title, content) {
+  return content ? `<section class="paper-section paper-inquiry-section"><h3>${esc(title)}</h3>${content}</section>` : '';
 }
 function guidedCheckFeedback(set) {
   const a=work().answers, messages=[];
@@ -488,6 +506,8 @@ function guidedReadingEditor(set) {
     ${economyQuestionSummary('탐구 질문', economyInquiry())}
     ${selected || '<p>앞 단계에서 원문을 읽고 찾은 근거를 적으면 여기에 모여요.</p>'}
     ${economyQuestionSummary('근거를 고른 이유', economyEvidenceReason())}
+    ${['regionalChange','regionalCause'].map(part=>guidedDecisionSummary(set,part)).join('')}
+    <details class="supplement"><summary>실제 지역 원문 다시 보기</summary>${guidedRegionMaterial(ECONOMY_LOCAL_CASES[set.id])}</details>
     <details class="supplement"><summary>자료 전체 다시 보기</summary>${guidedMaterials(set)}</details>
     ${set.interpretation ? `<details class="supplement"><summary>계산과 자료 해석 연습</summary>
     ${set.numeric ? input(guidedKey(set,'calculation'),anonymizeGuidedText(set.numeric.question),`숫자만 입력 · ${set.numeric.unit}`,a[guidedKey(set,'calculation')]) : ''}
@@ -504,31 +524,25 @@ function guidedReportFields(fields) {
 }
 
 function guidedSupplementReport(set) {
-  const fields=guidedFields(set).filter(f=>!['read','compare'].includes(f.kind) && filled(work().answers[f.key]));
+  const fields=guidedFields(set).filter(f=>['check','local'].includes(f.kind) && filled(work().answers[f.key]));
+  const explanation=work().answers[guidedKey(set,'explain')];
   const calculation=work().answers[guidedKey(set,'calculation')];
   const choice=work().answers[guidedKey(set,'interpretation')];
   const evidence=guidedEvidenceSummary(set,true);
+  const region=guidedRegionReport(set);
   const term=work().answers[economyTermKey(set)];
-  if(!fields.length && !filled(calculation) && !filled(choice) && !evidence && !filled(term)) return '';
-  const recorded = guidedWrittenSources(set);
+  if(!fields.length && !filled(explanation) && !filled(calculation) && !filled(choice) && !evidence && !region && !filled(term)) return '';
+  const concept=set.concepts.includes(term) ? ` · ${esc(term)}` : '';
+  const recorded=new Set(guidedWrittenSources(set).map(group=>group.sourceNumber));
   const legacy = guidedSourceEntries(set).filter(entry=>guidedSourcePicked(set,entry));
-  const sources = new Map([...recorded,...legacy].map(entry=>[entry.sourceNumber,entry.table]));
-  return `<section class="paper-section"><h3>자료 근거와 경제 용어</h3>
+  const sources = new Map(legacy.filter(entry=>!recorded.has(entry.sourceNumber)).map(entry=>[entry.sourceNumber,entry.table]));
+  return `${evidence}
+    ${region}
+    ${concept || filled(explanation) ? `<section><h4>경제 개념 적용${concept}</h4>
+      ${filled(explanation) ? `<p>${esc(explanation)}</p>` : ''}</section>` : ''}
+    ${guidedReportFields(fields)}
     ${set.numeric && filled(calculation)?`<section><h4>${guidedEsc(set.numeric.question)}</h4><p>내 계산: ${esc(calculation)} ${guidedEsc(set.numeric.unit)}</p></section>`:''}
     ${set.interpretation && filled(choice)?`<section><h4>${guidedEsc(set.interpretation.question)}</h4><p>내 선택: ${guidedEsc(set.interpretation.options[Number(choice)] || '')}</p></section>`:''}
-    ${evidence}
-    ${set.concepts.includes(term) ? `<p><strong>적용한 경제 용어</strong> ${esc(term)}</p>` : ''}
-    ${guidedReportFields(fields)}
-    ${sources.size ? `<section class="paper-sources"><h4>원문 출처</h4>${[...sources].sort(([a],[b])=>a-b).map(([number,table]) =>
-      `<p>${number}. ${esc(table.publisher)} · <a href="${esc(table.sourceUrl)}">${esc(table.sourceTitle)}</a></p>`).join('')}</section>` : ''}</section>`;
-}
-
-function guidedVoiceReport(set) {
-  const role = guidedRole(set);
-  const opinion = work().answers[guidedKey(set,'finalChoice')];
-  if (!filled(opinion) && !role) return '';
-  return `<section class="paper-stance">
-    ${role ? `<p class="paper-perspective">${esc(role)}의 입장</p>` : ''}
-    ${filled(opinion) ? `<h3>나의 최종 의견</h3><p>${esc(opinion)}</p>` : ''}
-    </section>`;
+    ${sources.size ? `<section class="paper-sources"><h4>이전에 표시한 자료의 출처</h4>${[...sources].sort(([a],[b])=>a-b).map(([number,table]) =>
+      `<p>${number}. ${esc(table.publisher)} · <a href="${esc(table.sourceUrl)}">${esc(table.sourceTitle)}</a></p>`).join('')}</section>` : ''}`;
 }

@@ -4,11 +4,12 @@ vm.runInContext(['economy-data','economy-guided-data','economy-local-data','econ
 let draft={answers:{}};const activeTask=()=> 'economy';const work=()=>draft;
 const esc=x=>String(x??'').replaceAll('<','&lt;');const filled=x=>Boolean(x?.trim());
 const input=(key,title)=>'<textarea id="'+key+'" aria-label="'+title+'"></textarea>';
-this.sets=ECONOMY_GUIDED_SETS;this.regions=ECONOMY_LOCAL_CASES;this.clues=ECONOMY_THINKING_CLUES;this.draft=draft;
+this.sets=ECONOMY_GUIDED_SETS;this.regions=ECONOMY_LOCAL_CASES;this.clues=ECONOMY_THINKING_CLUES;this.stakes=ECONOMY_INQUIRY_STAKES;this.draft=draft;
 `,ctx);
 assert(ctx.sets.length>=10);
 assert.deepEqual(Object.keys(ctx.regions).sort(),Array.from(ctx.sets, set=>set.id).sort());
 assert.deepEqual(Object.keys(ctx.clues).sort(),Object.keys(ctx.regions).sort());
+assert.deepEqual(Object.keys(ctx.stakes).sort(),Object.keys(ctx.regions).sort());
 for(const set of ctx.sets){
  assert(set.id && set.label && set.decision.options.length===2 && set.roles.length>=2);
  assert(ctx.clues[set.id].length===2 && ctx.clues[set.id].every(clue=>clue.length>20));

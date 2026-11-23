@@ -3,6 +3,7 @@
 const STEPS = ['문제 찾기', '근거 자료 모으기', '내 생각 정리하기', '포스터 완성 및 인쇄'];
 const TASKS = { human: '보이는 탐구, 말하는 사회 · 인권과 불평등', economy: '경제 탐구 보고서 · 우리 지역의 경제 변화' };
 const GUIDED_STEPS = ['자료 분석', '첫 의견', '근거 더 찾기', '대안 비교', '결론과 정리'];
+const GUIDED_NEXT = ['첫 의견 정하기', '내 선택을 다시 볼 근거 찾기', '두 방안 비교하기', '근거를 들어 결론 쓰기'];
 const taskSteps = () => economyGuided() ? GUIDED_STEPS
   : activeTask() === 'economy' ? ['자료와 질문', '정보 선택과 비교', '경제 용어 적용', '결과 도출'] : STEPS;
 const productName = () => activeTask() === 'economy' ? '보고서' : '포스터';
@@ -378,7 +379,7 @@ function priorAnswerKeys() {
 function guidedOpinionStage() {
   const set = economyGuided();
   const evidence = guidedEvidenceSummary(set);
-  return heading(taskSteps()[1], '처음 읽은 자료로 어느 쪽을 우선할지 생각해요.') +
+  return heading(taskSteps()[1], '지금 선택해야 한다면 어느 쪽에 찬성하겠어요? 처음 찾은 근거로 이유를 설명해요.') +
     economyQuestionSummary('내 역할',guidedRole(set)) + economyQuestionSummary('탐구 질문',economyInquiry()) +
     economyQuestionSummary('처음 자료에서 확인한 사실',work().answers[guidedKey(set,'read')]) +
     (evidence ? `<details class="supplement"><summary>원문 근거 다시 보기</summary>${evidence}</details>` : '') +
@@ -387,11 +388,11 @@ function guidedOpinionStage() {
 
 function guidedCollectionStage() {
   const set = economyGuided();
-  return heading(taskSteps()[2], '내 의견을 뒷받침할 근거와 의견을 바꿀 만한 근거를 찾아요.') +
+  return heading(taskSteps()[2], '처음 고른 방안이 불리해질 때를 찾아요. 실제 지역에서 어떤 변화가 있었는지 먼저 확인해요.') +
     economyQuestionSummary('탐구 질문',economyInquiry()) +
     economyQuestionSummary('내 판단 기준',work().answers[guidedKey(set,'criterion')]) +
-    guidedDecisionSummary(set,'initialOpinion') + guidedThinkingClue(set,true) + guidedDecisionInputs(set,['evidenceQuestion']) +
-    guidedRegionMaterial(ECONOMY_LOCAL_CASES[set.id]) +
+    guidedDecisionSummary(set,'initialOpinion') + guidedThinkingClue(set,true) +
+    guidedRegionAnalysis(set) +
     guidedMaterials(set,'supplement') + guidedReviewCase(set) + extraEconomySources();
 }
 
@@ -407,7 +408,6 @@ function guidedComparisonStage() {
       ${economyQuestionSummary('내 역할',guidedRole(set))}
       ${guidedDecisionSummary(set,'initialOpinion')}
       ${economyQuestionSummary('처음 모의 상황',set.decision.scenario)}</details>` +
-    guidedRegionAnalysis(set) +
     economyTermGuide(set,true) +
     `<details class="supplement"><summary>분석 더 적기</summary>${previous.map(prompt).join('')}${guidedWriting(set,['check'])}</details>`;
 }
@@ -451,7 +451,7 @@ function finalEditor() {
     const title = set ? input(guidedKey(set,'topicTitle'),'보고서 제목','',work().answers[guidedKey(set,'topicTitle')],{limit:60}) : prompt('posterTitle');
     const routine = title + checklist('인쇄 전 확인할 내용', CHECKLIST.map(label => label.replace('포스터', productName()))) +
       checklist('경제 탐구 공유 전 점검', taskRehearsal(), CHECKLIST.length);
-    return heading(taskSteps().at(-1), set ? '두 방안을 비교한 근거로 결론을 쓰고, 그 판단이 바뀌는 조건을 밝혀요.' : '내 탐구 질문에 근거와 경제 용어를 연결해 답을 써요.') +
+    return heading(taskSteps().at(-1), set ? '내 입장에서 결정을 내려요. 어느 근거가 가장 중요했는지, 언제 다른 방안이 더 나을지 써요.' : '내 탐구 질문에 근거와 경제 용어를 연결해 답을 써요.') +
       `<section class="worksheet-section thought"><h2>자료에서 이끌어 낸 결론</h2>
         ${filled(question) ? `<p class="field-hint"><strong>내 탐구 질문</strong> ${esc(question)}</p>` : ''}
         ${filled(term) ? `<p class="field-hint"><strong>적용한 경제 용어</strong> ${esc(term)}</p>` : ''}
@@ -502,8 +502,8 @@ function renderProgress() {
   const completed = guided ? [
     Boolean(guidedRole(guided)) && hasRecordedSource(true),
     Boolean(guidedRole(guided)) && hasGuided('criterion','initialOpinion'),
-    hasGuided('evidenceQuestion') && (hasRecordedSource(false) || written.length > 0),
-    hasGuided('supplementAnalysis','optionFirst','optionSecond','regionalChange','regionalCause'),
+    hasGuided('regionalChange','regionalCause') && (hasRecordedSource(false) || written.length > 0),
+    hasGuided('supplementAnalysis','optionFirst','optionSecond'),
     hasGuided('finalChoice','changeCondition')
   ] : activeTask() === 'economy' ? [
     filled(a.topic) && filled(a.inquiry),
@@ -552,21 +552,14 @@ function renderPoster() {
   const earlierQuestion = filled(refined) && refined !== original && refined !== question ? refined : '';
   const analysisFields = presentFields([...analysis, ...prior.filter(key => key !== 'proposal')]);
   const showInitialEvidence = !set || evidence.length || attachments.length || readingReport || analysisFields || filled(economyEvidenceReason());
-  $('#poster').innerHTML = `<article class="paper">
-    <header class="paper-header"><span class="paper-label">${set ? '통합사회2 · 경제 탐구 활동 기록' : `통합사회2 ${productName()} · ${TASKS[activeTask()]}`}</span>
-      <h2>${esc(title)}</h2>
-      <p class="paper-author">${esc(author || '학번 / 이름 / 모둠')}</p>
-    </header>
-    <section class="paper-question"><h3>${set ? '탐구 질문' : economics ? '1. 경제 탐구 주제와 질문' : '1. 시작하며 (우리가 찾은 문제)'}</h3>
+  const questionText = `
       ${!set && a.posterTitle && a.topic ? `<p><strong>주제</strong> ${esc(a.topic)}</p>` : ''}
       <p>${esc(question || '탐구 질문을 적으면 여기에 보여요.')}</p>
       ${set?.decision.scenario ? economyQuestionSummary('모의 상황',set.decision.scenario) : ''}
       ${economyQuestionSummary(set ? '이전에 쓴 출발 질문' : '출발 질문', originalQuestion)}
       ${economyQuestionSummary('이전에 다듬은 질문', earlierQuestion)}
-      ${filled(a.reason) ? `<p>${esc(a.reason)}</p>` : ''}
-    </section>
-    ${set ? guidedVoiceReport(set) : ''}
-    ${showInitialEvidence ? `<section class="paper-evidence"><h3>${set ? '처음 자료에서 발견한 점' : economics ? '2. 경제 변화의 자료와 원리 분석' : '2. 살펴보기 (자료로 본 사실과 원인)'}</h3>
+      ${filled(a.reason) ? `<p>${esc(a.reason)}</p>` : ''}`;
+  const initialEvidence = showInitialEvidence ? `
       ${economics ? economyQuestionSummary('근거를 고른 이유', economyEvidenceReason()) : ''}
       ${evidence.length || attachments.length ? `<div class="evidence-grid">${evidence.map((source, i) =>
         `<figure><figcaption><strong>${i + 1}. ${esc(source.title || '근거 자료')}</strong></figcaption>
@@ -582,12 +575,20 @@ function renderPoster() {
         : set || readingReport ? '' : '<p class="paper-empty">모은 자료와 이미지가 여기에 들어가요.</p>'}
       ${readingReport}
       ${activeTask() === 'economy' && !economyGuided() && filled(a.economicTerm) ? `<p><strong>적용한 경제 용어</strong> ${esc(a.economicTerm)}</p>` : ''}
-      <div class="paper-analysis">${analysisFields}</div>
-    </section>` : ''}
-    ${set ? guidedDecisionReport(set,'첫 의견',['criterion','initialOpinion','evidenceQuestion']) +
-      guidedSupplementReport(set) + guidedDecisionReport(set,'새 근거로 비교한 두 방안',['supplementAnalysis','optionFirst','optionSecond']) +
-      guidedRegionReport(set) +
-      guidedDecisionReport(set,'판단이 바뀌는 조건',['changeCondition','decisionSummary']) : ''}
+      ${!set || analysisFields ? `<div class="paper-analysis">${analysisFields}</div>` : ''}` : '';
+  const role = set && guidedRole(set);
+  $('#poster').innerHTML = `<article class="paper">
+    <header class="paper-header${set ? ' paper-inquiry-header' : ''}"><span class="paper-label">${set ? '통합사회2 · 경제 탐구 보고서' : `통합사회2 ${productName()} · ${TASKS[activeTask()]}`}</span>
+      <h2>${esc(title)}</h2>
+      ${role ? `<p class="paper-perspective">${esc(role)}의 입장</p>` : ''}
+      ${!set || author ? `<p class="paper-author">${esc(author || '학번 / 이름 / 모둠')}</p>` : ''}
+    </header>
+    ${set ? guidedReportSection('탐구 질문과 첫 판단', questionText + guidedReportAnswers(set,['criterion','initialOpinion','evidenceQuestion'])) +
+      guidedReportSection('자료 분석', guidedSupplementReport(set) + initialEvidence) +
+      guidedComparisonReport(set) +
+      guidedReportSection('결론', guidedReportAnswers(set,['finalChoice','changeCondition','decisionSummary'])) :
+      `<section class="paper-question"><h3>${economics ? '1. 경제 탐구 주제와 질문' : '1. 시작하며 (우리가 찾은 문제)'}</h3>${questionText}</section>
+       <section class="paper-evidence"><h3>${economics ? '2. 경제 변화의 자료와 원리 분석' : '2. 살펴보기 (자료로 본 사실과 원인)'}</h3>${initialEvidence}</section>`}
     ${solutionFields ? `<section class="paper-section"><h3>${set ? '지역사회 대응 방안과 실천' : economics ? '3. 지역사회 대응 방안과 실천' : '3. 제안하기 (우리가 찾은 해결책)'}</h3>
       <div class="paper-analysis">${solutionFields}</div></section>` : ''}
     ${!set || taskRehearsal().some((_,i)=>isChecked(CHECKLIST.length + i)) ? `<section class="paper-section paper-rehearsal"><h3>${economics ? '경제 탐구 공유 전 점검' : '발표 전 스스로 점검하기'}</h3>
@@ -616,7 +617,7 @@ function render(focus = false) {
   $('#editor').innerHTML = waiting ? problemEditor() : editors[index]();
   $('#actions').innerHTML = waiting ? '' :
     (index ? '<button type="button" data-back>← 이전 단계</button>' : '') +
-    (index < steps.length - 1 ? `<button type="button" class="primary" data-next>다음 단계: ${steps[index + 1]} →</button>`
+    (index < steps.length - 1 ? `<button type="button" class="primary" data-next>${set ? GUIDED_NEXT[index] : `다음 단계: ${steps[index + 1]}`} →</button>`
       : '<button type="button" id="print" class="primary">PDF로 저장 / 인쇄하기</button>');
   previewPrint.hidden = economics || index !== taskSteps().length - 1;
   renderProgress();

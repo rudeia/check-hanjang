@@ -291,6 +291,8 @@ dialog li + li { margin-top: .5rem; }
 .guided-review-case .stat-table th, .guided-review-case .stat-table td { text-align: left; vertical-align: top; }
 .guided-review-case .stat-table th:first-child { width: 32%; }
 .guided-source-locations { margin-block: .45rem .8rem; padding-inline-start: 1.2rem; font-size: .86rem; color: var(--muted); }
+.guided-topic > p + p { margin-top: .5rem; }
+.guided-region-material > details + .field { margin-top: .8rem; }
 .guided-evidence-list { padding-inline-start: 1.25rem; }
 .guided-evidence-list li + li { margin-top: .45rem; }
 .guided-evidence-list span { display: block; }
