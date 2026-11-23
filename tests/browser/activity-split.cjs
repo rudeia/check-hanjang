@@ -31,9 +31,23 @@ await p.click('[data-guided-set="custom"]');
 assert(await p.locator('#preview-panel').isHidden());assert(await p.locator('#mobile-preview').isHidden());
 await p.locator('#tab-preview').click();assert(await p.locator('#preview-panel').isVisible());await p.locator('#tab-write').click();
 assert.equal(await p.inputValue('#topic'),'');assert(!(await p.getAttribute('#topic','placeholder')).includes('복지관'));assert((await p.locator('#inquiry-hint').textContent()).includes('경제'));
-await p.fill('#topic','지역 고용의 변화');await p.fill('#inquiry','고용은 왜 변화했나?');await p.click('[data-stage="2"]');await p.fill('#economicImpact','기업과 노동자의 영향 차이');
+await p.fill('#topic','지역 고용의 변화');await p.fill('#inquiry','고용은 왜 변화했나?');
+await p.click('[data-stage="1"]');
+assert.match(await p.locator('#source-count').textContent(),/0 \/ 2곳 이상 권장/);
+const fieldPlace='제주시 중앙시장 직접 방문';
+for(const [key,value] of Object.entries({title:'가게 방문 기록',url:fieldPlace,fact:'점포 두 곳에서 주말 일손이 더 필요했다.'}))
+ await p.fill('#source-0-'+key,value);
+assert.match(await p.locator('#source-count').textContent(),/1 \/ 2곳 이상 권장/);
+await p.click('[data-stage="2"]');await p.fill('#economicImpact','기업과 노동자의 영향 차이');
 await p.click('[data-stage="3"]');assert.equal(await p.locator('#step-title').textContent(),'결론·방안·보고서 완성');await p.fill('#economicConclusion','경제적 결론 끝문장');
 await p.fill('#practiceResult','자료 조사 실행');
+const opinionBodies=['경제적 결론 끝문장','점포 수가 늘면 판단을 다시 검토한다.','상인회가 참여 점포를 모집한다.','다음 주에 필요한 인력 수를 조사한다.','자료 조사 실행'];
+await p.fill('#limits',opinionBodies[1]);await p.fill('#economicPlan',opinionBodies[2]);await p.fill('#practicePlan',opinionBodies[3]);
+const opinions=p.locator('#poster .paper-inquiry-section').nth(3);
+assert.deepEqual(await opinions.locator(':scope > section p').allTextContents(),opinionBodies);
+assert(await opinions.locator(':scope > section p').evaluateAll(items=>items.every(item=>getComputedStyle(item).color===getComputedStyle(item.closest('.paper')).color)));
+assert.equal(await p.locator('#poster .paper-evidence-table').getByText(fieldPlace,{exact:true}).count(),1);
+assert.equal(await p.locator('#poster .paper-inquiry-section').nth(4).getByText(fieldPlace).count(),1);
 assert(!(await p.locator('#poster').textContent()).includes('탐구 포스터'));await p.screenshot({path:'/tmp/check-economy-mobile.png',fullPage:true});assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 await p.reload();assert.equal(await p.inputValue('#practiceResult'),'자료 조사 실행');
 await homeLink.click();
@@ -41,7 +55,9 @@ await p.locator('#home').waitFor();
 await p.click('a[href="#economy"]');await p.click('[data-guided-set="custom"]');
 assert.equal(await p.inputValue('#economicConclusion'),'경제적 결론 끝문장');
 const before=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);assert.equal(before.answers.topic,'인권 원본 보존');assert.equal(before.economy.answers.topic,'지역 고용의 변화');
-await p.evaluate(async()=>{await document.fonts.ready; window.prepareReportPrint();});await p.pdf({path:'/tmp/check-economy-report.pdf',format:'A4',printBackground:true});
+await p.evaluate(async()=>{await document.fonts.ready; window.prepareReportPrint();});
+assert.equal((await p.locator('.print-pages').textContent()).split(fieldPlace).length-1,2);
+await p.pdf({path:process.env.CUSTOM_PDF || '/tmp/check-economy-report.pdf',format:'A4',printBackground:true});
 // Scoped reset
 p.once('dialog',d=>d.accept());await p.click('#reset');const after=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);assert.equal(after.answers.topic,'인권 원본 보존');assert.equal(after.economy.answers.topic,undefined);
 // independent simultaneous task edits and same-activity conflict

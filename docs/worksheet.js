@@ -1,7 +1,7 @@
 'use strict';
 
 const STEPS = ['문제 찾기', '근거 자료 모으기', '내 생각 정리하기', '포스터 완성 및 인쇄'];
-const TASKS = { human: '보이는 탐구, 말하는 사회 · 인권과 불평등', economy: '경제 탐구 보고서 · 우리 지역의 경제 변화' };
+const TASKS = { human: '보이는 탐구, 말하는 사회 · 인권과 불평등', economy: '경제 탐구 보고서 · 자료와 개념으로 경제 읽기' };
 const taskSteps = () => activeTask() === 'economy' ? ECONOMY_STEPS : STEPS;
 
 const productName = () => activeTask() === 'economy' ? '보고서' : '포스터';
@@ -38,7 +38,7 @@ const PROMPTS = {
   economicPeriod: ['언제와 언제, 무엇을 비교하나요?', '예: 2023년과 2024년의 관광객 수와 소매 판매액', '기간·지역·지표·단위를 확인하고 비교 기준을 적어요.'],
   economicImpact: ['각 경제 주체는 어떤 영향을 받나요?', '소비자·생산자·근로자·정부 중 이 변화와 관련된 주체를 골라 적어요.', '편익과 부담이 누구에게 생기는지 자료와 연결해 설명해요. 자료로 확인한 영향과 예상한 영향을 구분해요.'],
   economicConclusion: ['내 탐구 질문에 어떤 답을 얻었나요?', '내가 고른 근거와 적용한 경제 용어를 연결해 결론을 써요.', '자료로 판단할 수 있는 범위와 더 알아봐야 할 점도 적어요.'],
-  practiceResult: ['실제로 해 본 일과 확인한 결과', '실행한 날짜, 나의 행동, 확인한 결과를 적어요.', '아직 실행 전이면 준비 상태를 적고, 계획과 실제로 한 일을 구분해요.'],
+  practiceResult: ['실제로 해 본 일과 확인한 결과 (실행한 경우)', '실행한 날짜, 나의 행동, 확인한 결과를 적어요.', '아직 실행 전이면 비워 두거나 준비 상태를 적어요.'],
   economicChange: ['무엇이 달라졌나요?', '예: 주말 관광객이 늘면서 시장 주변에 음식점이 많아졌다.', '예전과 지금을 비교해 보세요.'],
   economicCause: ['왜 달라졌나요?', '예: 관광지와 시장을 잇는 버스가 생겨 방문하기 쉬워졌다.'],
   concepts: ['수업 시간에 배운 경제 원리로 설명한다면?', '예: 자가용과 버스의 요금·이동 시간·편리함을 비교해 관광객이 버스를 선택한 이유를 설명한다.', '합리적 선택, 시장실패, 금융 자산과 자산 관리, 분업과 무역, 지속가능발전 등에서 관련 개념을 골라 이 변화를 설명해 보세요.'],
@@ -403,8 +403,11 @@ function renderProgress() {
   const economics = activeTask() === 'economy';
   const sourceCount = sources.filter(economics ? economyFactRecorded : completeSource).length;
   const count = $('#source-count');
-  if (count) count.textContent = economics ? `직접 기록한 자료 ${sourceCount}곳` : `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (자료 조사 목표: 3개 이상)`;
-  const completed = economics ? economyCompleted(economyGuided()) : [
+  const set = economyGuided();
+  if (count) count.textContent = economics
+    ? `직접 찾은 자료 ${sourceCount} / ${set ? 1 : 2}곳 이상 권장 (출처와 확인한 사실을 적으면 반영돼요)`
+    : `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (자료 조사 목표: 3개 이상)`;
+  const completed = economics ? economyCompleted(set) : [
     [a.number,a.name,a.team,a.topic,a.inquiry].every(filled),
     sourceCount >= SOURCE_GOAL,
     [...analysisKeys(),...rubric().solutions].every(key=>filled(answer(key))),

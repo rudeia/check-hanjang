@@ -6,7 +6,7 @@ const economyQuestionKey = set => set ? guidedKey(set,'inquiryV2') : 'inquiry';
 const economyFactRecorded = source => filled(sourceFact(source)) && filled(source.url || source.author);
 
 function economyInput(key, label, hint, limit, value = work().answers[key]) {
-  return input(key,label,'',value,{area:true,limit,hint});
+  return input(key,label,'자료에서 확인한 내용과 내 생각을 적어 보세요.',value,{area:true,limit,hint});
 }
 
 function economyTitle(set) {
@@ -95,7 +95,10 @@ function economyFactsEditor(set) {
 function economyFactsList(set) {
   const direct = work().sources.filter(source=>filled(sourceFact(source))).map(source=>[source.title || source.author || '직접 찾은 자료',sourceFact(source)]);
   const guided = set ? guidedWrittenSources(set).filter(group=>filled(group.excerpt)).map(group=>[group.table.publisher,group.excerpt]) : [];
-  const facts = [...guided,...direct];
+  const region = set && activeGuidedRegion(set);
+  const regionChange = region && work().answers[guidedKey(set,'regionalChange')];
+  const regional = filled(regionChange) ? [[region.region+' 지역 자료',regionChange]] : [];
+  const facts = [...guided,...regional,...direct];
   return facts.length ? `<section class="economy-reminder"><h2>내가 정리한 사실</h2>
     <ul class="guided-evidence-list">${facts.map(([title,fact])=>`<li><strong>${esc(title)}</strong> ${esc(fact)}</li>`).join('')}</ul></section>` : '';
 }
@@ -157,6 +160,10 @@ function economyPaperFields(keys) {
   return keys.filter(key=>filled(answer(key))).map(key=>posterFields([key])).join('');
 }
 
+function economyPaperItem(heading, text) {
+  return filled(text) ? `<section><h4>${esc(heading)}</h4><p>${esc(text)}</p></section>` : '';
+}
+
 function economyLegacyReport(set) {
   const a = work().answers;
   const includedCharts = new Set(work().sources.map(source=>source.statId));
@@ -193,8 +200,12 @@ function economyPaperSource(source) {
 function economyPaperReference(set, sources) {
   const listed = new Map();
   const add = (publisher,title,url,date) => {
-    if (!filled(title) || listed.has(url || publisher + title)) return;
-    listed.set(url || publisher + title,`<p>${[publisher,economyPaperLink(title,url),date].filter(filled).join(' · ')}</p>`);
+    const origin = url?.trim() || '';
+    const isLink = /^https?:\/\//i.test(origin);
+    const key = isLink ? origin : JSON.stringify([publisher,title,origin]);
+    if (!filled(title) || listed.has(key)) return;
+    const place = !isLink && origin !== title.trim() ? esc(origin) : '';
+    listed.set(key,`<p>${[publisher,economyPaperLink(title,origin),place,date].filter(filled).join(' · ')}</p>`);
   };
   if (set) {
     for (const {table} of guidedWrittenSources(set))
@@ -215,12 +226,12 @@ function economyPoster(set) {
   const {answers:a,sources,attachments=[]} = work();
   const extra = guidedTextSources(sources);
   const media = sources.filter(source=>hasSource(source) && !extra.includes(source));
-  const question = economyQuestionSummary('탐구 질문',economyInquiry());
-  const situation = set ? economyQuestionSummary(set.decision.scenario ? '모의 상황' : '문제 상황',
+  const question = economyPaperItem('탐구 질문',economyInquiry());
+  const situation = set ? economyPaperItem(set.decision.scenario ? '모의 상황' : '문제 상황',
     set.decision.scenario || ECONOMY_INQUIRY_STAKES[set.id]) : economyPaperFields(['region','economicPeriod']);
   const context = question + situation +
-    economyQuestionSummary('나의 관점',economyPerspective(set)) +
-    economyQuestionSummary('판단 기준',economyCriterion(set)) +
+    economyPaperItem('나의 관점',economyPerspective(set)) +
+    economyPaperItem('판단 기준',economyCriterion(set)) +
     (set ? guidedReportAnswers(set,['initialOpinion']) : '');
   const facts = (set ? guidedEvidenceSummary(set,extra) + guidedRegionReport(set) +
     guidedResearchVisuals(set,true) + guidedReadingReport(set) : guidedEvidenceSummary(null,extra)) +
@@ -229,9 +240,11 @@ function economyPoster(set) {
   const explanation = (set && a[guidedKey(set,'explain')]) || a.concepts;
   const concept = filled(explanation) ? `<section><h4>경제 개념 적용${filled(term) ? ' · '+esc(term) : ''}</h4><p>${esc(explanation)}</p></section>` : '';
   const comparisons = concept + (set ? guidedComparisonReport(set) : economyPaperFields(['economicChange','economicCause','economicImpact']));
-  const fallback = set && filled(a[guidedKey(set,'finalChoice')]) ? '' : economyPaperFields(['economicConclusion']);
-  const opinions = (set ? guidedReportAnswers(set,['finalChoice','changeCondition']) : economyQuestionSummary('판단 조건과 자료의 한계',a.limits)) +
-    fallback + economyPaperFields(['economicPlan','practicePlan','practiceResult']);
+  const conclusion = economyPaperFields(['economicConclusion']);
+  const opinions = (set ? guidedReportAnswers(set,['finalChoice','changeCondition']) +
+    (filled(a[guidedKey(set,'finalChoice')]) ? '' : conclusion) :
+    conclusion + economyPaperItem('판단이 바뀔 수 있는 조건과 자료의 한계',a.limits)) +
+    economyPaperFields(['economicPlan','practicePlan','practiceResult']);
   const reflections = economyPaperFields(['reflection','role','peerLearning']) +
     (set ? guidedReportAnswers(set,['decisionSummary']) : '') + economyPaperReference(set,sources);
   const topic = set?.label || a.topic;

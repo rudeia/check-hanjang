@@ -226,7 +226,7 @@
     } catch (error) { clear(); throw error; }
   }
   function compactPair(a, b) {
-    if ([a,b].some(n => n.textContent.length > 450)) return false;
+    if ([a,b].some(n => n.matches('.paper-official-figure') || n.textContent.length > 450)) return false;
     const probe = document.createElement('article');
     probe.className = 'paper print-paper';
     probe.style.cssText = 'position:absolute;left:-20000px;visibility:hidden;border:0;padding:0';
