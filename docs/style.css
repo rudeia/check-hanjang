@@ -291,6 +291,14 @@ dialog li + li { margin-top: .5rem; }
 .guided-review-case .stat-table th, .guided-review-case .stat-table td { text-align: left; vertical-align: top; }
 .guided-review-case .stat-table th:first-child { width: 32%; }
 .guided-source-locations { margin-block: .45rem .8rem; padding-inline-start: 1.2rem; font-size: .86rem; color: var(--muted); }
+.guided-report-details { margin-block: 0 1rem; }
+.guided-report-details > p { margin-bottom: .7rem; word-break: keep-all; }
+.guided-student-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.guided-region-graph { margin-block: .55rem .15rem; font-size: .88rem; }
+.guided-region-graph figcaption { font-weight: 650; margin-bottom: .35rem; }
+.guided-region-bar { display: grid; grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr) auto; gap: .45rem; align-items: center; margin-bottom: .35rem; }
+.guided-region-track { display: block; height: .7rem; background: var(--wash); }
+.guided-region-track span { display: block; height: 100%; background: var(--accent); }
 .guided-topic > p + p { margin-top: .5rem; }
 .guided-region-material > details + .field { margin-top: .8rem; }
 .guided-evidence-list { padding-inline-start: 1.25rem; }

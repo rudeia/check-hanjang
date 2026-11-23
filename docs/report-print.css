@@ -10,6 +10,9 @@
 .print-paper .evidence-grid img { max-height: 43mm; }
 .print-paper .paper-section, .print-paper .paper-evidence { margin-top: 3mm; }
 .paper-inquiry-header { padding-bottom: .4rem; }
+.paper-inquiry-header .paper-topic { margin-top: .14rem; }
+.paper-inquiry-header .paper-author strong:not(:first-child),
+.paper-inquiry-header .paper-author span { margin-inline-start: .85rem; }
 .paper-perspective { color: var(--muted); margin-top: .25rem; }
 .paper-inquiry-section { line-height: 1.6; word-break: keep-all; }
 .paper-inquiry-section > h3 {

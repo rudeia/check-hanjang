@@ -36,12 +36,13 @@ for(const set of ctx.sets){
  const initial=vm.runInContext("guidedMaterials(economyGuided(),'initial')",ctx);
  assert(initial.includes(set.primary.sourceTitle)&&!initial.includes('data-evidence'));
  for(const kind of ['primary','comparison',...set.additional.map(source=>source.id)])ctx.draft.answers[`guided_${set.id}_evidence_${kind}_0`]='yes';
- assert.equal(vm.runInContext('guidedSourceCount(economyGuided(),true)',ctx),0);
+ const recorded="guidedSourceGroups(economyGuided()).filter(group=>guidedSourceRecorded(economyGuided(),group)).length";
+ assert.equal(vm.runInContext(recorded,ctx),0);
  for(let sourceNumber=1;sourceNumber<=3;sourceNumber++){
   ctx.draft.answers[`guided_${set.id}_source_${sourceNumber}_excerpt`]='원문 표에서 옮긴 수치';
   ctx.draft.answers[`guided_${set.id}_source_${sourceNumber}_use`]='수치와 판단의 관계';
  }
- assert.equal(vm.runInContext('guidedSourceCount(economyGuided(),true)',ctx),3);
+ assert.equal(vm.runInContext(recorded,ctx),3);
  if(set.numeric){ctx.draft.answers[`guided_${set.id}_calculation`]='0x10';assert(vm.runInContext('guidedCheckFeedback(economyGuided())',ctx).includes('숫자만'));}
 }
 console.log('PASS independent sources, topic clues, student-written evidence, arithmetic and interpretation');
