@@ -132,3 +132,91 @@ const ECONOMY_LOCAL_CASES = {
     '생산량과 조수입이 달라진 방향을 비교하고 단가가 한 역할을 설명해요. 감귤 농가에 수입 과일 관세가 미치는 영향을 판단하려면 어떤 수입 가격이나 판매량을 확인할까요?',
     [['제주특별자치도 농업기술원','제주의 감귤 생산 변화','https://agri.jeju.go.kr/stats/jeju-agri/detail/8','재배면적·생산량·조수입 요약 지표']])
 };
+
+const ECONOMY_THINKING_CLUES = {
+  'tourism-consumption': [
+    '관광객이 쓴 돈이 늘어난 업종과 줄어든 업종을 찾아요. 홍보하려는 가게와 같은 업종인지 확인해요.',
+    '새 손님이 찾아오는 곳과 매출이 줄어든 곳이 같은지 봐요. 다르면 넓게 알릴 때와 한곳에 집중할 때 누가 도움을 받는지 비교해요.'
+  ],
+  'production-income': [
+    '지역에서 만든 생산액과 주민이 쓸 수 있는 소득을 각각 찾아요. 두 지표가 높은 지역이 같은지 봐요.',
+    '공장이 들어서면 어느 지역 주민이 일을 얻는지 봐요. 주민 채용이나 지역 업체와의 거래가 적을 경우도 비교해요.'
+  ],
+  'renewable-sharing': [
+    '원문에서 누가 수익을 받는지 찾아요. 내 역할이 지급 대상에 들어가는지 살펴봐요.',
+    '직접 지급의 수령 가구와 공동서비스를 실제로 쓸 수 있는 가구를 비교해요. 버스를 이용하지 못하는 주민도 생각해요.'
+  ],
+  'online-choice': [
+    '소비자 상담 자료에서 반품비 문제가 얼마나 나왔는지 찾아요. 가격에 배송비와 반품비를 더하면 총비용이 어떻게 달라지는지 봐요.',
+    '물건이 맞는지 미리 확인할 수 있을 때와 없을 때를 비교해요. 지역 판매가 줄었다면 어느 업종에서 특히 줄었는지도 봐요.'
+  ],
+  'fruit-purchasing': [
+    '사과의 생산량과 가격이 어떻게 움직였는지 봐요. 내 가게가 사과 한 봉을 팔아 남기는 돈도 비교해요.',
+    '재배면적과 단위면적당 생산량을 나눠 봐요. 산지 물량이 줄어도 가게에서 적게 팔리면 어떤 과일을 더 살지 생각해요.'
+  ],
+  'aging-employment': [
+    '고령인구 비중이 가장 크게 늘어난 지역을 찾아요. 나이 든 직원과 함께 일할 때 무엇을 확인할지 생각해요.',
+    '직원이 바로 할 수 있는 일과 훈련이 필요한 일을 구분해요. 채용 비용에 훈련 기간을 넣으면 어느 선택이 유리한지 봐요.'
+  ],
+  'cocoa-buying': [
+    '코코아 원료값과 초콜릿 판매 가격을 구분해요. 원문에서 생산자에게 돌아가는 몫을 늘리는 장치도 찾아요.',
+    '같은 예산으로 필요한 개수를 살 수 있는지 비교해요. 공정무역 제품을 고르면 생산자에게 어떤 조건이 적용되는지도 확인해요.'
+  ],
+  'household-budget': [
+    '내가 자주 사는 항목의 물가지수를 찾아요. 내 예산을 가장 많이 쓰는 항목에서도 가격이 올랐는지 봐요.',
+    '외식과 다른 가격 지표를 나눠 봐요. 먹는 횟수나 쓰는 가게를 바꾸면 이번 달에 얼마를 아끼는지 계산해요.'
+  ],
+  'childcare-choice': [
+    '맞벌이 가구 비중과 내가 돌봄이 필요한 시간을 확인해요. 필요한 시간에 이용할 수 있는 서비스가 있는지 살펴봐요.',
+    '아침에 맡길 수 있는 시간과 오후에 데리러 가야 하는 시간을 가족의 출퇴근 시간과 맞춰 봐요.'
+  ],
+  'saving-goal': [
+    '돈을 써야 하는 날과 필요한 금액을 먼저 정해요. 두 상품에서 그날 꺼낼 수 있는 금액을 비교해요.',
+    '만기 전에 꺼내거나 투자에서 손실이 나도 필요한 돈을 쓸 수 있는지 계산해요. 지역의 정기예금·정기적금 흐름도 비교해요.'
+  ],
+  'exchange-positions': [
+    '환율이 오를 때 내 역할이 달러를 받는지, 내는지 봐요. 같은 달러 금액을 전후 환율로 바꿔요.',
+    '수출 대금과 달러로 내는 재료비를 함께 원화로 바꿔요. 재료비가 커질 때도 내 역할에 이익인지 비교해요.'
+  ],
+  'domestic-global-stocks': [
+    '같은 원화 예산을 넣고, 팔 때 수수료와 환율을 반영한 원화 금액을 비교해요.',
+    '상장한 나라와 매출을 올리는 나라를 나눠 봐요. 원화로 바꿀 때의 환율이 달라지면 어느 쪽 수익이 더 큰지 다시 계산해요.'
+  ],
+  'stock-diversification': [
+    '기업마다 어느 업종에서 돈을 버는지 봐요. 서로 다른 종목이 같은 사건으로 함께 손실을 볼 수 있는지 살펴봐요.',
+    '두 업종이 같은 해에 어떻게 달라졌는지 봐요. 주식을 나눠 담아도 두 회사가 같은 원료나 고객에 의존하면 어떤 위험이 남는지 비교해요.'
+  ],
+  'stock-rate-news': [
+    '기사의 금리와 기업이 실제 대출에 내는 금리를 구분해요. 같은 폭으로 올라도 이자가 얼마나 늘어나는지 비교해요.',
+    '기업의 대출액과 고정·변동금리 비중을 봐요. 두 기업이 같은 부담을 지는지 다시 따져요.'
+  ],
+  'stock-news-surge': [
+    '뉴스가 나온 뒤 주가가 얼마나 움직였는지 봐요. 그 이유로 제시된 소식 중 공시로 확인되는 부분을 찾아요.',
+    '업종 전체의 변화와 해당 기업의 매출·비용을 나눠 봐요. 매출이 늘 때 실제로 남는 돈도 늘어나는지 살펴봐요.'
+  ],
+  'trade-suppliers': [
+    '어떤 품목의 수입이 특정 공급처에 집중되는지 찾아요. 공급이 끊기면 내 역할이 어떤 비용을 내는지 봐요.',
+    '두 번째 공급처에 더 내는 돈과 납품이 끊길 때 잃는 돈을 비교해요. 수입액 변화가 물량 때문인지 단가 때문인지도 확인해요.'
+  ],
+  'tariff-choices': [
+    '원문에서 관세를 내는 사람과 매장 가격을 정하는 사람을 구분해요. 관세 인하로 줄어드는 비용도 계산해요.',
+    '같은 품질의 수입 과일을 비교해 관세가 줄어든 만큼 매장값이 내려갔는지 봐요. 제주 감귤의 생산량과 조수입도 따로 살펴봐요.'
+  ]
+};
+
+const ECONOMY_SOURCE_READING = {
+  'https://www.elibrary.imf.org/view/journals/006/2020/005/article-A001-en.xml': {
+    find:'imported inputs', pdf:'https://www.imf.org/-/media/files/publications/sdn/2020/english/sdnea2020005.pdf'
+  },
+  'https://www.elibrary.imf.org/view/journals/087/2025/001/article-A001-en.xml': {
+    find:'floating rates', pdf:'https://www.imf.org/-/media/files/publications/dp/2025/english/csvhlirea.pdf'
+  },
+  'https://www.imf.org/en/publications/wp/issues/2019/11/02/tariff-passthrough-at-the-border-48769': {
+    find:'retail prices', pdf:'https://www.imf.org/-/media/files/publications/wp/2019/wpiea2019238-print-pdf.pdf'
+  },
+  'https://www.finra.org/investors/insights/concentration-risk': {find:'Correlated assets'},
+  'https://www.investor.gov/introduction-investing/getting-started/asset-allocation': {find:'Diversification'},
+  'https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins/international-investing': {find:'currency exchange rates'},
+  'https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins/social-media-stock-scams': {find:'rumors'},
+  'https://www.oecd.org/en/publications/oecd-supply-chain-resilience-review_94e3a8ea-en/full-report/executive-summary_647b6287.html': {find:'concentration'}
+};

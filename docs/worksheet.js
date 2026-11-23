@@ -281,10 +281,10 @@ function problemEditor() {
       ${input('team', '모둠', '예: 3모둠', a.team, { limit: 20 })}
     </div>`;
   if (awaitingEconomyTopic()) return '<div class="step-heading"><h1 id="step-title" tabindex="-1">경제 탐구 보고서</h1><p>어떤 경제 문제에 내 의견을 낼까요?</p></div>' + guidedExplorer();
-  if (set) return heading(taskSteps()[0]) + `<section class="guided-topic">${guidedDecisionPrompt(set)}${guidedRolePicker(set)}</section>` + guidedMaterials(set,'initial') +
+  if (set) return heading(taskSteps()[0]) + `<section class="guided-topic">${guidedDecisionPrompt(set)}${guidedRolePicker(set)}${guidedThinkingClue(set)}</section>` + guidedMaterials(set,'initial') +
     `<details class="supplement"><summary>제목과 학생 정보 적기</summary>
       ${input(guidedKey(set,'topicTitle'),'내 탐구 제목','',a[guidedKey(set,'topicTitle')],{limit:60})}
-      ${input(guidedKey(set,'initialInquiry'),'출발 질문','',economyOriginalInquiry(),{area:true})}${identifiers}</details>`;
+      ${identifiers}</details>`;
   return heading(taskSteps()[0], economics ? '경제 자료를 살펴보고 내가 확인하고 싶은 질문을 정해요.' : '내 정보를 적고 조사할 주제를 골라요.') +
     (economics ? '' : identifiers) + `
     <div class="worksheet-section topic-section">
@@ -377,22 +377,22 @@ function priorAnswerKeys() {
 
 function guidedOpinionStage() {
   const set = economyGuided();
+  const evidence = guidedEvidenceSummary(set);
   return heading(taskSteps()[1], '처음 읽은 자료로 어느 쪽을 우선할지 생각해요.') +
-    economyQuestionSummary('내 역할',guidedRole(set)) + economyQuestionSummary('내 탐구 질문',economyInquiry()) +
+    economyQuestionSummary('내 역할',guidedRole(set)) + economyQuestionSummary('탐구 질문',economyInquiry()) +
     economyQuestionSummary('처음 자료에서 확인한 사실',work().answers[guidedKey(set,'read')]) +
+    (evidence ? `<details class="supplement"><summary>원문 근거 다시 보기</summary>${evidence}</details>` : '') +
     guidedDecisionInputs(set,['criterion','initialOpinion']);
 }
 
 function guidedCollectionStage() {
   const set = economyGuided();
   return heading(taskSteps()[2], '내 의견을 뒷받침할 근거와 의견을 바꿀 만한 근거를 찾아요.') +
-    economyQuestionSummary('내 탐구 질문',economyInquiry()) +
+    economyQuestionSummary('탐구 질문',economyInquiry()) +
     economyQuestionSummary('내 판단 기준',work().answers[guidedKey(set,'criterion')]) +
-    guidedDecisionSummary(set,'initialOpinion') + guidedDecisionInputs(set,['evidenceQuestion']) +
+    guidedDecisionSummary(set,'initialOpinion') + guidedThinkingClue(set,true) + guidedDecisionInputs(set,['evidenceQuestion']) +
     guidedRegionMaterial(ECONOMY_LOCAL_CASES[set.id]) +
-    guidedReviewCase(set) +
-    (set.decision.supplementHint ? `<p class="field-hint">${guidedEsc(set.decision.supplementHint)}</p>` : '') +
-    guidedMaterials(set,'supplement') + extraEconomySources();
+    guidedMaterials(set,'supplement') + guidedReviewCase(set) + extraEconomySources();
 }
 
 function guidedComparisonStage() {
@@ -486,7 +486,7 @@ function renderProgress() {
   const guided = economyGuided();
   const guidedCount = $('#guided-source-count');
   if (guided && guidedCount) {
-    const label = `고른 출처 ${guidedSourceCount(guided,true)}곳`;
+    const label = `근거를 기록한 원문 ${guidedSourceCount(guided,true)}곳`;
     if (guidedCount.textContent !== label) guidedCount.textContent = label;
   }
   const sourceCount = sourceKeys.size;
@@ -498,10 +498,11 @@ function renderProgress() {
   const { solutions } = rubric();
   const analysis = analysisKeys();
   const hasGuided = (...parts) => parts.every(part => filled(a[guidedKey(guided,part)]));
+  const hasRecordedSource = first => guidedSourceGroups(guided).some(group=>group.first === first && guidedSourceRecorded(guided,group));
   const completed = guided ? [
-    Boolean(guidedRole(guided)) && guidedSourceEntries(guided).slice(0,2).some(entry => guidedSourcePicked(guided,entry)) && hasGuided('read'),
+    Boolean(guidedRole(guided)) && hasRecordedSource(true),
     Boolean(guidedRole(guided)) && hasGuided('criterion','initialOpinion'),
-    hasGuided('evidenceQuestion') && (guidedSourceEntries(guided).slice(2).some(entry => guidedSourcePicked(guided,entry)) || written.length > 0),
+    hasGuided('evidenceQuestion') && (hasRecordedSource(false) || written.length > 0),
     hasGuided('supplementAnalysis','optionFirst','optionSecond','regionalChange','regionalCause'),
     hasGuided('finalChoice','changeCondition')
   ] : activeTask() === 'economy' ? [
@@ -545,8 +546,12 @@ function renderPoster() {
   const solutionFields = presentFields([...solutions, ...prior.filter(key => key === 'proposal')]);
   const reflections = presentFields(reflectionKeys());
   const question = economics ? economyInquiry() : a.inquiry;
-  const original = economics ? economyOriginalInquiry() || anonymizeGuidedText(set?.decision.question) : '';
+  const original = economics ? economyOriginalInquiry() : '';
   const originalQuestion = filled(original) && original !== question ? original : '';
+  const refined = set ? a[guidedKey(set,'refinedInquiry')] : '';
+  const earlierQuestion = filled(refined) && refined !== original && refined !== question ? refined : '';
+  const analysisFields = presentFields([...analysis, ...prior.filter(key => key !== 'proposal')]);
+  const showInitialEvidence = !set || evidence.length || attachments.length || readingReport || analysisFields || filled(economyEvidenceReason());
   $('#poster').innerHTML = `<article class="paper">
     <header class="paper-header"><span class="paper-label">${set ? '통합사회2 · 경제 탐구 활동 기록' : `통합사회2 ${productName()} · ${TASKS[activeTask()]}`}</span>
       <h2>${esc(title)}</h2>
@@ -556,11 +561,12 @@ function renderPoster() {
       ${!set && a.posterTitle && a.topic ? `<p><strong>주제</strong> ${esc(a.topic)}</p>` : ''}
       <p>${esc(question || '탐구 질문을 적으면 여기에 보여요.')}</p>
       ${set?.decision.scenario ? economyQuestionSummary('모의 상황',set.decision.scenario) : ''}
-      ${economyQuestionSummary('출발 질문', originalQuestion)}
+      ${economyQuestionSummary(set ? '이전에 쓴 출발 질문' : '출발 질문', originalQuestion)}
+      ${economyQuestionSummary('이전에 다듬은 질문', earlierQuestion)}
       ${filled(a.reason) ? `<p>${esc(a.reason)}</p>` : ''}
     </section>
     ${set ? guidedVoiceReport(set) : ''}
-    <section class="paper-evidence"><h3>${set ? '처음 자료에서 발견한 점' : economics ? '2. 경제 변화의 자료와 원리 분석' : '2. 살펴보기 (자료로 본 사실과 원인)'}</h3>
+    ${showInitialEvidence ? `<section class="paper-evidence"><h3>${set ? '처음 자료에서 발견한 점' : economics ? '2. 경제 변화의 자료와 원리 분석' : '2. 살펴보기 (자료로 본 사실과 원인)'}</h3>
       ${economics ? economyQuestionSummary('근거를 고른 이유', economyEvidenceReason()) : ''}
       ${evidence.length || attachments.length ? `<div class="evidence-grid">${evidence.map((source, i) =>
         `<figure><figcaption><strong>${i + 1}. ${esc(source.title || '근거 자료')}</strong></figcaption>
@@ -573,11 +579,11 @@ function renderPoster() {
         <p><strong class="evidence-label">내 생각</strong> ${esc(sourceThought(source) || '작성할 내용')}</p>
         <small><strong>출처</strong> ${esc([source.author, source.date, source.url].filter(filled).join(' / ') || '출처를 적어 주세요.')}</small></figure>`).join('')}
         ${attachments.map(photo => `<figure><img src="${esc(photo.dataUrl)}" alt="${esc(photo.caption || '이전에 첨부한 이미지')}"><figcaption>${esc(photo.caption)} <small>${esc([photo.credit, photo.source].filter(filled).join(' / '))}</small></figcaption></figure>`).join('')}</div>`
-        : readingReport ? '' : '<p class="paper-empty">모은 자료와 이미지가 여기에 들어가요.</p>'}
+        : set || readingReport ? '' : '<p class="paper-empty">모은 자료와 이미지가 여기에 들어가요.</p>'}
       ${readingReport}
       ${activeTask() === 'economy' && !economyGuided() && filled(a.economicTerm) ? `<p><strong>적용한 경제 용어</strong> ${esc(a.economicTerm)}</p>` : ''}
-      <div class="paper-analysis">${presentFields([...analysis, ...prior.filter(key => key !== 'proposal')])}</div>
-    </section>
+      <div class="paper-analysis">${analysisFields}</div>
+    </section>` : ''}
     ${set ? guidedDecisionReport(set,'첫 의견',['criterion','initialOpinion','evidenceQuestion']) +
       guidedSupplementReport(set) + guidedDecisionReport(set,'새 근거로 비교한 두 방안',['supplementAnalysis','optionFirst','optionSecond']) +
       guidedRegionReport(set) +
@@ -773,7 +779,6 @@ $('#editor').addEventListener('change', event => {
     const set = economyGuided();
     if (set && (!field.value || set.roles.includes(field.value))) editAnswer(guidedKey(set,'position'),field.value);
   }
-  if (field.dataset.evidence) editAnswer(field.dataset.evidence, field.checked ? 'yes' : '');
   if (field.dataset.termKey) {
     editAnswer(field.dataset.termKey, field.value);
     $('#economy-term-method').textContent = ECONOMY_TERM_METHODS[field.value] || '';

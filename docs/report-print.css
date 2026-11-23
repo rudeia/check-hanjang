@@ -20,6 +20,7 @@
 .paper-picked thead { background: var(--wash); }
 .paper-picked th:first-child { width: 34%; }
 .paper-picked th span { display: block; font-weight: 400; color: var(--muted); }
+.paper-picked td span { display: block; margin-top: .25em; }
 @media print {
   .has-print-pages .poster { display: none; }
   .has-print-pages .print-pages { position: static; left: auto; visibility: visible; }
