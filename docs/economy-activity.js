@@ -480,7 +480,9 @@ function guidedComparisonReport(set) {
     <thead><tr><th scope="col">대안</th><th scope="col">내 판단 기준으로 비교한 결과</th></tr></thead>
     <tbody>${options.map(([label,value])=>`<tr><th scope="row">${guidedEsc(label)}</th><td>${esc(value)}</td></tr>`).join('')}</tbody>
     </table>` : '';
-  return guidedReportSection('두 대안 비교', guidedReportAnswers(set,['supplementAnalysis']) + comparison);
+  const conditions = options.length && ECONOMY_REVIEW_CASES[set.id]?.common;
+  const model = conditions ? `<p class="paper-caption"><strong>모의 비교 조건</strong> ${guidedEsc(conditions)}</p>` : '';
+  return guidedReportSection('두 대안 비교', model + guidedReportAnswers(set,['supplementAnalysis']) + comparison);
 }
 
 function guidedReportSection(title, content) {
