@@ -20,7 +20,8 @@ const REHEARSAL = [
 const taskRehearsal = () => activeTask() === 'economy' ? [
   '경제 탐구 질문 → 비교 자료 → 경제 개념을 적용한 설명 → 결론과 시사점이 연결되나요?',
   '자료의 기간·지역·단위와 수치를 정확히 설명할 수 있나요?',
-  guidedPhenomenon(economyGuided()) ? '현상이 달라진 이유와 경제 주체에 미칠 영향을 자료로 설명할 수 있나요?' :
+  guidedCaseAnalysis(economyGuided()) ? '같은 기준으로 두 상황을 비교하고 판단 이유를 설명할 수 있나요?' :
+    guidedPhenomenon(economyGuided()) ? '현상이 달라진 이유와 경제 주체에 미칠 영향을 자료로 설명할 수 있나요?' :
     '제안의 기대 효과와 비용·부담을 자료에 근거해 설명할 수 있나요?',
   '친구의 질문에 답할 때 자료로 확인한 내용과 더 확인할 내용을 구분할 수 있나요?'
 ] : REHEARSAL;
@@ -419,7 +420,8 @@ function renderProgress() {
   const set = economyGuided();
   const sourceCount = economics ? economySourceCount(set) : sources.filter(completeSource).length;
   if (count) count.textContent = economics
-    ? (set ? `기록한 출처 ${sourceCount}곳 · 서로 다른 출처 3곳을 살펴보면 좋아요.` :
+    ? (guidedCaseAnalysis(set) || guidedPhenomenon(set)?.regionalFirst ? `기록한 출처 ${sourceCount}곳 · 내 판단에 쓴 근거를 확인하세요.` :
+      set ? `기록한 출처 ${sourceCount}곳 · 서로 다른 출처 3곳을 살펴보면 좋아요.` :
       `기록한 출처 ${sourceCount}곳 · 처음 자료와 추가 자료를 함께 써요.`)
     : `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (자료 조사 목표: 3개 이상)`;
   const completed = economics ? economyCompleted(set) : [

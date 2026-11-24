@@ -11,6 +11,7 @@ vm.runInContext(modules.map(name=>fs.readFileSync('docs/'+name+'.js','utf8')).jo
   const filled = value => Boolean(value?.trim());
   this.sets=ECONOMY_GUIDED_SETS;this.regions=ECONOMY_LOCAL_CASES;this.draft=draft;
   this.inquiries=ECONOMY_REGION_INQUIRIES;this.charts=ECONOMY_GUIDED_CHARTS;this.phenomena=ECONOMY_PHENOMENON_GUIDES;
+  this.caseGuides=ECONOMY_CASE_INQUIRY_GUIDES;
 `,ctx);
 const run = code => vm.runInContext(code,ctx);
 assert.equal(ctx.sets.length,17);
@@ -63,7 +64,18 @@ for(const {id} of ctx.sets) {
   assert(analysis.label && analysis.prompt && analysis.explanations.length===2 && analysis.conclusion && analysis.conclusionLimits);
   const prefix='guided_'+id+'_';
   ctx.draft.answers={guidedSetId:id};
-  assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'3');
+  assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),ctx.caseGuides[id] ? '4' : '3');
+  if (ctx.caseGuides[id]) {
+    ctx.draft.answers[prefix+'decisionGuideVersion']='3';
+    assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'4');
+    ctx.draft.answers[prefix+'read']='이전 활동에서 해석한 내용';
+    assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'3');
+    delete ctx.draft.answers[prefix+'read'];
+    ctx.draft.answers[prefix+'decisionGuideVersion']='4';
+    assert.equal(run('guidedInquiryGuide(economyGuided())'),ctx.caseGuides[id]);
+    ctx.draft.answers[prefix+'regionalChange']='이전 지역 자료 기록';
+    assert.equal(run('guidedRegionWasUsed(economyGuided())'),false);
+  }
   ctx.draft.answers[prefix+'decisionGuideVersion']='2';
   ctx.draft.answers[prefix+'ownOptionAnalysis']='이전 방식으로 작성한 비교';
   assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'2');
