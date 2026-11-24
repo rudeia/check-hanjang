@@ -368,6 +368,10 @@ dialog li + li { margin-top: .5rem; }
 .economy-review-details summary { padding: .45rem 0; }
 .economy-review-details > div { padding: 0 .55rem .4rem; overflow-wrap: anywhere; }
 .economy-review-details p { margin: .25rem 0; }
+.economy-final-comparison { background: var(--wash); border-radius: 6px; margin-top: .4rem; padding: .4rem .55rem; overflow-wrap: anywhere; }
+.economy-final-comparison h3 { font-size: .9rem; margin: 0 0 .15rem; }
+.economy-final-comparison p { margin: 0; white-space: pre-wrap; }
+.economy-final-comparison p + p { margin-top: .25rem; }
 .economy-supplement-review .economy-review-snippet { -webkit-line-clamp: 1; }
 .economy-supplement-review .economy-review-snippet + .economy-review-snippet { margin-top: .16rem; }
 .economy-criterion-examples { display: block; margin-top: .3rem; padding: .35rem .55rem; background: var(--wash); border-radius: 6px; }

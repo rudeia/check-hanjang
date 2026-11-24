@@ -66,7 +66,23 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         sourceCount:document.querySelectorAll('.print-pages a[href="https://example.com/source"]').length,
         nextRow:sheets.at(-1).textContent.includes('다음 행의 근거')
       };
-      return {measurements,longRow};
+      const references = Array.from({length:12},(_, i) =>
+        `<p>발행 기관 · 참조한 자료 ${i+1} · 보고서에 사용한 자료입니다.</p>`).join('');
+      poster.innerHTML = `<article class="paper"><div style="height:930px">앞의 긴 분석</div>
+        <section class="paper-section paper-inquiry-section"><h3 data-closing-heading>최종 의견과 성찰</h3>
+        <section data-closing><h4>탐구 성찰</h4><p>비교한 조건을 돌아봤습니다.</p></section>
+        <section class="paper-sources paper-references"><h4>참고 출처</h4>${references}</section></section></article>`;
+      window.prepareReportPrint();
+      const citedPages = [...document.querySelectorAll('.print-pages .print-paper')];
+      const last = citedPages.at(-1);
+      const closingWithSources = {
+        pages:citedPages.length,
+        hasClosing:!!last.querySelector('[data-closing]'),
+        hasHeading:!!last.querySelector('[data-closing-heading]'),
+        referenceCount:document.querySelectorAll('.print-pages .paper-references p').length,
+        contentPreserved:normalize(citedPages.map(sheet=>sheet.textContent).join(''))===normalize(poster.textContent)
+      };
+      return {measurements,longRow,closingWithSources};
     });
     assert(results.longRow.parts.length>1);
     assert.equal(results.longRow.parts.join(''),results.longRow.expected);
@@ -74,6 +90,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     assert(results.longRow.heads.every(heading=>heading==='자료와 출처확인한 근거'));
     assert.equal(results.longRow.sourceCount,1);
     assert(results.longRow.nextRow);
+    assert.deepEqual(results.closingWithSources,{pages:2,hasClosing:true,hasHeading:true,referenceCount:12,contentPreserved:true});
     for (const result of results.measurements) {
       assert.equal(result.heading, result.body, 'Heading separated from its body: ' + JSON.stringify(result));
       assert.equal(result.headingCount, result.name === 'long analysis' ? 2 : 1);
@@ -82,7 +99,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     }
     assert(results.measurements.some(result => result.heading === 1), 'fixture must exercise the next-page path');
     assert(results.measurements.some(result => result.heading === 0), 'short sections should also use available space');
-    console.log('PASS 63 page boundaries and an oversized evidence row with intact text, columns and source link');
+    console.log('PASS page boundaries, oversized evidence row, and closing response kept with references');
   } finally {
     await browser.close();
   }

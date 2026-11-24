@@ -134,6 +134,8 @@ async function guided(page, topic, index) {
   await write('supplementAnalysis',decisive);
   const ownComparison=page.getByText('내가 생각한 방법 비교 (선택)',{exact:true});
   assert(await ownComparison.isVisible());
+  if(mobile) assert(await ownComparison.evaluate(node=>node.getBoundingClientRect().bottom+scrollY<=innerHeight));
+  if(guide.judgmentClue) assert(await comparison.getByText(guide.judgmentClue,{exact:false}).isVisible());
   assert(await page.locator(key('ownOptionName')).isHidden());
   const ownName='병원 예약 택시비 지원';
   const ownResult='병원에 갈 시간에 예약할 수 있다면 같은 예산에서 이동이 어려운 가구의 왕복 요금을 지원한다.';
@@ -161,12 +163,12 @@ async function guided(page, topic, index) {
   const snippets=await review.locator('.economy-review-snippet').allTextContents();
   assert.equal(snippets.length,2);
   assert(snippets[0].includes(opinion) && snippets[1].includes(decisive));
-  if(mobile) assert(await startsOnScreen(key('finalChoice')));
+  if(mobile && !compareSimulated) assert(await startsOnScreen(key('finalChoice')));
   const details=review.locator('details');
   assert(await details.evaluate(node=>!node.open));
+  if(compareSimulated) assert(await review.locator('.economy-final-comparison').getByText(ownResult,{exact:false}).isVisible());
   await details.locator('summary').click();
   assert(await details.getByText('주민과 지역 사업자가 받는 영향의 차이',{exact:false}).isVisible());
-  if(compareSimulated) assert(await details.getByText(ownResult,{exact:false}).isVisible());
   await details.locator('summary').click();
   await write('finalChoice',conclusion);
   await write('changeCondition','비용이 편익보다 커질 때 선택을 바꾼다.');

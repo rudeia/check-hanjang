@@ -32,8 +32,8 @@
         while (tail?.nodeType === 3 && !tail.textContent.trim()) tail = tail.previousSibling;
       }
     }
-    function trimEmptyContainers() {
-      [...page.querySelectorAll('section, .paper-analysis, .evidence-grid')].reverse().forEach(node => {
+    function trimEmptyContainers(sheet = page) {
+      [...sheet.querySelectorAll('section, .paper-analysis, .evidence-grid')].reverse().forEach(node => {
         if (!node.textContent.trim() && !node.querySelector('img')) node.remove();
       });
     }
@@ -217,9 +217,53 @@
         [...node.children].forEach(child => visit(child, [...path, node]));
       else fullBlock(node, path);
     }
-    try {
+    function paginate(tight = false) {
+      output.replaceChildren();
+      output.classList.toggle('print-tight', tight);
+      page = null;
       nextPage();
       [...source.children].forEach(node => visit(node, []));
+    }
+    function isolatedReferences() {
+      const references = page.querySelector('.paper-references');
+      return references && page.previousElementSibling &&
+        page.textContent.trim() === references.textContent.trim() ? references : null;
+    }
+    function bringClosingText(references) {
+      const previousPage = page.previousElementSibling;
+      const previousChapter = previousPage.lastElementChild;
+      if (!previousChapter?.matches('.paper-inquiry-section') || !references.parentElement.matches('.paper-inquiry-section')) return;
+      const last = previousChapter.lastElementChild;
+      const beginning = last?.matches('.paper-references') ? last : null;
+      const closing = beginning ? beginning.previousElementSibling : last;
+      if (!closing?.matches('section') || !closing.textContent.trim()) return;
+      const heading = previousChapter.firstElementChild;
+      const carryHeading = isHeading(heading) && heading.nextElementSibling === closing;
+      const citationNodes = [...(beginning?.childNodes || [])];
+      // Keep the last response and the whole reference list together when
+      // tightening the spacing still leaves a references-only page.
+      references.before(closing);
+      if (carryHeading) closing.before(heading);
+      references.prepend(...citationNodes);
+      if (fits()) {
+        beginning?.remove();
+        trimEmptyContainers(previousPage);
+        if (!previousPage.textContent.trim() && !previousPage.querySelector('img')) previousPage.remove();
+        return;
+      }
+      beginning?.append(...citationNodes);
+      previousChapter.insertBefore(closing, beginning);
+      if (carryHeading) closing.before(heading);
+    }
+    try {
+      paginate();
+      if (isolatedReferences()) {
+        const pages = output.childElementCount;
+        paginate(true);
+        if (output.childElementCount > pages || isolatedReferences()) paginate();
+        const references = isolatedReferences();
+        if (references) bringClosingText(references);
+      }
       if ([...output.children].some(p => p.getBoundingClientRect().height > LIMIT + 1))
         throw new Error('Report page overflow');
       document.documentElement.classList.add('has-print-pages');

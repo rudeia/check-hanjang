@@ -45,6 +45,11 @@
 .paper-picked td span { display: block; margin-top: .25em; }
 .paper-picked .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .paper .paper-link-print { display: none; }
+.print-tight .paper-inquiry-section { line-height: 1.5; }
+.print-tight .paper-inquiry-section section + section,
+.print-tight .paper-inquiry-section > p + section,
+.print-tight .paper-inquiry-section > section + p { margin-top: .35rem; }
+.print-tight .paper-inquiry-section > h3 { margin-bottom: .38rem; }
 @media print {
   .has-print-pages .poster { display: none; }
   .has-print-pages .print-pages { position: static; left: auto; visibility: visible; }
