@@ -471,11 +471,12 @@ function guidedOwnComparison(set) {
   return filled(name) || filled(analysis) ? [filled(name) ? name : '내가 생각한 방법',analysis || ''] : null;
 }
 
-function guidedOwnComparisonEditor(set) {
+function guidedOwnComparisonEditor(set, context) {
   const name = guidedKey(set,'ownOptionName');
   const analysis = guidedKey(set,'ownOptionAnalysis');
-  return `<details class="supplement"${guidedOwnComparison(set) ? ' open' : ''}>
+  return `<details class="supplement economy-own-comparison"${guidedOwnComparison(set) ? ' open' : ''}>
     <summary>내가 생각한 방법 비교 (선택)</summary>
+    ${context}
     ${input(name,'내가 생각한 방법','방법의 이름을 짧게 쓰세요.',work().answers[name],{limit:60})}
     ${economyInput(analysis,'내 기준으로 비교한 결과','2단계에서 정한 기준으로 제시된 방법과 비교하세요. 누구에게 어떤 도움이 되는지, 비용이나 더 확인할 점은 무엇인지 쓰세요.',300)}
   </details>`;

@@ -173,18 +173,19 @@ function economyAnalysisEditor(set) {
       ${economyQuestionSummary('2단계에서 정한 기준',economyCriterion(set))}
       ${prompt('economicChange')}${prompt('economicCause')}${prompt('economicImpact')}
       ${economyInput('economyEvidenceImpact','내 판단에 영향을 준 추가 근거','2단계에서 정한 기준으로 새로 확인한 사실을 살펴보고, 첫 의견에 어떤 영향을 주었는지 적어요.',250)}</section>`;
-  return heading(ECONOMY_STEPS[3], '새 자료를 바탕으로 자신의 생각을 다시 검토하세요.') +
+  const comparisonContext = economyQuestionSummary('2단계에서 정한 기준',economyCriterion(set)) +
+    economyQuestionSummary('판단 단서',ECONOMY_REGION_INQUIRIES[set.id].judgmentClue);
+  return '<div class="economy-analysis-intro">' + heading(ECONOMY_STEPS[3], '새 자료로 내 판단을 다시 살펴보세요.') +
     `<section class="economy-write"><h2>같은 기준으로 다시 판단하기</h2>
-      ${economyQuestionSummary('2단계에서 정한 기준',economyCriterion(set))}
-      ${economyQuestionSummary('판단 단서',ECONOMY_REGION_INQUIRIES[set.id].judgmentClue)}
-      ${guidedOwnComparisonEditor(set)}
+      ${guidedOwnComparisonEditor(set,comparisonContext)}
+      ${comparisonContext ? `<div class="economy-comparison-context">${comparisonContext}</div>` : ''}
       ${economyQuestionSummary(economyInquiryLabel(set),economyInquiry())}
       ${economyReviewDetails('내가 정리한 근거 보기',facts)}
       ${guidedDecisionInputs(set,['supplementAnalysis'])}
       <details class="supplement economy-simulation"><summary>제시된 방법 비교 · 가상 상황 (선택)</summary>
         ${set.decision.scenario ? economyQuestionSummary('모의 상황',set.decision.scenario) : ''}
         ${guidedReviewCase(set)}
-        ${guidedDecisionInputs(set,['optionFirst','optionSecond'])}</details></section>` +
+        ${guidedDecisionInputs(set,['optionFirst','optionSecond'])}</details></section></div>` +
     `<details class="supplement"><summary>자료 표 다시 보기</summary>${guidedInitialMaterials(set,false)}${guidedSupplementMaterials(set,false)}</details>
     <section class="economy-write"><h2>${esc(activeGuidedRegion(set).region)}의 변화 원인과 영향</h2>
       ${guidedDecisionInputs(set,['regionalCause','regionalImpact'])}</section>` +
@@ -212,10 +213,10 @@ function economyConclusionEditor(set) {
   const summary = economyReviewSnippet('첫 의견',opinion) + economyReviewSnippet('핵심 근거',evidence);
   return '<div class="economy-final">' + heading(ECONOMY_STEPS[4], '첫 의견을 유지했는지, 바꿨다면 어떤 근거 때문인지 적어요.') +
     `<section class="economy-reminder economy-conclusion-review" aria-label="첫 의견과 근거">
+      ${comparison ? `<div class="economy-final-comparison"><h3>내 기준으로 비교한 근거</h3>${comparison}</div>` : ''}
       <div class="economy-review-columns">
         ${summary}
       </div>
-      ${comparison ? `<div class="economy-final-comparison"><h3>내 기준으로 비교한 근거</h3>${comparison}</div>` : ''}
       ${economyReviewDetails('앞 단계 기록 전체 보기',review)}
     </section>
     <section class="economy-write"><h2>최종 결론과 조건</h2>

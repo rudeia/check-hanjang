@@ -368,7 +368,8 @@ dialog li + li { margin-top: .5rem; }
 .economy-review-details summary { padding: .45rem 0; }
 .economy-review-details > div { padding: 0 .55rem .4rem; overflow-wrap: anywhere; }
 .economy-review-details p { margin: .25rem 0; }
-.economy-final-comparison { background: var(--wash); border-radius: 6px; margin-top: .4rem; padding: .4rem .55rem; overflow-wrap: anywhere; }
+.economy-own-comparison[open] + .economy-comparison-context { display: none; }
+.economy-final-comparison { background: var(--wash); border-radius: 6px; margin-bottom: .4rem; padding: .4rem .55rem; overflow-wrap: anywhere; }
 .economy-final-comparison h3 { font-size: .9rem; margin: 0 0 .15rem; }
 .economy-final-comparison p { margin: 0; white-space: pre-wrap; }
 .economy-final-comparison p + p { margin-top: .25rem; }
@@ -391,8 +392,10 @@ dialog li + li { margin-top: .5rem; }
   .view-tabs button { font-size: .86rem; }
   .economy-workspace .student-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .economy-review-columns { grid-template-columns: 1fr; }
-  .economy-initial .step-kicker, .economy-final .step-kicker { display: none; }
-  .economy-initial .step-heading, .economy-final .step-heading { margin-bottom: .45rem; }
+  .economy-initial .step-kicker, .economy-final .step-kicker, .economy-analysis-intro .step-kicker { display: none; }
+  .economy-initial .step-heading, .economy-final .step-heading, .economy-analysis-intro .step-heading { margin-bottom: .45rem; }
+  .economy-analysis-intro .economy-write { margin-top: .45rem; }
+  .economy-workspace #editor .economy-analysis-intro .economy-write > h2 { margin-bottom: .25rem; }
   .economy-identity { margin-block: .45rem .65rem; padding: .55rem .65rem; }
   .economy-identity .field { gap: .15rem; margin-bottom: .35rem; }
   .economy-identity .character-count { display: none; }

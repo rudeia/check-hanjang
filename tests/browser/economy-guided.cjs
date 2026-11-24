@@ -135,7 +135,7 @@ async function guided(page, topic, index) {
   const ownComparison=page.getByText('내가 생각한 방법 비교 (선택)',{exact:true});
   assert(await ownComparison.isVisible());
   if(mobile) assert(await ownComparison.evaluate(node=>node.getBoundingClientRect().bottom+scrollY<=innerHeight));
-  if(guide.judgmentClue) assert(await comparison.getByText(guide.judgmentClue,{exact:false}).isVisible());
+  if(guide.judgmentClue) assert(await comparison.locator('.economy-comparison-context').getByText(guide.judgmentClue,{exact:false}).isVisible());
   assert(await page.locator(key('ownOptionName')).isHidden());
   const ownName='병원 예약 택시비 지원';
   const ownResult='병원에 갈 시간에 예약할 수 있다면 같은 예산에서 이동이 어려운 가구의 왕복 요금을 지원한다.';
