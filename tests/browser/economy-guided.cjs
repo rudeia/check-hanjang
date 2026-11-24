@@ -164,6 +164,10 @@ async function guided(page, topic, index) {
   assert.equal(snippets.length,2);
   assert(snippets[0].includes(opinion) && snippets[1].includes(decisive));
   if(mobile && !compareSimulated) assert(await startsOnScreen(key('finalChoice')));
+  if(guide.conclusion) {
+    assert.equal(await page.locator(key('finalChoice')+'-hint').textContent(),guide.conclusion);
+    assert.equal(await page.locator(key('changeCondition')+'-hint').textContent(),guide.conclusionLimits);
+  }
   const details=review.locator('details');
   assert(await details.evaluate(node=>!node.open));
   if(compareSimulated) assert(await review.locator('.economy-final-comparison').getByText(ownResult,{exact:false}).isVisible());
@@ -200,6 +204,10 @@ async function guided(page, topic, index) {
   await page.waitForFunction(()=>window.printRequested);
   const report=await page.locator('.print-pages').textContent();
   assert.equal(await page.locator('.print-pages .paper-header h2').textContent(),finalTitle);
+  if(guide.conclusionLimits) {
+    const limits=page.locator('.print-pages section').filter({has:page.getByRole('heading',{name:'자료의 한계와 판단이 바뀌는 조건',exact:true,includeHidden:true})});
+    assert((await limits.last().textContent()).includes('비용이 편익보다 커질 때 선택을 바꾼다.'));
+  }
   if(compareSimulated) assert.deepEqual(await page.locator('.print-pages .paper-comparison-table tbody tr').last().locator('th,td').allTextContents(),[ownName,ownResult]);
   if(compareSimulated) assert(!report.includes(title));
   for(const value of [...chapters,initialRead,opinion,decisive,conclusion,'비용이 편익보다','아직 실천 전','지역 변화의 원인과 자료의 범위','지역 경제 주체별 영향']) assert(report.includes(value));

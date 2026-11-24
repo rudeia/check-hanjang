@@ -391,7 +391,7 @@ function guidedRolePicker(set) {
 
 function guidedDecisionFields(set) {
   const [first, second] = set.decision.options;
-  const {cause,impact} = ECONOMY_REGION_INQUIRIES[set.id];
+  const {cause,impact,conclusion,conclusionLimits} = ECONOMY_REGION_INQUIRIES[set.id];
   return {
     criterion: ['판단 기준과 이유', '내 입장에서 무엇을 가장 중요하게 볼지 정하고, 왜 중요한지 적어요.'],
     initialOpinionV3: ['첫 의견과 이유', '첫 자료를 보고 탐구 질문에 대한 지금 생각을 적어요. 판단하기 어렵다면 더 확인할 점을 써요.'],
@@ -401,8 +401,8 @@ function guidedDecisionFields(set) {
     regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '같은 지표의 두 시점 값과 단위를 넣어 한 줄로 적어요.'],
     regionalCause: ['어떤 이유로 지역 경제가 달라졌나요?', cause],
     regionalImpact: ['지역에서 누가 어떤 영향을 받나요?', impact],
-    finalChoice: ['최종 의견과 지역에 주는 시사점', '자료를 근거로 자신의 생각과 예상되는 영향을 쓰세요. 판단하기 어렵다면 그 이유를 쓰세요.'],
-    changeCondition: ['판단이 바뀔 조건과 자료의 한계', '판단이 바뀔 수 있는 조건이나, 판단하려면 더 확인해야 할 내용을 쓰세요.'],
+    finalChoice: ['최종 의견과 지역에 주는 시사점', conclusion || '자료를 근거로 자신의 생각과 예상되는 영향을 쓰세요. 판단하기 어렵다면 그 이유를 쓰세요.'],
+    changeCondition: ['판단이 바뀔 조건과 자료의 한계', conclusionLimits || '판단이 바뀔 수 있는 조건이나, 판단하려면 더 확인해야 할 내용을 쓰세요.'],
     decisionSummary: ['탐구 내용 한 줄 정리', '처음 생각과 비교해 무엇이 달라졌거나 더 분명해졌나요?']
   };
 }
@@ -438,10 +438,11 @@ function guidedDecisionInputs(set, parts) {
 
 function guidedReportAnswers(set, parts) {
   const fields = guidedDecisionFields(set);
+  const conditionLabel = ECONOMY_REGION_INQUIRIES[set.id].conclusionLimits ? '자료의 한계와 판단이 바뀌는 조건' : '판단이 바뀌는 조건';
   const reportLabels = {
     criterion:'판단 기준', supplementAnalysis:'내 판단에 영향을 준 추가 근거',
     regionalCause:'지역 변화의 원인과 자료의 범위', regionalImpact:'지역 경제 주체별 영향',
-    finalChoice:'최종 판단', changeCondition:'판단이 바뀌는 조건', decisionSummary:'탐구를 통해 달라진 생각'
+    finalChoice:'최종 판단', changeCondition:conditionLabel, decisionSummary:'탐구를 통해 달라진 생각'
   };
   const written = parts.filter(part => filled(work().answers[guidedKey(set,part)]));
   return written.map(part =>
