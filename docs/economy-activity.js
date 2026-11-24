@@ -259,10 +259,11 @@ function guidedInitialMaterials(set, editable = true) {
   if (regionGuide?.regionalFirst) return guidedRegionMaterial(activeGuidedRegion(set),
     editable ? guidedDecisionInputs(set,['regionalChange']) +
       economyInput(key,'자료를 읽고 해석한 점',regionGuide.cause,220) : '',regionGuide.cause);
+  const part = first.entries[regionGuide?.initialPart || 0];
   return `<section class="card-fact"><h2>처음 읽을 자료</h2>
-    <p>${esc(ECONOMY_INITIAL_CLUES[set.id])}</p>
+    <p>${esc(regionGuide?.read || ECONOMY_INITIAL_CLUES[set.id])}</p>
     ${charts.map(id=>officialGraph(id,false,false,false)).join('')}
-    ${guidedSource(set,{...first,entries:first.entries.slice(0,1)},editable,true)}
+    ${guidedSource(set,{...first,entries:[part]},editable,true)}
     ${editable ? economyInput(key,'자료를 읽고 해석한 점','확인한 사실은 어떤 변화나 차이를 보여 주나요?',220) : ''}
   </section>`;
 }
@@ -283,12 +284,12 @@ function guidedSupplementMaterials(set, editable = true) {
   const [first,...supplements] = groups;
   const regionalGuide = guidedPhenomenon(set);
   const regionFirst = regionalGuide?.regionalFirst;
-  const [main,...otherSources] = regionFirst ? regionalGuide.sources.map(index=>groups[index]) : supplements;
+  const [main,...otherSources] = regionalGuide?.sources ? regionalGuide.sources.map(index=>groups[index]) : supplements;
   const archived = regionFirst ? groups.filter((_,index)=>!regionalGuide.sources.includes(index)) : [];
   const region = activeGuidedRegion(set);
   const readingTask = guidedPhenomenon(set)?.cause || region?.task;
   const charts = regionFirst ? guidedChartIds(set) : guidedSupplementCharts(set,first);
-  const moreFromFirst = first.entries.slice(1);
+  const moreFromFirst = first.entries.filter((_,index)=>index!==(regionalGuide?.initialPart || 0));
   return `<div class="economy-facts">
     ${region && !regionFirst ? guidedRegionMaterial(region,editable ? guidedDecisionInputs(set,['regionalChange']) : '',readingTask) : ''}
     ${main ? `<section class="card-fact"><h2>첫 의견을 다시 살펴볼 자료</h2>

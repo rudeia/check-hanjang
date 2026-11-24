@@ -66,7 +66,10 @@ async function guided(page, topic, index) {
   }
   assert.equal(await page.locator('#economy-view-tabs').evaluate(node=>getComputedStyle(node).position),'sticky');
   assert.equal(await page.locator('#editor .stat-image').count(),Number(!scenario && !guide.regionalFirst && sharedChartSources.has(topic.id)));
-  if(tourism) assert((await page.locator('#editor .card-fact').textContent()).includes('어느 집단의 소비는 줄었나요?'));
+  if(tourism) {
+    assert((await page.locator('#editor .card-fact').textContent()).includes('중화권 관광객의 카드 소비'));
+    assert((await page.locator('#editor .card-fact table').textContent()).includes('55.8'));
+  }
   await write('topicTitle',title);
   for(const [field,value] of Object.entries({number:'20513',name:'시연 학생',team:'2모둠'})) await page.fill('#'+field,value);
   await write(scenario ? 'caseFact' : guide.regionalFirst ? 'regionalChange' : 'source_'+first.storageId+'_excerpt',firstFact);
