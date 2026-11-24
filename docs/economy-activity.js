@@ -375,12 +375,6 @@ function guidedWriting(set, kinds) {
     input(field.key,field.title,'내 답을 적어요.',work().answers[field.key],{area:true,limit:250,hint:field.hint})).join('');
 }
 
-function guidedDecisionPrompt(set) {
-  return `<p>${esc(ECONOMY_INQUIRY_STAKES[set.id])}</p>
-    ${set.decision.scenario ? economyQuestionSummary('모의 상황',set.decision.scenario) : ''}
-    <ul class="guided-evidence-list">${set.decision.options.map(option => `<li>${esc(option)}</li>`).join('')}</ul>`;
-}
-
 const guidedRoles = set => [...new Set([...set.roles,'지역 주민','지역 소상공인'])];
 
 function guidedRole(set) {
@@ -403,7 +397,7 @@ function guidedDecisionFields(set) {
     initialOpinionV3: ['첫 의견과 이유', '첫 자료를 보고 탐구 질문에 대한 지금 생각을 적어요. 판단하기 어렵다면 더 확인할 점을 써요.'],
     supplementAnalysis: ['내 판단에 영향을 준 추가 근거', '앞에서 정한 기준으로 첫 의견을 다시 봐요. 새 자료에서 판단에 도움이 된 점이나 더 확인할 점을 적어요.'],
     optionFirst: [`대안 1 · ${first}`, '주어진 상황에서 이 방안을 택하면 내 입장에서 무엇을 얻고 무엇을 부담하나요? 자료의 수치나 조건을 넣어요.'],
-    optionSecond: [`대안 2 · ${second}`, '같은 기준으로 이 방안의 이익과 부담을 따져요. 어느 조건에서 앞의 방안보다 유리한가요?'],
+    optionSecond: [`대안 2 · ${second}`, '같은 기준으로 이 방법의 이익과 부담을 쓰세요. 첫 번째 방법과 어떤 차이가 있는지 설명하세요.'],
     regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '같은 지표의 두 시점 값과 단위를 넣어 한 줄로 적어요.'],
     regionalCause: ['어떤 이유로 지역 경제가 달라졌나요?', cause],
     regionalImpact: ['지역에서 누가 어떤 영향을 받나요?', impact],
@@ -422,7 +416,7 @@ const GUIDED_PLACEHOLDERS = {
   regionalChange: '예: ○○년 ○○에서 △△년 △△로 바뀌었다. 차이는 □□이다.',
   regionalCause: '예: 자료는 ○○의 영향을 짚었다. 이 설명을 확인하려면 △△ 자료가 필요하다.',
   regionalImpact: '예: ○○는 이익을 얻지만 △△는 이 비용을 부담할 수 있다.',
-  finalChoice: '예: 내 입장에서는 ○○ 방안을 선택한다. 근거 자료에서 확인한 점은 …',
+  finalChoice: '자료에서 확인한 사실을 들어 자신의 생각을 설명하세요.',
   changeCondition: '예: ○○ 비용이 △△보다 높아지면 다른 방안을 고르겠다.',
   decisionSummary: '예: 처음에는 전체 증가를 봤고, 자료를 읽으면서 업종별 차이도 확인했다.'
 };

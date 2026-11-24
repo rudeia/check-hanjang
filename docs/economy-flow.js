@@ -180,7 +180,7 @@ function economyAnalysisEditor(set) {
       ${economyReviewDetails('내가 정리한 근거 보기',facts)}
       ${guidedDecisionInputs(set,['supplementAnalysis'])}
       <details class="supplement economy-simulation"><summary>제시된 방법 비교 · 가상 상황 (선택)</summary>
-        ${guidedDecisionPrompt(set)}
+        ${set.decision.scenario ? economyQuestionSummary('모의 상황',set.decision.scenario) : ''}
         ${guidedReviewCase(set)}
         ${guidedDecisionInputs(set,['optionFirst','optionSecond'])}</details>
       ${guidedOwnComparisonEditor(set)}</section>` +
