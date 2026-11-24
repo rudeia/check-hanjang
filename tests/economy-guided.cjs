@@ -57,4 +57,16 @@ assert.match(comparison(),/<th scope="row">내가 생각한 방법<\/th><td>택�
 assert.doesNotMatch(comparison(),/모의 비교 조건/);
 ctx.draft.answers['guided_renewable-sharing_ownOptionName']='예약 택시 <지원>';
 assert.match(comparison(),/예약 택시 &lt;지원&gt;/);
+for(const id of ['online-choice','household-budget']) {
+  const prefix='guided_'+id+'_';
+  ctx.draft.answers={guidedSetId:id};
+  assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'3');
+  ctx.draft.answers[prefix+'decisionGuideVersion']='2';
+  ctx.draft.answers[prefix+'ownOptionAnalysis']='이전 방식으로 작성한 비교';
+  assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'2');
+  assert.equal(run('guidedPhenomenon(economyGuided())'),null);
+  ctx.draft.answers[prefix+'decisionGuideVersion']='3';
+  assert.match(comparison(),/현상에 대한 설명/);
+  assert.doesNotMatch(comparison(),/모의 비교 조건/);
+}
 console.log('PASS 17 topics, 10 visuals, 17 regional connections, and source-specific preservation across replacements');

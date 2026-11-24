@@ -8,6 +8,7 @@ const useWebkit = process.env.BROWSER === 'webkit';
 const chapters = ['Ⅰ. 초기 자료 해석','Ⅱ. 나의 입장과 첫 의견','Ⅲ. 보충 자료와 근거','Ⅳ. 경제 개념 적용과 비교','Ⅴ. 최종 의견·방안·성찰'];
 const sharedChartSources = new Set(['online-choice','fruit-purchasing','aging-employment','household-budget','childcare-choice','cocoa-buying','saving-goal']);
 const fieldPlace = '제주시 중앙시장 직접 방문';
+const analysisChapters = [...chapters.slice(0,-1),'Ⅴ. 최종 분석·성찰'];
 
 async function preview(page, phrase, keyboard = false) {
   await page.locator('#tab-write').focus();
@@ -16,7 +17,8 @@ async function preview(page, phrase, keyboard = false) {
   await page.locator('#preview-panel').waitFor();
   assert(await page.locator('#workspace').isHidden());
   assert(await page.locator('#preview-print').isVisible());
-  assert.deepEqual((await page.locator('#poster .paper-inquiry-section > h3').allTextContents()).slice(0,5),chapters);
+  const expected = await page.evaluate(()=>Boolean(guidedPhenomenon(economyGuided()))) ? analysisChapters : chapters;
+  assert.deepEqual((await page.locator('#poster .paper-inquiry-section > h3').allTextContents()).slice(0,5),expected);
   assert((await page.locator('#poster').textContent()).includes(phrase));
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   if (keyboard) await page.keyboard.press('Home');
@@ -35,9 +37,10 @@ async function guided(page, topic, index) {
   const title='탐구 검수 '+topic.id;
   const tourism=topic.id==='tourism-consumption';
   const compareSimulated=topic.id==='renewable-sharing';
-  const {groups,charts,region,guide}=await page.evaluate(()=>{
+  const {groups,charts,region,guide,phenomenon}=await page.evaluate(()=>{
     const set=economyGuided();
-    return {groups:guidedSourceGroups(set),charts:guidedChartIds(set),region:activeGuidedRegion(set),guide:ECONOMY_REGION_INQUIRIES[set.id]};
+    return {groups:guidedSourceGroups(set),charts:guidedChartIds(set),region:activeGuidedRegion(set),
+      guide:guidedInquiryGuide(set),phenomenon:Boolean(guidedPhenomenon(set))};
   });
   const [first,second,third]=groups;
   const firstFact='첫 자료에서 확인한 사실';
@@ -132,7 +135,7 @@ async function guided(page, topic, index) {
   await page.selectOption('#economy-term',topic.concepts[0]);
   await write('explain','경제 개념을 실제 자료와 비교 조건에 적용했다.');
   await write('supplementAnalysis',decisive);
-  const ownComparison=page.getByText('내가 생각한 방법 비교 (선택)',{exact:true});
+  const ownComparison=page.getByText(phenomenon ? '내가 생각한 설명 비교 (선택)' : '내가 생각한 방법 비교 (선택)',{exact:true});
   assert(await ownComparison.isVisible());
   if(mobile) assert(await ownComparison.evaluate(node=>node.getBoundingClientRect().bottom+scrollY<=innerHeight));
   if(guide.judgmentClue) assert(await comparison.locator('.economy-comparison-context').getByText(guide.judgmentClue,{exact:false}).isVisible());
@@ -175,9 +178,17 @@ async function guided(page, topic, index) {
   assert(await details.getByText('주민과 지역 사업자가 받는 영향의 차이',{exact:false}).isVisible());
   await details.locator('summary').click();
   await write('finalChoice',conclusion);
-  await write('changeCondition','비용이 편익보다 커질 때 선택을 바꾼다.');
-  await page.getByRole('radio',{name:'아직 실천 전'}).check();
-  for(const [field,value] of Object.entries({economicPlan:'관련 주체와 실천 방안',practicePlan:'모둠과 조사할 내 계획',reflection:'비교하며 달라진 생각'})) await page.fill('#'+field,value);
+  const condition=phenomenon ? '같은 시기 지역 자료를 확인해 기존 설명을 다시 판단한다.' : '비용이 편익보다 커질 때 선택을 바꾼다.';
+  await write('changeCondition',condition);
+  if(phenomenon) {
+    assert.equal(await page.locator('#economicPlan').count(),0);
+    assert.equal(await page.locator('#practicePlan').count(),0);
+  } else {
+    await page.getByRole('radio',{name:'아직 실천 전'}).check();
+    await page.fill('#economicPlan','관련 주체와 실천 방안');
+    await page.fill('#practicePlan','모둠과 조사할 내 계획');
+  }
+  await page.fill('#reflection','비교하며 달라진 생각');
   for(const step of await page.locator('#steps button').allTextContents()) assert(step.includes('✓'));
   const finalTitleInput=page.getByRole('textbox',{name:'최종 보고서 제목'});
   assert.equal(await finalTitleInput.inputValue(),title);
@@ -205,12 +216,15 @@ async function guided(page, topic, index) {
   const report=await page.locator('.print-pages').textContent();
   assert.equal(await page.locator('.print-pages .paper-header h2').textContent(),finalTitle);
   if(guide.conclusionLimits) {
-    const limits=page.locator('.print-pages section').filter({has:page.getByRole('heading',{name:'자료의 한계와 판단이 바뀌는 조건',exact:true,includeHidden:true})});
-    assert((await limits.last().textContent()).includes('비용이 편익보다 커질 때 선택을 바꾼다.'));
+    const heading=phenomenon ? '자료의 한계와 설명을 바꿀 근거' : '자료의 한계와 판단이 바뀌는 조건';
+    const limits=page.locator('.print-pages section').filter({has:page.getByRole('heading',{name:heading,exact:true,includeHidden:true})});
+    assert((await limits.last().textContent()).includes(condition));
   }
   if(compareSimulated) assert.deepEqual(await page.locator('.print-pages .paper-comparison-table tbody tr').last().locator('th,td').allTextContents(),[ownName,ownResult]);
   if(compareSimulated) assert(!report.includes(title));
-  for(const value of [...chapters,initialRead,opinion,decisive,conclusion,'비용이 편익보다','아직 실천 전','지역 변화의 원인과 자료의 범위','지역 경제 주체별 영향']) assert(report.includes(value));
+  for(const value of [...(phenomenon ? analysisChapters : chapters),initialRead,opinion,decisive,conclusion,condition,
+    '지역 변화의 원인과 자료의 범위','지역 경제 주체별 영향']) assert(report.includes(value));
+  assert.equal(report.includes('아직 실천 전'),!phenomenon);
   assert(!/내 계산:|내 선택:|[A-F] 지역/.test(report));
   assert.equal(await page.locator('.print-pages .paper-evidence-table tbody tr').count(),groups.length+Number(tourism));
   if(tourism) assert.equal(report.split(fieldPlace).length-1,2);

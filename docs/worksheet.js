@@ -17,7 +17,13 @@ const REHEARSAL = [
   '발표할 때 화면만 보지 않고 친구들과 눈을 맞추며 이야기할 준비가 되었나요?',
   '친구들이 질문했을 때 내가 조사한 자료를 근거로 답할 수 있나요?'
 ];
-const taskRehearsal = () => activeTask() === 'economy' ? ['경제 탐구 질문 → 비교 자료 → 경제 개념을 적용한 설명 → 결론과 시사점이 연결되나요?', '자료의 기간·지역·단위와 수치를 정확히 설명할 수 있나요?', '제안의 기대 효과와 비용·부담을 자료에 근거해 설명할 수 있나요?', '친구의 질문에 답할 때 자료로 확인한 내용과 더 확인할 내용을 구분할 수 있나요?'] : REHEARSAL;
+const taskRehearsal = () => activeTask() === 'economy' ? [
+  '경제 탐구 질문 → 비교 자료 → 경제 개념을 적용한 설명 → 결론과 시사점이 연결되나요?',
+  '자료의 기간·지역·단위와 수치를 정확히 설명할 수 있나요?',
+  guidedPhenomenon(economyGuided()) ? '현상이 달라진 이유와 경제 주체에 미칠 영향을 자료로 설명할 수 있나요?' :
+    '제안의 기대 효과와 비용·부담을 자료에 근거해 설명할 수 있나요?',
+  '친구의 질문에 답할 때 자료로 확인한 내용과 더 확인할 내용을 구분할 수 있나요?'
+] : REHEARSAL;
 const SOURCE_GOAL = 3;
 const SOURCE_TYPES = ['통계·그래프', '뉴스 기사', '보고서·책', '직접 찍은 사진·인터뷰'];
 const SOURCE_SCALES = ['우리 동네(지역)', '우리나라', '세계 여러 나라'];
@@ -224,7 +230,7 @@ function economyPromptLimit(key) {
 
 function heading(title, description) {
   const set = economyGuided();
-  const context = activeTask() === 'economy' ? `<div class="guided-context">${set ? `<strong>${esc(set.label)}</strong>` : '<strong>직접 정한 주제</strong>'}<a href="#economy">주제 목록으로</a></div>` : '';
+  const context = activeTask() === 'economy' ? `<div class="guided-context">${set ? `<strong>${esc(guidedTopicLabel(set))}</strong>` : '<strong>직접 정한 주제</strong>'}<a href="#economy">주제 목록으로</a></div>` : '';
   return `${context}<div class="step-heading"><span class="step-kicker">Step ${stage() + 1} / ${taskSteps().length}</span><h1 id="step-title" tabindex="-1">${title}</h1>${description ? `<p>${description}</p>` : ''}</div>`;
 }
 
@@ -727,7 +733,7 @@ $('#editor').addEventListener('click', event => {
       const answers = { ...work().answers, guidedSetId: id === 'custom' ? '' : id, economyPackId: 'custom' };
       if (id !== 'custom') {
         const topic = ECONOMY_GUIDED_SETS.find(set=>set.id===id);
-        answers[guidedQuestionVersionKey(topic)] ??= usesPreviousGuidedQuestion(topic,answers) ? '1' : '2';
+        answers[guidedQuestionVersionKey(topic)] = nextGuidedQuestionVersion(topic,answers);
         if (answers[guidedKey(topic,'phase')] === undefined && answers[guidedKey(topic,'phaseV2')] === undefined)
           answers[economyPhase(topic)] ??= '0';
       }

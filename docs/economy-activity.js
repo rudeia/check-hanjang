@@ -44,6 +44,10 @@ function economyGuided() {
 function guidedKey(set, part) { return `guided_${set.id}_${part}`; }
 
 const guidedQuestionVersionKey = set => guidedKey(set,'decisionGuideVersion');
+const guidedPhenomenon = set => set && work().answers[guidedQuestionVersionKey(set)] === '3'
+  ? ECONOMY_PHENOMENON_GUIDES[set.id] : null;
+const guidedInquiryGuide = set => guidedPhenomenon(set) || ECONOMY_REGION_INQUIRIES[set.id];
+const guidedTopicLabel = set => guidedPhenomenon(set)?.label || set.label;
 
 function usesPreviousGuidedQuestion(set, answers = work().answers) {
   const version = answers[guidedQuestionVersionKey(set)];
@@ -51,8 +55,18 @@ function usesPreviousGuidedQuestion(set, answers = work().answers) {
   return ['initialOpinionV3','criterion','finalChoice'].some(part=>filled(answers[guidedKey(set,part)]));
 }
 
+function nextGuidedQuestionVersion(set, answers) {
+  const current = answers[guidedQuestionVersionKey(set)];
+  if (ECONOMY_PHENOMENON_GUIDES[set.id] && current !== '3') {
+    const written = ['inquiryV2','initialOpinion','criterion','initialOpinionV3','supplementAnalysis','regionalCause',
+      'regionalImpact','explain','optionFirst','optionSecond','ownOptionName','ownOptionAnalysis','finalChoice','changeCondition'];
+    if (!written.some(part=>filled(answers[guidedKey(set,part)]))) return '3';
+  }
+  return current || (usesPreviousGuidedQuestion(set,answers) ? '1' : '2');
+}
+
 function guidedQuestion(set) {
-  const guide = ECONOMY_REGION_INQUIRIES[set.id];
+  const guide = guidedInquiryGuide(set);
   return usesPreviousGuidedQuestion(set) ? guide.previousQuestion : guide.focus;
 }
 
@@ -73,6 +87,7 @@ function economyQuestionSummary(heading, question) {
 
 const ECONOMY_TERM_METHODS = {
   '경제 주체': '자료 속 소비자, 기업, 노동자, 정부 중 관련 있는 주체를 골라요. 이 변화로 누가 이익을 얻고 누가 비용을 부담하는지 각각 살펴보세요.',
+  '구매력': '같은 돈으로 서비스를 얼마나 이용할 수 있는지 생각하세요. 가격이 오를 때 구매력이 달라지는 이유와 실제 이용 횟수를 확인하는 데 필요한 자료를 쓰세요.',
   '환율': '같은 달러 금액을 변동 전후의 환율로 원화로 바꿔요. 내 역할에서 그 돈을 받는지, 내는지 구분하고 환율이 판단을 바꾸는지 적어 보세요.',
   '분산투자': '한 종목에 넣었을 때와 여러 업종에 나눴을 때 손익을 계산해요. 투자 대상이 같은 사건에 함께 영향을 받을 수도 있는지 살펴보세요.',
   '대출 금리': '대출액에 연 금리를 곱해 한 해 이자를 구해요. 금리가 오르기 전과 후의 이자를 영업이익에서 빼서 두 기업을 비교해요.',
@@ -94,7 +109,8 @@ const economyTermKey = set => set ? guidedKey(set, 'term') : 'economicTerm';
 
 function economyTermGuide(set) {
   const key = economyTermKey(set);
-  const terms = set?.concepts || GENERAL_ECONOMY_TERMS;
+  const phenomenon = guidedPhenomenon(set);
+  const terms = phenomenon ? [phenomenon.concept,...set.concepts] : set?.concepts || GENERAL_ECONOMY_TERMS;
   const selected = work().answers[key];
   return `<section class="economy-write"><h2>경제 개념으로 현상 설명하기</h2>
     <p>고른 정보에서 확인한 사실을 어떤 경제 용어로 설명할 수 있을까요?</p>
@@ -102,7 +118,8 @@ function economyTermGuide(set) {
       <option value="">경제 용어를 골라 보세요</option>${terms.map(term => `<option${term === selected ? ' selected' : ''}>${esc(term)}</option>`).join('')}</select>
       <p id="economy-term-method" class="field-hint" role="status">${terms.includes(selected) ? esc(ECONOMY_TERM_METHODS[selected]) : ''}</p></div>
     ${economyInput(set ? guidedKey(set,'explain') : 'concepts','선택한 경제 개념으로 변화와 원인을 설명해 보세요',
-      '자료에 적은 사실을 들어 원인이나 경제 주체의 선택을 설명해요.',300,
+      phenomenon ? '자료에서 확인한 변화와 경제 주체가 받을 영향을 경제 개념으로 설명하세요.' :
+        '자료에 적은 사실을 들어 원인이나 경제 주체의 선택을 설명해요.',300,
       (set ? work().answers[guidedKey(set,'explain')] : undefined) ?? work().answers.concepts)}</section>`;
 }
 
@@ -117,7 +134,7 @@ function guidedExplorer() {
   }
   return `<div class="economy-topics">${[...groups].map(([group,sets]) => `<section><h2>${esc(group)}</h2>
     <ul class="economy-topic-grid">${sets.map(set => `<li><button type="button" data-guided-set="${esc(set.id)}">
-    <span><strong>${esc(set.label)}</strong><small>${esc(ECONOMY_REGION_INQUIRIES[set.id].focus)}</small></span>
+    <span><strong>${esc(ECONOMY_PHENOMENON_GUIDES[set.id]?.label || set.label)}</strong><small>${esc((ECONOMY_PHENOMENON_GUIDES[set.id] || ECONOMY_REGION_INQUIRIES[set.id]).focus)}</small></span>
     ${set.id === selected?.id ? '<span class="topic-resume">이어서</span>' : ''}</button></li>`).join('')}</ul></section>`).join('')}</div>
     <button type="button" data-guided-set="custom">직접 정한 주제로 탐구하기</button>`;
 }
@@ -390,19 +407,22 @@ function guidedRolePicker(set) {
 }
 
 function guidedDecisionFields(set) {
+  const phenomenon = guidedPhenomenon(set);
+  const {cause,impact,conclusion,conclusionLimits} = guidedInquiryGuide(set);
   const [first, second] = set.decision.options;
-  const {cause,impact,conclusion,conclusionLimits} = ECONOMY_REGION_INQUIRIES[set.id];
   return {
-    criterion: ['판단 기준과 이유', '내 입장에서 무엇을 가장 중요하게 볼지 정하고, 왜 중요한지 적어요.'],
-    initialOpinionV3: ['첫 의견과 이유', '첫 자료를 보고 탐구 질문에 대한 지금 생각을 적어요. 판단하기 어렵다면 더 확인할 점을 써요.'],
+    criterion: ['판단 기준과 이유', phenomenon ? '어떤 자료와 조건을 맞춰 봐야 믿을 만한 설명인지, 내 기준과 이유를 쓰세요.' :
+      '내 입장에서 무엇을 가장 중요하게 볼지 정하고, 왜 중요한지 적어요.'],
+    initialOpinionV3: ['첫 의견과 이유', phenomenon ? '첫 자료를 바탕으로 무엇이 달라졌는지, 그 이유나 영향을 어떻게 생각하는지 쓰세요.' :
+      '첫 자료를 보고 탐구 질문에 대한 지금 생각을 적어요. 판단하기 어렵다면 더 확인할 점을 써요.'],
     supplementAnalysis: ['내 판단에 영향을 준 추가 근거', '앞에서 정한 기준으로 첫 의견을 다시 봐요. 새 자료에서 판단에 도움이 된 점이나 더 확인할 점을 적어요.'],
-    optionFirst: [`대안 1 · ${first}`, '주어진 상황에서 이 방안을 택하면 내 입장에서 무엇을 얻고 무엇을 부담하나요? 자료의 수치나 조건을 넣어요.'],
-    optionSecond: [`대안 2 · ${second}`, '같은 기준으로 이 방법의 이익과 부담을 쓰세요. 첫 번째 방법과 어떤 차이가 있는지 설명하세요.'],
+    optionFirst: phenomenon?.explanations[0] || [`대안 1 · ${first}`, '주어진 상황에서 이 방안을 택하면 내 입장에서 무엇을 얻고 무엇을 부담하나요? 자료의 수치나 조건을 넣어요.'],
+    optionSecond: phenomenon?.explanations[1] || [`대안 2 · ${second}`, '같은 기준으로 이 방법의 이익과 부담을 쓰세요. 첫 번째 방법과 어떤 차이가 있는지 설명하세요.'],
     regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '같은 지표의 두 시점 값과 단위를 넣어 한 줄로 적어요.'],
     regionalCause: ['어떤 이유로 지역 경제가 달라졌나요?', cause],
     regionalImpact: ['지역에서 누가 어떤 영향을 받나요?', impact],
-    finalChoice: ['최종 의견과 지역에 주는 시사점', conclusion || '자료를 근거로 자신의 생각과 예상되는 영향을 쓰세요. 판단하기 어렵다면 그 이유를 쓰세요.'],
-    changeCondition: ['판단이 바뀔 조건과 자료의 한계', conclusionLimits || '판단이 바뀔 수 있는 조건이나, 판단하려면 더 확인해야 할 내용을 쓰세요.'],
+    finalChoice: [phenomenon ? '내가 내린 최종 분석' : '최종 의견과 지역에 주는 시사점', conclusion || '자료를 근거로 자신의 생각과 예상되는 영향을 쓰세요. 판단하기 어렵다면 그 이유를 쓰세요.'],
+    changeCondition: [phenomenon ? '자료의 한계와 설명을 바꿀 근거' : '판단이 바뀔 조건과 자료의 한계', conclusionLimits || '판단이 바뀔 수 있는 조건이나, 판단하려면 더 확인해야 할 내용을 쓰세요.'],
     decisionSummary: ['탐구 내용 한 줄 정리', '처음 생각과 비교해 무엇이 달라졌거나 더 분명해졌나요?']
   };
 }
@@ -421,28 +441,38 @@ const GUIDED_PLACEHOLDERS = {
   decisionSummary: '예: 처음에는 전체 증가를 봤고, 자료를 읽으면서 업종별 차이도 확인했다.'
 };
 
+const PHENOMENON_PLACEHOLDERS = {
+  initialOpinionV3: '자료에서 확인한 사실을 바탕으로 현재 생각을 쓰세요.',
+  optionFirst: '이 설명을 뒷받침하는 자료와 더 필요한 자료를 쓰세요.',
+  optionSecond: '같은 기준으로 두 번째 설명을 검토하세요.',
+  changeCondition: '어떤 자료가 새로 확인되면 지금 설명이 달라지는지 쓰세요.'
+};
+
 function guidedDecisionInputs(set, parts) {
   const fields = guidedDecisionFields(set);
+  const guide = guidedInquiryGuide(set);
+  const placeholders = guidedPhenomenon(set) ? {...GUIDED_PLACEHOLDERS,...PHENOMENON_PLACEHOLDERS} : GUIDED_PLACEHOLDERS;
   return parts.map(part => {
     const key = guidedKey(set,part);
     const [title,hint] = fields[part];
     const limit = ({criterion:180,initialOpinionV3:220,finalChoice:320,changeCondition:200,decisionSummary:100})[part] || 250;
     const previousCriterion = part === 'criterion' && usesPreviousGuidedQuestion(set) && !filled(work().answers[economyQuestionKey(set)]);
     const examples = part === 'criterion' && !previousCriterion
-      ? `<span class="economy-criterion-examples"><strong>기준 예시</strong>${ECONOMY_REGION_INQUIRIES[set.id].criteria.map(item=>`<span>${esc(item)}?</span>`).join('')}</span>`
+      ? `<span class="economy-criterion-examples"><strong>기준 예시</strong>${guide.criteria.map(item=>`<span>${esc(item)}?</span>`).join('')}</span>`
       : '';
     const help = previousCriterion ? set.decision.criterionHint || '내가 맡은 역할에서 무엇을 가장 중요하게 보는지, 그 이유와 함께 적어요.' : hint;
-    return input(key,esc(title),GUIDED_PLACEHOLDERS[part],work().answers[key],{area:part !== 'decisionSummary',limit,hint:esc(help)+examples});
+    return input(key,esc(title),placeholders[part],work().answers[key],{area:part !== 'decisionSummary',limit,hint:esc(help)+examples});
   }).join('');
 }
 
 function guidedReportAnswers(set, parts) {
   const fields = guidedDecisionFields(set);
-  const conditionLabel = ECONOMY_REGION_INQUIRIES[set.id].conclusionLimits ? '자료의 한계와 판단이 바뀌는 조건' : '판단이 바뀌는 조건';
+  const conditionLabel = guidedPhenomenon(set) ? fields.changeCondition[0] :
+    guidedInquiryGuide(set).conclusionLimits ? '자료의 한계와 판단이 바뀌는 조건' : '판단이 바뀌는 조건';
   const reportLabels = {
     criterion:'판단 기준', supplementAnalysis:'내 판단에 영향을 준 추가 근거',
     regionalCause:'지역 변화의 원인과 자료의 범위', regionalImpact:'지역 경제 주체별 영향',
-    finalChoice:'최종 판단', changeCondition:conditionLabel, decisionSummary:'탐구를 통해 달라진 생각'
+    finalChoice:guidedPhenomenon(set) ? '최종 분석' : '최종 판단', changeCondition:conditionLabel, decisionSummary:'탐구를 통해 달라진 생각'
   };
   const written = parts.filter(part => filled(work().answers[guidedKey(set,part)]));
   return written.map(part =>
@@ -450,17 +480,19 @@ function guidedReportAnswers(set, parts) {
 }
 
 function guidedComparisonReport(set) {
+  const phenomenon = guidedPhenomenon(set);
+  const labels = phenomenon ? phenomenon.explanations.map(([label])=>label) : set.decision.options;
   const options = ['optionFirst','optionSecond'].flatMap((part,index)=>{
     const value = work().answers[guidedKey(set,part)];
-    return filled(value) ? [[set.decision.options[index],value]] : [];
+    return filled(value) ? [[labels[index],value]] : [];
   });
   const own = guidedOwnComparison(set);
   const rows = own ? [...options,own] : options;
   const comparison = rows.length ? `<table class="paper-picked paper-comparison-table">
-    <thead><tr><th scope="col">대안</th><th scope="col">내 판단 기준으로 비교한 결과</th></tr></thead>
+    <thead><tr><th scope="col">${phenomenon ? '현상에 대한 설명' : '대안'}</th><th scope="col">내 판단 기준으로 비교한 결과</th></tr></thead>
     <tbody>${rows.map(([label,value])=>`<tr><th scope="row">${esc(label)}</th><td>${esc(value)}</td></tr>`).join('')}</tbody>
     </table>` : '';
-  const conditions = options.length && ECONOMY_REVIEW_CASES[set.id]?.common;
+  const conditions = !phenomenon && options.length && ECONOMY_REVIEW_CASES[set.id]?.common;
   const model = conditions ? `<p class="paper-caption"><strong>모의 비교 조건</strong> ${esc(conditions)}</p>` : '';
   return model + guidedReportAnswers(set,['supplementAnalysis']) + comparison;
 }
@@ -469,17 +501,21 @@ function guidedOwnComparison(set) {
   const a = work().answers;
   const name = a[guidedKey(set,'ownOptionName')];
   const analysis = a[guidedKey(set,'ownOptionAnalysis')];
-  return filled(name) || filled(analysis) ? [filled(name) ? name : '내가 생각한 방법',analysis || ''] : null;
+  return filled(name) || filled(analysis) ? [filled(name) ? name : guidedPhenomenon(set) ? '내가 생각한 설명' : '내가 생각한 방법',analysis || ''] : null;
 }
 
 function guidedOwnComparisonEditor(set, context) {
   const name = guidedKey(set,'ownOptionName');
   const analysis = guidedKey(set,'ownOptionAnalysis');
+  const phenomenon = guidedPhenomenon(set);
+  const label = phenomenon ? '내가 생각한 설명' : '내가 생각한 방법';
   return `<details class="supplement economy-own-comparison"${guidedOwnComparison(set) ? ' open' : ''}>
-    <summary>내가 생각한 방법 비교 (선택)</summary>
+    <summary>${label} 비교 (선택)</summary>
     ${context}
-    ${input(name,'내가 생각한 방법','방법의 이름을 짧게 쓰세요.',work().answers[name],{limit:60})}
-    ${economyInput(analysis,'내 기준으로 비교한 결과','2단계에서 정한 기준으로 제시된 방법과 비교하세요. 누구에게 어떤 도움이 되는지, 비용이나 더 확인할 점은 무엇인지 쓰세요.',300)}
+    ${input(name,label,phenomenon ? '가능한 원인이나 영향을 한 줄로 쓰세요.' : '방법의 이름을 짧게 쓰세요.',work().answers[name],{limit:60})}
+    ${economyInput(analysis,'내 기준으로 비교한 결과',phenomenon ?
+      '어떤 자료가 내 설명을 뒷받침하는지 쓰세요. 다른 설명보다 설득력이 있는 부분과 더 확인할 점을 구분하세요.' :
+      '2단계에서 정한 기준으로 제시된 방법과 비교하세요. 누구에게 어떤 도움이 되는지, 비용이나 더 확인할 점은 무엇인지 쓰세요.',300)}
   </details>`;
 }
 
