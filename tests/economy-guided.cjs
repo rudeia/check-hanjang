@@ -10,7 +10,7 @@ vm.runInContext(modules.map(name=>fs.readFileSync('docs/'+name+'.js','utf8')).jo
   const work = () => draft;
   const filled = value => Boolean(value?.trim());
   this.sets=ECONOMY_GUIDED_SETS;this.regions=ECONOMY_LOCAL_CASES;this.draft=draft;
-  this.inquiries=ECONOMY_REGION_INQUIRIES;this.charts=ECONOMY_GUIDED_CHARTS;
+  this.inquiries=ECONOMY_REGION_INQUIRIES;this.charts=ECONOMY_GUIDED_CHARTS;this.phenomena=ECONOMY_PHENOMENON_GUIDES;
 `,ctx);
 const run = code => vm.runInContext(code,ctx);
 assert.equal(ctx.sets.length,17);
@@ -57,7 +57,10 @@ assert.match(comparison(),/<th scope="row">내가 생각한 방법<\/th><td>택�
 assert.doesNotMatch(comparison(),/모의 비교 조건/);
 ctx.draft.answers['guided_renewable-sharing_ownOptionName']='예약 택시 <지원>';
 assert.match(comparison(),/예약 택시 &lt;지원&gt;/);
-for(const id of ['online-choice','household-budget']) {
+assert.equal(Object.keys(ctx.phenomena).length,17);
+for(const {id} of ctx.sets) {
+  const analysis = ctx.phenomena[id];
+  assert(analysis.label && analysis.prompt && analysis.explanations.length===2 && analysis.conclusion && analysis.conclusionLimits);
   const prefix='guided_'+id+'_';
   ctx.draft.answers={guidedSetId:id};
   assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'3');
@@ -66,7 +69,9 @@ for(const id of ['online-choice','household-budget']) {
   assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'2');
   assert.equal(run('guidedPhenomenon(economyGuided())'),null);
   ctx.draft.answers[prefix+'decisionGuideVersion']='3';
-  assert.match(comparison(),/현상에 대한 설명/);
+  assert.match(comparison(),analysis.application ? /설명·적용 상황/ : /현상에 대한 설명/);
   assert.doesNotMatch(comparison(),/모의 비교 조건/);
+  ctx.draft.answers[prefix+'optionFirst']='자료를 적용해 비교한 결과';
+  assert.equal(comparison().includes('모의 적용 조건'),Boolean(analysis.application));
 }
 console.log('PASS 17 topics, 10 visuals, 17 regional connections, and source-specific preservation across replacements');

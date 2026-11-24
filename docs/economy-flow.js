@@ -179,7 +179,8 @@ function economyAnalysisEditor(set) {
     economyQuestionSummary('판단 단서',guidedInquiryGuide(set).judgmentClue);
   const phenomenon = guidedPhenomenon(set);
   const exampleComparison = phenomenon ?
-    `<details class="supplement economy-simulation"><summary>제시된 설명 비교 (선택)</summary>
+    `<details class="supplement economy-simulation"><summary>${phenomenon.application ? '자료를 적용한 상황 비교 (선택)' : '제시된 설명 비교 (선택)'}</summary>
+      ${phenomenon.application ? guidedReviewCase(set) : ''}
       ${guidedDecisionInputs(set,['optionFirst','optionSecond'])}</details>` :
     `<details class="supplement economy-simulation"><summary>제시된 방법 비교 · 가상 상황 (선택)</summary>
       ${set.decision.scenario ? economyQuestionSummary('모의 상황',set.decision.scenario) : ''}
@@ -220,6 +221,12 @@ function economyConclusionEditor(set) {
       economyQuestionSummary('지역 경제 주체별 영향',a[guidedKey(set,'regionalImpact')]) : '') +
     economyQuestionSummary('적용한 경제 개념',a[economyTermKey(set)]) + (own || !set ? options : '');
   const summary = economyReviewSnippet('첫 의견',opinion) + economyReviewSnippet('핵심 근거',evidence);
+  const printChecks = phenomenon ? [
+    '어느 지역에서 무엇이 바뀌었는지 적었어요.',
+    '자료에서 확인한 사실과 출처를 적었어요.',
+    '자료를 비교해 이유와 영향을 설명했어요.',
+    '결론에 자료의 한계와 더 확인할 내용을 적었어요.'
+  ] : CHECKLIST.map(text=>text.replace('포스터','보고서'));
   return '<div class="economy-final">' + heading(ECONOMY_STEPS[4], '첫 의견을 유지했는지, 바꿨다면 어떤 근거 때문인지 적어요.') +
     `<section class="economy-reminder economy-conclusion-review" aria-label="첫 의견과 근거">
       ${comparison ? `<div class="economy-final-comparison"><h3>내 기준으로 비교한 근거</h3>${comparison}</div>` : ''}
@@ -229,6 +236,7 @@ function economyConclusionEditor(set) {
       ${economyReviewDetails('앞 단계 기록 전체 보기',review)}
     </section>
     <section class="economy-write"><h2>${phenomenon ? '최종 분석과 자료의 한계' : '최종 결론과 조건'}</h2>
+      ${phenomenon?.application ? `<details class="supplement"><summary>비교한 상황 다시 보기</summary>${guidedReviewCase(set)}</details>` : ''}
       ${set ? guidedDecisionInputs(set,['finalChoice','changeCondition']) :
         prompt('economicConclusion') + economyInput('limits','판단이 바뀔 수 있는 조건과 자료의 한계','어떤 자료나 상황이 바뀌면 다른 판단을 할지 적어요.',200)}
     </section>
@@ -243,7 +251,7 @@ function economyConclusionEditor(set) {
       <a href="listening.html?task=economy" target="_blank" rel="noopener">친구 발표 듣고 기록하기 (새 탭)</a></section>
     <div class="economy-write">${economyTitleInput(set,true)}</div>
     <details class="supplement"><summary>인쇄·공유 전 점검</summary>
-      ${checklist('인쇄 전 확인할 내용',CHECKLIST.map(text=>text.replace('포스터','보고서')))}
+      ${checklist('인쇄 전 확인할 내용',printChecks)}
       ${checklist('경제 탐구 공유 전 점검',taskRehearsal(),CHECKLIST.length)}</details></div>`;
 }
 

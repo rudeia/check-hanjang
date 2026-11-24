@@ -37,10 +37,10 @@ async function guided(page, topic, index) {
   const title='탐구 검수 '+topic.id;
   const tourism=topic.id==='tourism-consumption';
   const compareSimulated=topic.id==='renewable-sharing';
-  const {groups,charts,region,guide,phenomenon}=await page.evaluate(()=>{
+  const {groups,charts,region,guide,phenomenon,roles}=await page.evaluate(()=>{
     const set=economyGuided();
     return {groups:guidedSourceGroups(set),charts:guidedChartIds(set),region:activeGuidedRegion(set),
-      guide:guidedInquiryGuide(set),phenomenon:Boolean(guidedPhenomenon(set))};
+      guide:guidedInquiryGuide(set),phenomenon:Boolean(guidedPhenomenon(set)),roles:guidedRoles(set)};
   });
   const [first,second,third]=groups;
   const firstFact='첫 자료에서 확인한 사실';
@@ -81,7 +81,7 @@ async function guided(page, topic, index) {
   assert(await page.locator(key('inquiryV2')).isHidden());
   const criteria = page.locator('.economy-criterion-examples > span');
   assert.deepEqual(await criteria.allTextContents(),guide.criteria.map(item=>item+'?'));
-  await page.selectOption('#economy-role',topic.roles[0]);
+  await page.selectOption('#economy-role',roles[0]);
   const criterion='내 입장에서 비교한 비용과 편익';
   await write('criterion',criterion);
   await write('initialOpinionV3',opinion);
@@ -150,8 +150,8 @@ async function guided(page, topic, index) {
     assert(await page.locator(key('ownOptionName')).isVisible());
     assert.equal(await page.inputValue(key('ownOptionName')),ownName);
     assert.equal(await page.inputValue(key('ownOptionAnalysis')),ownResult);
-    await page.getByText('제시된 방법 비교 · 가상 상황 (선택)',{exact:true}).click();
-    assert(await page.locator('.card-simulation').isVisible());
+    await page.getByText('제시된 설명 비교 (선택)',{exact:true}).click();
+    assert.equal(await page.locator('.card-simulation').count(),0);
     await write('optionFirst','첫 대안에서 얻는 점과 부담');
     await write('optionSecond','둘째 대안에서 얻는 점과 부담');
   }
@@ -170,6 +170,10 @@ async function guided(page, topic, index) {
   if(guide.conclusion) {
     assert.equal(await page.locator(key('finalChoice')+'-hint').textContent(),guide.conclusion);
     assert.equal(await page.locator(key('changeCondition')+'-hint').textContent(),guide.conclusionLimits);
+  }
+  if (guide.application) {
+    await page.getByText('비교한 상황 다시 보기',{exact:true}).click();
+    assert(await page.locator('.card-simulation').isVisible());
   }
   const details=review.locator('details');
   assert(await details.evaluate(node=>!node.open));

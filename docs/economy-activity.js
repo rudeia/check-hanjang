@@ -58,7 +58,7 @@ function usesPreviousGuidedQuestion(set, answers = work().answers) {
 function nextGuidedQuestionVersion(set, answers) {
   const current = answers[guidedQuestionVersionKey(set)];
   if (ECONOMY_PHENOMENON_GUIDES[set.id] && current !== '3') {
-    const written = ['inquiryV2','initialOpinion','criterion','initialOpinionV3','supplementAnalysis','regionalCause',
+    const written = ['inquiryV2','position','initialOpinion','criterion','initialOpinionV3','supplementAnalysis','regionalCause',
       'regionalImpact','explain','optionFirst','optionSecond','ownOptionName','ownOptionAnalysis','finalChoice','changeCondition'];
     if (!written.some(part=>filled(answers[guidedKey(set,part)]))) return '3';
   }
@@ -110,7 +110,7 @@ const economyTermKey = set => set ? guidedKey(set, 'term') : 'economicTerm';
 function economyTermGuide(set) {
   const key = economyTermKey(set);
   const phenomenon = guidedPhenomenon(set);
-  const terms = phenomenon ? [phenomenon.concept,...set.concepts] : set?.concepts || GENERAL_ECONOMY_TERMS;
+  const terms = phenomenon ? [...new Set([phenomenon.concept,...set.concepts])] : set?.concepts || GENERAL_ECONOMY_TERMS;
   const selected = work().answers[key];
   return `<section class="economy-write"><h2>경제 개념으로 현상 설명하기</h2>
     <p>고른 정보에서 확인한 사실을 어떤 경제 용어로 설명할 수 있을까요?</p>
@@ -253,10 +253,11 @@ function guidedInitialMaterials(set, editable = true) {
 function guidedSupplementMaterials(set, editable = true) {
   const [first,second,...extra] = guidedSourceGroups(set);
   const region = activeGuidedRegion(set);
+  const readingTask = guidedPhenomenon(set)?.cause || region?.task;
   const charts = guidedSupplementCharts(set,first);
   const moreFromFirst = first.entries.slice(1);
   return `<div class="economy-facts">
-    ${region ? guidedRegionMaterial(region,editable ? guidedDecisionInputs(set,['regionalChange']) : '') : ''}
+    ${region ? guidedRegionMaterial(region,editable ? guidedDecisionInputs(set,['regionalChange']) : '',readingTask) : ''}
     ${second ? `<section class="card-fact"><span class="economy-card-label">추가 공식 자료</span><h2>첫 의견을 다시 살펴볼 자료</h2>
       ${guidedSource(set,second,editable)}
     </section>` : ''}
@@ -312,14 +313,14 @@ function guidedRegionGraph(data) {
     </figure>`;
 }
 
-function guidedRegionMaterial(data, answers = '') {
+function guidedRegionMaterial(data, answers = '', task = data.task) {
   const graph = guidedRegionGraph(data);
   return `<section class="card-fact guided-region-material"><span class="economy-card-label">실제 지역 자료</span>
     <h2>${esc(data.region)} · ${esc(data.title)}</h2>
     <div class="stat-table-wrap">${guidedRegionTable(data)}</div>${answers}
     ${graph}
     <div class="stat-citation">${guidedRegionSources(data)}</div>
-    <details class="supplement"><summary>자료를 읽는 단서</summary><p>${esc(data.task)}</p><p>${esc(data.clue)}</p></details></section>`;
+    <details class="supplement"><summary>자료를 읽는 단서</summary><p>${esc(task)}</p><p>${esc(data.clue)}</p></details></section>`;
 }
 
 function guidedRegionReport(set, data = activeGuidedRegion(set)) {
@@ -392,7 +393,7 @@ function guidedWriting(set, kinds) {
     input(field.key,field.title,'내 답을 적어요.',work().answers[field.key],{area:true,limit:250,hint:field.hint})).join('');
 }
 
-const guidedRoles = set => [...new Set([...set.roles,'지역 주민','지역 소상공인'])];
+const guidedRoles = set => [...new Set([...(guidedPhenomenon(set)?.roles || set.roles),'지역 주민','지역 소상공인'])];
 
 function guidedRole(set) {
   const role = work().answers[guidedKey(set,'position')];
@@ -489,11 +490,11 @@ function guidedComparisonReport(set) {
   const own = guidedOwnComparison(set);
   const rows = own ? [...options,own] : options;
   const comparison = rows.length ? `<table class="paper-picked paper-comparison-table">
-    <thead><tr><th scope="col">${phenomenon ? '현상에 대한 설명' : '대안'}</th><th scope="col">내 판단 기준으로 비교한 결과</th></tr></thead>
+    <thead><tr><th scope="col">${phenomenon?.application ? '설명·적용 상황' : phenomenon ? '현상에 대한 설명' : '대안'}</th><th scope="col">내 판단 기준으로 비교한 결과</th></tr></thead>
     <tbody>${rows.map(([label,value])=>`<tr><th scope="row">${esc(label)}</th><td>${esc(value)}</td></tr>`).join('')}</tbody>
     </table>` : '';
-  const conditions = !phenomenon && options.length && ECONOMY_REVIEW_CASES[set.id]?.common;
-  const model = conditions ? `<p class="paper-caption"><strong>모의 비교 조건</strong> ${esc(conditions)}</p>` : '';
+  const conditions = (!phenomenon || phenomenon.application) && options.length && ECONOMY_REVIEW_CASES[set.id]?.common;
+  const model = conditions ? `<p class="paper-caption"><strong>${phenomenon ? '모의 적용 조건' : '모의 비교 조건'}</strong> ${esc(conditions)}</p>` : '';
   return model + guidedReportAnswers(set,['supplementAnalysis']) + comparison;
 }
 
