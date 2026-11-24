@@ -56,6 +56,13 @@ await p.fill('#economicImpact','기업과 노동자의 영향 차이');await p.f
 await p.fill('#economyEvidenceImpact','기존 직원 근무만 늘었다.');
 await p.click('[data-next]');
 assert.equal(await p.locator('#step-title').textContent(),'최종 의견·보고서 완성');
+const titleInput=p.getByRole('textbox',{name:'최종 보고서 제목'});
+assert.equal(await titleInput.getAttribute('placeholder'),'지역 고용의 변화');
+await titleInput.fill('주말 일손 수요와 실제 신규 고용');
+await p.locator('#steps [data-stage="0"]').click();
+assert.equal(await p.inputValue('#posterTitle'),'주말 일손 수요와 실제 신규 고용');
+assert.equal(await p.inputValue('#topic'),'지역 고용의 변화');
+await p.locator('#steps [data-stage="4"]').click();
 const review=await p.locator('.economy-conclusion-review').textContent();
 for(const phrase of ['구직 기회가 커졌다고','기업과 노동자의 영향 차이','기존 직원 근무만 늘었다.'])assert(review.includes(phrase));
 await p.fill('#economicConclusion','경제적 결론 끝문장');
@@ -77,6 +84,7 @@ assert.equal(await p.evaluate(()=>work().answers.economyPhaseV3),'4');
 const before=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);assert.equal(before.answers.topic,'인권 원본 보존');assert.equal(before.economy.answers.topic,'지역 고용의 변화');
 await p.evaluate(async()=>{await document.fonts.ready; window.prepareReportPrint();});
 assert.equal((await p.locator('.print-pages').textContent()).split(fieldPlace).length-1,2);
+assert.equal(await p.locator('.print-pages .paper-header h2').textContent(),'주말 일손 수요와 실제 신규 고용');
 await p.pdf({path:process.env.CUSTOM_PDF || '/tmp/check-economy-report.pdf',format:'A4',printBackground:true});
 // Scoped reset
 p.once('dialog',d=>d.accept());await p.click('#reset');const after=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);assert.equal(after.answers.topic,'인권 원본 보존');assert.equal(after.economy.answers.topic,undefined);

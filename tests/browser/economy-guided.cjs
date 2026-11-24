@@ -157,7 +157,17 @@ async function guided(page, topic, index) {
   await page.getByRole('radio',{name:'아직 실천 전'}).check();
   for(const [field,value] of Object.entries({economicPlan:'관련 주체와 실천 방안',practicePlan:'모둠과 조사할 내 계획',reflection:'비교하며 달라진 생각'})) await page.fill('#'+field,value);
   for(const step of await page.locator('#steps button').allTextContents()) assert(step.includes('✓'));
+  const finalTitleInput=page.getByRole('textbox',{name:'최종 보고서 제목'});
+  assert.equal(await finalTitleInput.inputValue(),title);
+  const finalTitle=compareSimulated ? '신안 발전 수익으로 마을 이동을 돕는 조건' : title;
+  if(compareSimulated) {
+    await finalTitleInput.fill(finalTitle);
+    await page.locator('#steps [data-stage="0"]').click();
+    assert.equal(await page.getByRole('textbox',{name:'탐구 보고서 제목'}).inputValue(),finalTitle);
+    await page.locator('#steps [data-stage="4"]').click();
+  }
   await page.reload();
+  assert.equal(await finalTitleInput.inputValue(),finalTitle);
   assert.equal(await page.inputValue(key('finalChoice')),conclusion);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await preview(page,conclusion);
@@ -171,7 +181,9 @@ async function guided(page, topic, index) {
   await page.locator('#preview-print').click();
   await page.waitForFunction(()=>window.printRequested);
   const report=await page.locator('.print-pages').textContent();
-  for(const value of [title,...chapters,initialRead,opinion,decisive,conclusion,'비용이 편익보다','아직 실천 전','지역 변화의 원인과 자료의 범위','지역 경제 주체별 영향']) assert(report.includes(value));
+  assert.equal(await page.locator('.print-pages .paper-header h2').textContent(),finalTitle);
+  if(compareSimulated) assert(!report.includes(title));
+  for(const value of [...chapters,initialRead,opinion,decisive,conclusion,'비용이 편익보다','아직 실천 전','지역 변화의 원인과 자료의 범위','지역 경제 주체별 영향']) assert(report.includes(value));
   assert(!/내 계산:|내 선택:|[A-F] 지역/.test(report));
   assert.equal(await page.locator('.print-pages .paper-evidence-table tbody tr').count(),groups.length+Number(tourism));
   if(tourism) assert.equal(report.split(fieldPlace).length-1,2);

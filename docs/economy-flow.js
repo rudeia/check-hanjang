@@ -3,6 +3,7 @@
 const ECONOMY_STEPS = ['초기 자료 해석', '입장과 첫 의견', '보충 자료 조사', '자료 정리와 개념 비교', '최종 의견·보고서 완성'];
 const economyPhase = set => set ? guidedKey(set,'phaseV3') : 'economyPhaseV3';
 const economyQuestionKey = set => set ? guidedKey(set,'inquiryV2') : 'inquiry';
+const economyTitleKey = set => set ? guidedKey(set,'topicTitle') : 'posterTitle';
 const economyFactRecorded = source => filled(sourceFact(source)) && filled(source.url || source.author);
 
 function economyInput(key, label, hint, limit, value = work().answers[key]) {
@@ -11,7 +12,15 @@ function economyInput(key, label, hint, limit, value = work().answers[key]) {
 
 function economyTitle(set) {
   const a = work().answers;
-  return set ? a[guidedKey(set,'topicTitle')] || set.label : a.posterTitle || a.topic || '';
+  return a[economyTitleKey(set)] || (set ? set.label : a.topic) || '';
+}
+
+function economyTitleInput(set, final = false) {
+  const key = economyTitleKey(set);
+  const label = final ? '최종 보고서 제목' : '탐구 보고서 제목';
+  const example = (final && economyTitle(set)) || set?.label || '예: 우리 동네 상권의 변화와 선택';
+  const hint = final ? '내 판단이 드러나는 제목인지 확인해요. 여기서 고치면 1단계 제목도 바뀌어요.' : '';
+  return input(key,label,example,work().answers[key],{limit:60,hint});
 }
 
 function economyPerspective(set) {
@@ -27,10 +36,9 @@ const economyJudgmentEvidence = set => work().answers[set ? guidedKey(set,'suppl
 
 function economyInitialEditor(set) {
   const a = work().answers;
-  const titleKey = set ? guidedKey(set,'topicTitle') : 'posterTitle';
   return `<div class="economy-initial">` + heading(ECONOMY_STEPS[0], '첫 자료에서 사실 한 가지를 찾아 해석해요.') +
     `<section class="economy-write economy-identity">
-      ${input(titleKey,'탐구 보고서 제목',set?.label || '예: 우리 동네 상권의 변화와 선택',a[titleKey],{limit:60})}
+      ${economyTitleInput(set)}
       ${set ? `<p class="economy-topic-location"><strong>조사 지역</strong> ${esc(activeGuidedRegion(set).region)}</p>` : input('topic','탐구 주제','예: 전통시장 방문객과 점포 매출',a.topic,{limit:60})}
       <div class="field-grid student-fields">
         ${input('number','학번','예: 20513',a.number,{limit:10})}
@@ -214,6 +222,7 @@ function economyConclusionEditor(set) {
     <section class="economy-write"><h2>협업과 탐구 성찰</h2>
       ${prompt('reflection')}${prompt('role')}${prompt('peerLearning')}
       <a href="listening.html?task=economy" target="_blank" rel="noopener">친구 발표 듣고 기록하기 (새 탭)</a></section>
+    <div class="economy-write">${economyTitleInput(set,true)}</div>
     <details class="supplement"><summary>인쇄·공유 전 점검</summary>
       ${checklist('인쇄 전 확인할 내용',CHECKLIST.map(text=>text.replace('포스터','보고서')))}
       ${checklist('경제 탐구 공유 전 점검',taskRehearsal(),CHECKLIST.length)}</details></div>`;
