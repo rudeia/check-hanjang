@@ -58,6 +58,9 @@ function economyOpinionEditor(set) {
   const initialRead = set ? a[guidedKey(set,'read')] : sourceThought(source);
   const reminder = economyQuestionSummary('확인한 사실',initialFact) + economyQuestionSummary('내 해석',initialRead);
   const questionKey = economyQuestionKey(set);
+  const assignment = set ? `<section class="economy-context"><h2>탐구 과제</h2>
+    <p>${esc(ECONOMY_REGION_INQUIRIES[set.id].prompt)}</p>
+    ${economyQuestionSummary('내 탐구 질문',a[questionKey])}</section>` : '';
   const guidedQuestionEdit = set ? `<details class="supplement"${filled(a[questionKey]) ? ' open' : ''}>
     <summary>탐구 질문 좁히기 (선택)</summary>
     ${economyInput(questionKey,'내 탐구 질문','살펴볼 사람, 지역, 시점 중 하나를 더 구체적으로 써요.',150)}
@@ -67,7 +70,7 @@ function economyOpinionEditor(set) {
       ${economyReviewSnippet('1단계에서 읽은 점',filled(initialRead) ? initialRead : initialFact)}
       ${economyReviewDetails('1단계에서 쓴 사실과 해석 보기',reminder)}
     </div>` : '') +
-    (set ? `<section class="economy-context"><h2>${esc(economyInquiry())}</h2></section>` : '') +
+    assignment +
     `<section class="economy-write">
       ${set ? guidedRolePicker(set) + guidedDecisionInputs(set,['criterion','initialOpinionV3']) + guidedQuestionEdit :
         economyInput(questionKey,'탐구 질문','읽은 자료를 바탕으로 누구의 어떤 선택을 살펴볼지 적어요. 예: 시장 상인이라면 주말 영업을 늘릴까요?',150) +
@@ -126,7 +129,7 @@ function economySupplementEditor(set) {
   const research = `${economyResearchBar()}${ownCards}`;
   const opinion = work().answers[economyOpinionKey(set)];
   const criterion = economyCriterion(set);
-  const context = economyQuestionSummary('탐구 질문',economyInquiry()) +
+  const context = economyQuestionSummary(economyInquiryLabel(set),economyInquiry()) +
     economyQuestionSummary('입장과 기준',[economyPerspective(set),criterion].filter(filled).join(' · ')) +
     economyQuestionSummary('첫 의견',opinion);
   const count = '<p id="source-count" class="field-hint" role="status"></p>';
@@ -135,7 +138,7 @@ function economySupplementEditor(set) {
     (context ? `<div class="economy-reminder economy-supplement-review">
       ${economyReviewSnippet('내 기준',criterion)}
       ${economyReviewSnippet('첫 의견',opinion)}
-      ${economyReviewDetails('탐구 질문과 첫 의견 보기',context)}
+      ${economyReviewDetails('앞에서 쓴 내용 보기',context)}
     </div>` : '') +
     (set ? guidedSupplementMaterials(set) + count +
       `<details class="supplement economy-source-list" id="extra-sources"${(work().sources.length > 1 || work().sources.some(hasSource)) ? ' open' : ''}>
@@ -164,25 +167,27 @@ function economyFactsList(set) {
 }
 
 function economyAnalysisEditor(set) {
-  const context = heading(ECONOMY_STEPS[3], '지역 경제가 달라진 이유와 영향을 자료로 설명해요.') + economyFactsList(set);
-  if (!set) return context + economyTermGuide(set) +
+  const facts = economyFactsList(set);
+  if (!set) return heading(ECONOMY_STEPS[3], '지역 경제가 달라진 이유와 영향을 자료로 설명해요.') + facts + economyTermGuide(set) +
     `<section class="economy-write"><h2>변화의 원인과 경제 주체별 영향</h2>
       ${economyQuestionSummary('2단계에서 정한 기준',economyCriterion(set))}
       ${prompt('economicChange')}${prompt('economicCause')}${prompt('economicImpact')}
       ${economyInput('economyEvidenceImpact','내 판단에 영향을 준 추가 근거','2단계에서 정한 기준으로 새로 확인한 사실을 살펴보고, 첫 의견에 어떤 영향을 주었는지 적어요.',250)}</section>`;
-  return context +
+  return heading(ECONOMY_STEPS[3], '새 자료를 바탕으로 자신의 생각을 다시 검토하세요.') +
+    `<section class="economy-write"><h2>같은 기준으로 다시 판단하기</h2>
+      ${economyQuestionSummary(economyInquiryLabel(set),economyInquiry())}
+      ${economyQuestionSummary('2단계에서 정한 기준',economyCriterion(set))}
+      ${economyReviewDetails('내가 정리한 근거 보기',facts)}
+      ${guidedDecisionInputs(set,['supplementAnalysis'])}
+      <details class="supplement economy-simulation"><summary>제시된 방법 비교 · 가상 상황 (선택)</summary>
+        ${guidedDecisionPrompt(set)}
+        ${guidedReviewCase(set)}
+        ${guidedDecisionInputs(set,['optionFirst','optionSecond'])}</details>
+      ${guidedOwnComparisonEditor(set)}</section>` +
     `<details class="supplement"><summary>자료 표 다시 보기</summary>${guidedInitialMaterials(set,false)}${guidedSupplementMaterials(set,false)}</details>
     <section class="economy-write"><h2>${esc(activeGuidedRegion(set).region)}의 변화 원인과 영향</h2>
       ${guidedDecisionInputs(set,['regionalCause','regionalImpact'])}</section>` +
-    economyTermGuide(set) +
-    `<section class="economy-write"><h2>같은 기준으로 다시 판단하기</h2>
-      ${economyQuestionSummary('탐구 질문',economyInquiry())}
-      ${economyQuestionSummary('2단계에서 정한 기준',economyCriterion(set))}
-      ${guidedDecisionInputs(set,['supplementAnalysis'])}</section>
-    <details class="supplement economy-simulation"><summary>두 대안 비교 · 가상 상황 (선택)</summary>
-      ${guidedDecisionPrompt(set)}
-      ${guidedReviewCase(set)}
-      ${guidedDecisionInputs(set,['optionFirst','optionSecond'])}</details>`;
+    economyTermGuide(set);
 }
 
 const ECONOMY_PRACTICE_STATUS = { plan:'아직 실천 전', done:'실제로 실천함' };
@@ -194,13 +199,15 @@ function economyConclusionEditor(set) {
   const options = set ? ['optionFirst','optionSecond'].map((part,index)=>
     economyQuestionSummary(set.decision.options[index],a[guidedKey(set,part)])).join('') :
     economyQuestionSummary('경제 주체별 영향',answer('economicImpact'));
-  const review = economyQuestionSummary('탐구 질문',economyInquiry()) +
+  const own = set && guidedOwnComparison(set);
+  const review = economyQuestionSummary(economyInquiryLabel(set),economyInquiry()) +
     economyQuestionSummary('판단 기준',economyCriterion(set)) +
     economyQuestionSummary('첫 의견',opinion) +
     economyQuestionSummary('판단에 영향을 준 근거',evidence) +
     (set ? economyQuestionSummary('지역에서 확인한 변화',a[guidedKey(set,'regionalChange')]) +
       economyQuestionSummary('지역 경제 주체별 영향',a[guidedKey(set,'regionalImpact')]) : '') +
-    economyQuestionSummary('적용한 경제 개념',a[economyTermKey(set)]) + options;
+    economyQuestionSummary('적용한 경제 개념',a[economyTermKey(set)]) + options +
+    (own ? economyQuestionSummary('내가 생각한 방법',own.filter(filled).join(' · ')) : '');
   const summary = economyReviewSnippet('첫 의견',opinion) + economyReviewSnippet('핵심 근거',evidence);
   return '<div class="economy-final">' + heading(ECONOMY_STEPS[4], '첫 의견을 유지했는지, 바꿨다면 어떤 근거 때문인지 적어요.') +
     `<section class="economy-reminder economy-conclusion-review" aria-label="첫 의견과 근거">
@@ -355,7 +362,7 @@ function economyPoster(set) {
     guidedReadingReport(set,['read']) + guidedResearchVisuals(set,true,charts) :
     economyPaperFields(['region','economicPeriod']) + guidedEvidenceTable([],initialText,'자료 해석') +
     reportEvidenceFigures(initialSources.filter(source=>!initialText.includes(source)),[],true);
-  const context = economyPaperItem('탐구 질문',economyInquiry()) +
+  const context = economyPaperItem(economyInquiryLabel(set),economyInquiry()) +
     (set ? economyPaperItem('조사 지역',activeGuidedRegion(set).region) : '') +
     economyPaperItem('나의 관점',economyPerspective(set)) +
     economyPaperItem('판단 기준',economyCriterion(set)) +

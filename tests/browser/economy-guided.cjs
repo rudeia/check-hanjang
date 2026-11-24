@@ -72,8 +72,9 @@ async function guided(page, topic, index) {
   await next();
   assert.equal(await page.locator('#step-title').textContent(),'입장과 첫 의견');
   assert((await page.locator('#editor .economy-reminder').textContent()).includes(initialRead));
-  await page.getByRole('heading',{name:guide.question,exact:true}).waitFor();
-  assert.equal(await page.evaluate(()=>economyInquiry()),guide.question);
+  await page.getByRole('heading',{name:'탐구 과제',exact:true}).waitFor();
+  assert(await page.getByText(guide.prompt,{exact:true}).isVisible());
+  assert.equal(await page.evaluate(()=>economyInquiry()),guide.focus);
   assert(await page.locator(key('inquiryV2')).isHidden());
   const criteria = page.locator('.economy-criterion-examples > span');
   assert.deepEqual(await criteria.allTextContents(),guide.criteria.map(item=>item+'?'));
@@ -121,7 +122,7 @@ async function guided(page, topic, index) {
   await next();
   assert.equal(await page.locator('#step-title').textContent(),'자료 정리와 개념 비교');
   const comparison=page.locator('.economy-write').filter({has:page.getByRole('heading',{name:'같은 기준으로 다시 판단하기'})});
-  assert((await comparison.textContent()).includes(criterion) && (await comparison.textContent()).includes(guide.question));
+  assert((await comparison.textContent()).includes(criterion) && (await comparison.textContent()).includes(guide.focus));
   const factList=page.locator('.economy-reminder .guided-evidence-list');
   assert((await factList.textContent()).includes(firstFact));
   if(region) assert.equal(await factList.getByText(region.region+' 지역 자료',{exact:true}).count(),1);
@@ -131,14 +132,28 @@ async function guided(page, topic, index) {
   await page.selectOption('#economy-term',topic.concepts[0]);
   await write('explain','경제 개념을 실제 자료와 비교 조건에 적용했다.');
   await write('supplementAnalysis',decisive);
+  const ownComparison=page.getByText('내가 생각한 방법 비교 (선택)',{exact:true});
+  assert(await ownComparison.isVisible());
+  assert(await page.locator(key('ownOptionName')).isHidden());
+  const ownName='병원 예약 택시비 지원';
+  const ownResult='병원에 갈 시간에 예약할 수 있다면 같은 예산에서 이동이 어려운 가구의 왕복 요금을 지원한다.';
   if (compareSimulated) {
-    await page.getByText('두 대안 비교 · 가상 상황 (선택)',{exact:true}).click();
+    await ownComparison.click();
+    await write('ownOptionName',ownName);
+    await write('ownOptionAnalysis',ownResult);
+    await page.reload();
+    assert(await page.locator(key('ownOptionName')).isVisible());
+    assert.equal(await page.inputValue(key('ownOptionName')),ownName);
+    assert.equal(await page.inputValue(key('ownOptionAnalysis')),ownResult);
+    await page.getByText('제시된 방법 비교 · 가상 상황 (선택)',{exact:true}).click();
     assert(await page.locator('.card-simulation').isVisible());
     await write('optionFirst','첫 대안에서 얻는 점과 부담');
     await write('optionSecond','둘째 대안에서 얻는 점과 부담');
   }
   await preview(page,'경제 개념을 실제 자료와 비교 조건에 적용했다.');
-  assert.equal(await page.locator('#poster .paper-inquiry-section').nth(3).locator('.paper-comparison-table tbody tr').count(),compareSimulated ? 2 : 0);
+  const comparisonRows=page.locator('#poster .paper-inquiry-section').nth(3).locator('.paper-comparison-table tbody tr');
+  assert.equal(await comparisonRows.count(),compareSimulated ? 3 : 0);
+  if(compareSimulated) assert.deepEqual(await comparisonRows.last().locator('th,td').allTextContents(),[ownName,ownResult]);
 
   await next();
   assert.equal(await page.locator('#step-title').textContent(),'최종 의견·보고서 완성');
@@ -151,6 +166,7 @@ async function guided(page, topic, index) {
   assert(await details.evaluate(node=>!node.open));
   await details.locator('summary').click();
   assert(await details.getByText('주민과 지역 사업자가 받는 영향의 차이',{exact:false}).isVisible());
+  if(compareSimulated) assert(await details.getByText(ownResult,{exact:false}).isVisible());
   await details.locator('summary').click();
   await write('finalChoice',conclusion);
   await write('changeCondition','비용이 편익보다 커질 때 선택을 바꾼다.');
@@ -182,6 +198,7 @@ async function guided(page, topic, index) {
   await page.waitForFunction(()=>window.printRequested);
   const report=await page.locator('.print-pages').textContent();
   assert.equal(await page.locator('.print-pages .paper-header h2').textContent(),finalTitle);
+  if(compareSimulated) assert.deepEqual(await page.locator('.print-pages .paper-comparison-table tbody tr').last().locator('th,td').allTextContents(),[ownName,ownResult]);
   if(compareSimulated) assert(!report.includes(title));
   for(const value of [...chapters,initialRead,opinion,decisive,conclusion,'비용이 편익보다','아직 실천 전','지역 변화의 원인과 자료의 범위','지역 경제 주체별 영향']) assert(report.includes(value));
   assert(!/내 계산:|내 선택:|[A-F] 지역/.test(report));

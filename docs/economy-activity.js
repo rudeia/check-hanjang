@@ -53,7 +53,7 @@ function usesPreviousGuidedQuestion(set, answers = work().answers) {
 
 function guidedQuestion(set) {
   const guide = ECONOMY_REGION_INQUIRIES[set.id];
-  return usesPreviousGuidedQuestion(set) ? guide.previousQuestion : guide.question;
+  return usesPreviousGuidedQuestion(set) ? guide.previousQuestion : guide.focus;
 }
 
 function economyInquiry() {
@@ -61,6 +61,10 @@ function economyInquiry() {
   const a = work().answers;
   const current = a[economyQuestionKey(set)];
   return filled(current) ? current : (set ? guidedQuestion(set) : a.refinedInquiry || a.inquiry);
+}
+
+function economyInquiryLabel(set) {
+  return !set || filled(work().answers[economyQuestionKey(set)]) || usesPreviousGuidedQuestion(set) ? '탐구 질문' : '탐구 과제';
 }
 
 function economyQuestionSummary(heading, question) {
@@ -113,7 +117,7 @@ function guidedExplorer() {
   }
   return `<div class="economy-topics">${[...groups].map(([group,sets]) => `<section><h2>${esc(group)}</h2>
     <ul class="economy-topic-grid">${sets.map(set => `<li><button type="button" data-guided-set="${esc(set.id)}">
-    <span><strong>${esc(set.label)}</strong><small>${esc(ECONOMY_REGION_INQUIRIES[set.id].question)}</small></span>
+    <span><strong>${esc(set.label)}</strong><small>${esc(ECONOMY_REGION_INQUIRIES[set.id].focus)}</small></span>
     ${set.id === selected?.id ? '<span class="topic-resume">이어서</span>' : ''}</button></li>`).join('')}</ul></section>`).join('')}</div>
     <button type="button" data-guided-set="custom">직접 정한 주제로 탐구하기</button>`;
 }
@@ -403,8 +407,8 @@ function guidedDecisionFields(set) {
     regionalChange: ['지역에서 무엇이 얼마나 달라졌나요?', '같은 지표의 두 시점 값과 단위를 넣어 한 줄로 적어요.'],
     regionalCause: ['어떤 이유로 지역 경제가 달라졌나요?', cause],
     regionalImpact: ['지역에서 누가 어떤 영향을 받나요?', impact],
-    finalChoice: ['최종 의견과 지역에 주는 시사점', '지역 변화와 영향을 근거로, 첫 의견을 유지하거나 바꾼 이유와 지역에서 무엇을 먼저 해야 할지 적어요.'],
-    changeCondition: ['판단이 바뀔 조건과 자료의 한계', '어떤 사실이 확인되면 다른 방안을 고를지, 누가 무엇을 확인하면 좋을지 적어요.'],
+    finalChoice: ['최종 의견과 지역에 주는 시사점', '자료를 근거로 자신의 생각과 예상되는 영향을 쓰세요. 판단하기 어렵다면 그 이유를 쓰세요.'],
+    changeCondition: ['판단이 바뀔 조건과 자료의 한계', '판단이 바뀔 수 있는 조건이나, 판단하려면 더 확인해야 할 내용을 쓰세요.'],
     decisionSummary: ['탐구 내용 한 줄 정리', '처음 생각과 비교해 무엇이 달라졌거나 더 분명해졌나요?']
   };
 }
@@ -455,13 +459,32 @@ function guidedComparisonReport(set) {
     const value = work().answers[guidedKey(set,part)];
     return filled(value) ? [[set.decision.options[index],value]] : [];
   });
-  const comparison = options.length ? `<table class="paper-picked paper-comparison-table">
+  const own = guidedOwnComparison(set);
+  const rows = own ? [...options,own] : options;
+  const comparison = rows.length ? `<table class="paper-picked paper-comparison-table">
     <thead><tr><th scope="col">대안</th><th scope="col">내 판단 기준으로 비교한 결과</th></tr></thead>
-    <tbody>${options.map(([label,value])=>`<tr><th scope="row">${esc(label)}</th><td>${esc(value)}</td></tr>`).join('')}</tbody>
+    <tbody>${rows.map(([label,value])=>`<tr><th scope="row">${esc(label)}</th><td>${esc(value)}</td></tr>`).join('')}</tbody>
     </table>` : '';
   const conditions = options.length && ECONOMY_REVIEW_CASES[set.id]?.common;
   const model = conditions ? `<p class="paper-caption"><strong>모의 비교 조건</strong> ${esc(conditions)}</p>` : '';
   return model + guidedReportAnswers(set,['supplementAnalysis']) + comparison;
+}
+
+function guidedOwnComparison(set) {
+  const a = work().answers;
+  const name = a[guidedKey(set,'ownOptionName')];
+  const analysis = a[guidedKey(set,'ownOptionAnalysis')];
+  return filled(name) || filled(analysis) ? [filled(name) ? name : '내가 생각한 방법',analysis || ''] : null;
+}
+
+function guidedOwnComparisonEditor(set) {
+  const name = guidedKey(set,'ownOptionName');
+  const analysis = guidedKey(set,'ownOptionAnalysis');
+  return `<details class="supplement"${guidedOwnComparison(set) ? ' open' : ''}>
+    <summary>내가 생각한 방법 비교 (선택)</summary>
+    ${input(name,'내가 생각한 방법','방법의 이름을 짧게 쓰세요.',work().answers[name],{limit:60})}
+    ${economyInput(analysis,'내 기준으로 비교한 결과','2단계에서 정한 기준으로 제시된 방법과 비교하세요. 누구에게 어떤 도움이 되는지, 비용이나 더 확인할 점은 무엇인지 쓰세요.',300)}
+  </details>`;
 }
 
 function guidedReadingReport(set, kinds = ['read','compare']) {
