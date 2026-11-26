@@ -104,4 +104,9 @@ for(const {id} of ctx.sets) {
   ctx.draft.answers[prefix+'optionFirst']='자료를 적용해 비교한 결과';
   assert.equal(comparison().includes('모의 적용 조건'),Boolean(analysis.application));
 }
-console.log('PASS 17 topics, 10 visuals, 17 regional connections, and source-specific preservation across replacements');
+assert.equal(run("ECONOMY_STEPS.length"),4);
+assert.deepEqual(Array.from(run("['0','1','2','3','4'].map(phase=>economySavedPhase(null,{economyPhaseV3:phase},0))")),[0,1,0,1,2]);
+assert.equal(run("economySavedPhase({id:'online-choice'},{'guided_online-choice_phaseV2':'1'},3)"),0);
+assert.equal(run("economySavedPhase({id:'online-choice'},{'guided_online-choice_phase':'4'},0)"),2);
+assert.equal(run("economySavedPhase(null,{economyPhaseV4:'3',economyPhaseV3:'0'},0)"),3);
+console.log('PASS 17 topic guides, archived source preservation and semantic restoration of four-stage navigation');

@@ -117,6 +117,14 @@ button:disabled { cursor: wait; opacity: .65; }
 .economy-topic-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); list-style: none; padding: 0; margin: 0; gap: .45rem; }
 .economy-topics button { width: 100%; height: 100%; min-height: 60px; align-items: flex-start; justify-content: space-between; text-align: left; word-break: keep-all; overflow-wrap: anywhere; }
 .economy-topics small { display: block; color: var(--muted); font-weight: 400; margin-top: .18rem; }
+.economy-category-tabs { display: flex; flex-wrap: wrap; gap: .35rem .45rem; margin-bottom: 1rem; }
+.economy-category-tabs button { min-height: 44px; padding-inline: .65rem; }
+.economy-category-tabs button[aria-pressed="true"] { background: var(--wash); color: var(--accent); border-color: var(--accent); font-weight: 700; }
+.economy-category-tabs button span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.economy-topic-grid button { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: .15rem; }
+.topic-badges { display: flex; flex-wrap: wrap; align-items: baseline; gap: .22rem .6rem; margin-bottom: .14rem; font-size: .78rem; line-height: 1.45; }
+.badge-region { color: var(--accent); font-weight: 700; }
+.badge-concept { color: var(--muted); }
 .topic-resume { color: var(--accent); font-size: .82rem; flex-shrink: 0; }
 .guided-context { display: flex; justify-content: space-between; gap: .6rem; align-items: baseline; margin-bottom: .75rem; }
 .guided-context strong { font-size: .9rem; color: var(--accent); }
@@ -306,8 +314,11 @@ dialog li + li { margin-top: .5rem; }
 .guided-region-graph { margin-block: .55rem .15rem; font-size: .88rem; }
 .guided-region-graph figcaption { font-weight: 650; margin-bottom: .35rem; }
 .guided-region-bar { display: grid; grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr) auto; gap: .45rem; align-items: center; margin-bottom: .35rem; }
-.guided-region-track { display: block; height: .7rem; background: var(--wash); }
-.guided-region-track span { display: block; height: 100%; background: var(--accent); }
+.economy-evidence-graph { margin-inline: 0; }
+.economy-evidence-graph figcaption span { color: var(--muted); font-size: .8em; font-weight: 400; }
+.economy-evidence-graph svg { width: 100%; min-width: 0; height: .6rem; align-self: center; }
+.economy-graph-track { fill: var(--wash); }
+.economy-graph-bar { fill: var(--accent); }
 .guided-topic > p + p { margin-top: .5rem; }
 .guided-region-material > .stat-table-wrap + .field { margin-top: .8rem; }
 .guided-region-material .stat-table th { word-break: keep-all; }

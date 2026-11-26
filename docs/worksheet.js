@@ -77,23 +77,14 @@ let photoBusy = false;
 let restoreBusy = false;
 let printBusy = false;
 let economyView = 'write';
+let economyTopicFilter = 'all';
 const mobile = matchMedia('(max-width: 839px)');
 const activeTask = () => data.inquiry?.active || 'human';
 const work = () => activeTask() === 'economy' ? data.economy : data;
 function stage() {
   const previous = work().worksheetStep ?? [0, 0, 1, 1, 2, 3, 3, 3, 3][work().step];
   if (activeTask() !== 'economy') return previous;
-  const set = economyGuided();
-  const a = work().answers;
-  const current = a[economyPhase(set)];
-  if (/^[0-4]$/.test(current)) return Number(current);
-  if (set) {
-    const v2 = a[guidedKey(set,'phaseV2')];
-    if (/^[0-3]$/.test(v2)) return [0,2,3,4][Number(v2)];
-    const original = a[guidedKey(set,'phase')];
-    if (/^[0-4]$/.test(original)) return Number(original);
-  }
-  return [0,2,3,4][previous] ?? 0;
+  return economySavedPhase(economyGuided(),work().answers,previous);
 }
 const filled = value => Boolean(value?.trim());
 const sourceFact = source => source.fact ?? source.evidence ?? '';
@@ -420,9 +411,7 @@ function renderProgress() {
   const set = economyGuided();
   const sourceCount = economics ? economySourceCount(set) : sources.filter(completeSource).length;
   if (count) count.textContent = economics
-    ? (guidedCaseAnalysis(set) || guidedPhenomenon(set)?.regionalFirst ? `기록한 출처 ${sourceCount}곳 · 내 판단에 쓴 근거를 확인하세요.` :
-      set ? `기록한 출처 ${sourceCount}곳 · 서로 다른 출처 3곳을 살펴보면 좋아요.` :
-      `기록한 출처 ${sourceCount}곳 · 처음 자료와 추가 자료를 함께 써요.`)
+    ? `기록한 출처 ${sourceCount}곳 · 서로 다른 출처 3곳 이상에서 근거를 찾아봐요.`
     : `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (자료 조사 목표: 3개 이상)`;
   const completed = economics ? economyCompleted(set) : [
     [a.number,a.name,a.team,a.topic,a.inquiry].every(filled),
@@ -537,7 +526,7 @@ function render(focus = false) {
   document.body.classList.toggle('economy-workspace',economics);
   $('#steps').hidden = waiting;
   $('#editor').innerHTML = waiting
-    ? '<div class="step-heading"><h1 id="step-title" tabindex="-1">경제 탐구 보고서</h1><p>탐구할 경제 주제를 골라요.</p></div>' + guidedExplorer()
+    ? '<div class="step-heading"><h1 id="step-title" tabindex="-1">경제 탐구 보고서</h1><p>탐구할 경제 주제를 골라요.</p></div>' + guidedExplorer(economyTopicFilter)
     : editors[index](economyGuided());
   $('#actions').innerHTML = waiting ? '' :
     (index ? '<button type="button" data-back>← 이전 단계</button>' : '') +
@@ -611,6 +600,12 @@ function editSource(i, updates) {
   return patchTask({ sources });
 }
 
+function focusSourceField(field) {
+  const details = field?.closest?.('#extra-sources');
+  if (details) details.open = true;
+  field?.focus();
+}
+
 function removeSource(index) {
   const removed = work().sources[index];
   if (hasSource(removed) && !confirm(`근거 자료 ${index + 1}의 글과 이미지를 지울까요?`)) return;
@@ -621,7 +616,7 @@ function removeSource(index) {
   if (work().position?.group === 1) deletePosition(patch);
   else change(patchTask(patch));
   render();
-  ($('#card-' + Math.min(index, sources.length - 1)) || $('#add-source') || $('#step-title')).focus();
+  focusSourceField($('#card-' + Math.min(index, sources.length - 1)) || $('#add-source') || $('#step-title'));
 }
 
 function deletePosition(patch) {
@@ -705,6 +700,11 @@ $('#editor').addEventListener('input', event => {
 });
 $('#editor').addEventListener('change', event => {
   const field = event.target;
+  if (field.name === 'practice-status' && Object.hasOwn(ECONOMY_PRACTICE_STATUS,field.value)) {
+    editAnswer('practiceStatus',field.value);
+    render();
+    $('#editor input[name="practice-status"]:checked')?.focus();
+  }
   if (field.dataset.guidedRole !== undefined) {
     const set = economyGuided();
     if (set && (!field.value || guidedRoles(set).includes(field.value))) editAnswer(guidedKey(set,'position'),field.value);
@@ -728,6 +728,12 @@ $('#editor').addEventListener('change', event => {
 $('#editor').addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button) return;
+  if (button.dataset.topicTab && awaitingEconomyTopic() && Object.hasOwn(ECONOMY_TOPIC_GROUPS,button.dataset.topicTab)) {
+    economyTopicFilter = button.dataset.topicTab;
+    render();
+    $('#editor [data-topic-tab][aria-pressed="true"]')?.focus();
+    return;
+  }
   if (button.dataset.guidedSet) {
     if (!awaitingEconomyTopic()) return;
     const id = button.dataset.guidedSet;
@@ -736,7 +742,7 @@ $('#editor').addEventListener('click', event => {
       if (id !== 'custom') {
         const topic = ECONOMY_GUIDED_SETS.find(set=>set.id===id);
         answers[guidedQuestionVersionKey(topic)] = nextGuidedQuestionVersion(topic,answers);
-        if (answers[guidedKey(topic,'phase')] === undefined && answers[guidedKey(topic,'phaseV2')] === undefined)
+        if (['phase','phaseV2','phaseV3'].every(part=>answers[guidedKey(topic,part)] === undefined))
           answers[economyPhase(topic)] ??= '0';
       }
       economyView = 'write';
@@ -753,7 +759,7 @@ $('#editor').addEventListener('click', event => {
     const index = sources.length;
     change(patchTask({ sources: [...sources, {}] }));
     render();
-    $('#source-' + index + '-title')?.focus();
+    focusSourceField($('#source-' + index + '-title'));
   }
   if (button.dataset.delete !== undefined) removeSource(Number(button.dataset.delete));
   if (button.dataset.removePhoto !== undefined) {
@@ -765,7 +771,7 @@ $('#editor').addEventListener('click', event => {
     });
     change(patchTask({ sources }));
     render();
-    $('#photo-' + index).focus();
+    focusSourceField($('#photo-' + index));
   }
 });
 

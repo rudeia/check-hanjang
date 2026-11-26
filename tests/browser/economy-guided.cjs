@@ -2,343 +2,283 @@ const assert = require('node:assert/strict');
 const { chromium, webkit } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs = require('node:fs');
 const path = require('node:path');
+
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:8769/';
 const output = process.env.QA_OUTPUT;
 const useWebkit = process.env.BROWSER === 'webkit';
-const chapters = ['Ⅰ. 초기 자료 해석','Ⅱ. 나의 입장과 첫 의견','Ⅲ. 보충 자료와 근거','Ⅳ. 경제 개념 적용과 비교','Ⅴ. 최종 의견·방안·성찰'];
-const fieldPlace = '목포시 동부시장 직접 방문';
-const analysisChapters = [...chapters.slice(0,-1),'Ⅴ. 최종 분석·성찰'];
+const storageKey = 'pyeongga-hanjang-social2-v1';
+const steps = ['주제와 자료 읽기','경제 개념 분석','판단과 지역사회 실천','협업·성찰 및 완성'];
+const chapters = ['Ⅰ. 주제와 근거 자료','Ⅱ. 경제 개념과 영향 분석','Ⅲ. 최종 판단과 지역사회 실천','Ⅳ. 협업과 성찰'];
 
-async function preview(page, phrase, keyboard = false) {
-  await page.locator('#tab-write').focus();
-  if (keyboard) await page.keyboard.press('End');
-  else await page.locator('#tab-preview').click();
-  await page.locator('#preview-panel').waitFor();
+async function preview(page) {
+  await page.locator('#tab-preview').click();
   assert(await page.locator('#workspace').isHidden());
   assert(await page.locator('#preview-print').isVisible());
-  const expected = await page.evaluate(()=>Boolean(guidedPhenomenon(economyGuided()))) ? analysisChapters : chapters;
-  assert.deepEqual((await page.locator('#poster .paper-inquiry-section > h3').allTextContents()).slice(0,5),expected);
-  assert((await page.locator('#poster').textContent()).includes(phrase));
-  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  if (keyboard) await page.keyboard.press('Home');
-  else await page.locator('#tab-write').click();
-  assert(await page.locator('#workspace').isVisible());
+  assert.deepEqual((await page.locator('#poster .paper-inquiry-section > h3').allTextContents()).slice(0,4),chapters);
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));
+  await page.locator('#tab-write').click();
 }
 
-async function guided(page, topic, index) {
+async function topicFilters(browser) {
+  const page = await browser.newPage({viewport:{width:360,height:800}});
+  try {
+    await page.goto(base+'#economy');
+    const tabs = page.locator('.economy-category-tabs');
+    assert.equal(await tabs.locator('button').count(),4);
+    let topics;
+    for (const [id,count] of Object.entries({local:10,finance:5,trade:2,all:17})) {
+      const button = tabs.locator(`[data-topic-tab="${id}"]`);
+      await button.focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await button.getAttribute('aria-pressed'),'true');
+      assert(await button.evaluate(node=>node===document.activeElement));
+      assert.equal(await page.locator('#economy-topic-results [data-guided-set]').count(),count);
+      assert.equal(await page.locator('#economy-topic-results .badge-region').count(),count);
+      assert.equal(await page.locator('#economy-topic-results .badge-concept').count(),count);
+      assert(!/제주/.test(await page.locator('#economy-topic-results').innerText()));
+      topics = await page.locator('#economy-topic-results [data-guided-set]').evaluateAll(items=>items.map(x=>x.dataset.guidedSet));
+      if (output && id === 'local') await page.screenshot({path:path.join(output,'topic-filter.png')});
+    }
+    return topics;
+  } finally { await page.close(); }
+}
+
+async function guided(page, id) {
   await page.goto(base+'#economy');
-  await page.locator('[data-guided-set="'+topic.id+'"]').click();
-  await page.waitForURL(/#economy-work$/);
-  await page.getByRole('heading',{name:'초기 자료 해석',level:1,exact:true}).waitFor();
-  const key=part=>'#guided_'+topic.id+'_'+part;
-  const write=(part,value)=>page.fill(key(part),value);
-  const next=()=>page.locator('[data-next]').click();
-  const title='탐구 검수 '+topic.id;
-  const tourism=topic.id==='tourism-consumption';
-  const compareSimulated=topic.id==='renewable-sharing';
-  const {groups,region,guide,phenomenon,roles,scenario}=await page.evaluate(()=>{
-    const set=economyGuided();
-    return {groups:guidedSourceGroups(set),region:activeGuidedRegion(set),
-      guide:guidedInquiryGuide(set),phenomenon:Boolean(guidedPhenomenon(set)),roles:guidedRoles(set),scenario:Boolean(guidedCaseAnalysis(set))};
+  await page.locator(`[data-guided-set="${id}"]`).click();
+  await page.getByRole('heading',{name:steps[0],level:1,exact:true}).waitFor();
+  const heading = page.locator('#step-title');
+  const next = () => page.locator('[data-next]').click();
+  const key = part => '#guided_'+id+'_'+part;
+  const {factKey,region,role,concept,groups,chart} = await page.evaluate(()=>{
+    const set = economyGuided();
+    const region = activeGuidedRegion(set);
+    return {factKey:economyInitialFactKey(set),region,role:guidedRoles(set)[0],
+      concept:guidedInquiryGuide(set).concept,groups:guidedSourceGroups(set),
+      chart:Boolean(region && guidedRegionGraph(region))};
   });
-  const initialValue = region ?
-    await page.locator('#editor .card-fact table tbody td').first().innerText() :
-    await page.locator('#editor .card-fact table tbody tr').first().locator('th').innerText();
-  const firstFact='첫 자료에서 확인한 사실';
-  const initialRead='첫 자료에 나타난 변화와 집단 차이';
-  const opinion='자료를 읽고 첫 대안이 더 낫다고 판단했다.';
-  const decisive='추가 자료의 수치가 첫 판단을 보완한다.';
-  const conclusion='자료를 비교해 최종 대안을 선택했다.';
 
-  assert.equal(await page.locator('#steps button').count(),5);
-  assert.equal(await page.locator('#step-title').textContent(),'초기 자료 해석');
-  assert.equal(await page.locator('#economy-role').count(),0);
-  assert(!(await page.locator('#editor').textContent()).includes(topic.decision.options[0]));
-  assert.equal(await page.locator('#editor .card-fact').count(),1);
-  assert.equal(await page.locator('#editor .card-fact table').count(),1);
-  assert.equal(await page.locator('#editor .card-fact textarea').count(),2);
-  const mobile=page.viewportSize().width<=440;
-  const startsOnScreen = selector => page.locator(selector).first().evaluate(node=>node.getBoundingClientRect().top+scrollY<innerHeight);
-  assert.equal(await page.locator('.student-fields').evaluate(node=>getComputedStyle(node).gridTemplateColumns.split(' ').length),mobile ? 2 : 3);
-  if(mobile){
-    assert(await startsOnScreen('#editor .card-fact h2'));
-    assert(await page.locator('.economy-identity .character-count').first().isHidden());
-  }
-  assert.equal(await page.locator('#economy-view-tabs').evaluate(node=>getComputedStyle(node).position),'sticky');
-  assert.equal(await page.locator('#editor .stat-image').count(),0);
+  assert.equal(await heading.textContent(),steps[0]);
+  assert.equal(await page.locator('#steps button').count(),4);
+  assert.equal(await page.locator('#editor .card-fact table:visible').count(),1);
+  assert.equal(Boolean(await page.locator('#editor .economy-evidence-graph svg:visible').count()),chart);
   assert(!/제주|조수입/.test(await page.locator('#editor').textContent()));
-  await preview(page,initialValue);
-  assert.equal(await page.locator('#poster .paper-inquiry-section').first().locator('table').count(),1);
-  if(tourism) {
-    assert((await page.locator('#editor .card-fact').textContent()).includes('전남 · 관광지 방문과 숙박·음식점의 변화'));
-    assert((await page.locator('#editor .card-fact table').textContent()).includes('6,456'));
-  }
-  await write('topicTitle',title);
-  for(const [field,value] of Object.entries({number:'20513',name:'시연 학생',team:'2모둠'})) await page.fill('#'+field,value);
-  await write(scenario ? 'caseFact' : 'regionalChange',firstFact);
-  await write('read',initialRead);
-  await preview(page,title,index===0);
-
-  await next();
-  assert.equal(await page.locator('#step-title').textContent(),'입장과 첫 의견');
-  assert((await page.locator('#editor .economy-reminder').textContent()).includes(initialRead));
-  await page.getByRole('heading',{name:'탐구 과제',exact:true}).waitFor();
-  assert(await page.getByText(guide.prompt,{exact:true}).isVisible());
-  assert.equal(await page.evaluate(()=>economyInquiry()),guide.focus);
-  assert(await page.locator(key('inquiryV2')).isHidden());
-  const criteria = page.locator('.economy-criterion-examples > span');
-  assert.deepEqual(await criteria.allTextContents(),guide.criteria.map(item=>item+'?'));
-  await page.selectOption('#economy-role',roles[0]);
-  const criterion='내 입장에서 비교한 비용과 편익';
-  await write('criterion',criterion);
-  await write('initialOpinionV3',opinion);
-  await preview(page,opinion);
-  const intro=page.locator('#poster .paper-inquiry-section').nth(1);
-  assert(await intro.locator(':scope > section p').evaluateAll(items=>items.every(item=>getComputedStyle(item).color===getComputedStyle(item.closest('.paper')).color)));
-
-  await next();
-  assert.equal(await page.locator('#step-title').textContent(),'보충 자료 조사');
-  assert((await page.locator('#editor .economy-reminder').textContent()).includes(opinion));
-  assert((await page.locator('.economy-supplement-review > .economy-review-snippet').first().textContent()).includes(criterion));
-  assert(await page.locator('#extra-sources').evaluate(details=>!details.open));
-  assert.equal(await page.locator('#extra-sources .source-card').count(),1);
-  const regionField=page.locator(key('regionalChange'));
-  assert.equal(await regionField.count(),Number(Boolean(region && !scenario && !guide.regionalFirst)));
-  if(await regionField.count()) {
-    await write('regionalChange','실제 지역 자료의 두 시점을 비교했다.');
-  }
-  const supplement=page.locator('.economy-facts');
-  assert(!/제주|조수입/.test(await supplement.textContent()));
-  for(const [index,group] of groups.entries()){
-    if(index===1) await page.getByText(`더 살펴볼 자료 ${groups.length-1}개`,{exact:true}).click();
-    const card=supplement.locator('.guided-source').filter({has:page.locator(key('source_'+group.storageId+'_excerpt'))});
-    assert.equal(await card.getByRole('link',{name:group.table.sourceTitle,exact:true}).getAttribute('href'),group.table.sourceUrl);
-    assert.equal(await card.locator('td').first().evaluate(node=>getComputedStyle(node).textAlign),typeof group.table.rows[0][1]==='number' ? 'right' : 'left');
-    await write('source_'+group.storageId+'_excerpt','자료에서 기록한 근거 '+group.storageId);
-    await write('source_'+group.storageId+'_use','첫 의견을 다시 검토한 이유 '+group.storageId);
-  }
-  assert(await page.evaluate(()=>economySourceCount(economyGuided())>=2));
-  assert((await page.locator('#steps button').nth(2).textContent()).includes('✓'));
-  if(tourism){
-    await page.getByText('직접 찾은 자료 (선택)',{exact:true}).click();
-    const values={title:'직접 조사한 자료',url:fieldPlace,author:'시연 기관',fact:'직접 확인한 수치',thought:'추가 자료의 범위를 확인했다.'};
-    for(const [field,value] of Object.entries(values)) await page.fill('#source-0-'+field,value);
-  }
-  await preview(page,'첫 의견을 다시 검토한 이유');
-
-  await next();
-  assert.equal(await page.locator('#step-title').textContent(),'자료 정리와 개념 비교');
-  const comparison=page.locator('.economy-write').filter({has:page.getByRole('heading',{name:'같은 기준으로 다시 판단하기'})});
-  assert((await comparison.textContent()).includes(criterion) && (await comparison.textContent()).includes(guide.focus));
-  const factList=page.locator('.economy-reminder .guided-evidence-list');
-  assert((await factList.textContent()).includes(firstFact));
-  if(region && !scenario) assert.equal(await factList.getByText(region.region+' 지역 자료',{exact:true}).count(),1);
-  assert(await page.locator('.card-simulation').isHidden());
-  if(scenario) {
-    await write('optionFirst','첫 상황에서 계산한 두 가지 결과');
-    await write('optionSecond','둘째 상황에서 계산한 두 가지 결과');
+  assert.equal(await page.locator('#editor textarea:visible').count(),2);
+  await preview(page);
+  const initial = page.locator('#poster .paper-inquiry-section').first();
+  assert.equal(await initial.locator('table').count(),1);
+  assert.equal(Boolean(await initial.locator('.economy-evidence-graph svg').count()),chart);
+  const firstValue = await initial.locator('tbody td').first().textContent();
+  if (region) {
+    assert.equal(await initial.locator('a').first().getAttribute('href'),region.sources[0][2]);
+    assert((await page.locator('#editor .card-fact table:visible').textContent()).includes(firstValue));
   } else {
-    await write('regionalCause','지표의 변화에서 확인한 지역 경제 변화의 원인과 한계');
-    await write('regionalImpact','주민과 지역 사업자가 받는 영향의 차이');
+    assert((await initial.textContent()).includes('모의 비교 자료'));
   }
-  await page.selectOption('#economy-term',guide.concept);
-  await write('explain','경제 개념을 실제 자료와 비교 조건에 적용했다.');
-  await write('supplementAnalysis',decisive);
-  const ownComparison=page.getByText(phenomenon && !scenario ? '내가 생각한 설명 비교 (선택)' : '내가 생각한 방법 비교 (선택)',{exact:true});
-  assert(await ownComparison.isVisible());
-  if(mobile) assert(await ownComparison.evaluate(node=>node.getBoundingClientRect().bottom+scrollY<=innerHeight));
-  if(guide.judgmentClue) assert(await comparison.locator('.economy-comparison-context').getByText(guide.judgmentClue,{exact:false}).isVisible());
-  assert(await page.locator(key('ownOptionName')).isHidden());
-  const ownName='병원 예약 택시비 지원';
-  const ownResult='병원에 갈 시간에 예약할 수 있다면 같은 예산에서 이동이 어려운 가구의 왕복 요금을 지원한다.';
-  if (compareSimulated) {
-    await ownComparison.click();
-    await write('ownOptionName',ownName);
-    await write('ownOptionAnalysis',ownResult);
-    await page.reload();
-    assert(await page.locator(key('ownOptionName')).isVisible());
-    assert.equal(await page.inputValue(key('ownOptionName')),ownName);
-    assert.equal(await page.inputValue(key('ownOptionAnalysis')),ownResult);
-    await page.getByText('제시된 설명 비교 (선택)',{exact:true}).click();
-    assert.equal(await page.locator('.card-simulation').count(),0);
-    await write('optionFirst','첫 대안에서 얻는 점과 부담');
-    await write('optionSecond','둘째 대안에서 얻는 점과 부담');
+
+  const title = '경제 탐구 · '+id;
+  const fact = region ? `${region.periods[0]}과 ${region.periods[1]}을 비교하면 첫 수치는 ${firstValue}입니다.` :
+    '두 모의 상황에서 바뀌는 조건과 공통 조건을 확인했다.';
+  const limit = '두 자료의 조사 대상이 다르면 그대로 비교하기 어렵다.';
+  await page.fill(key('topicTitle'),title);
+  for (const [name,value] of Object.entries({number:'20513',name:'시연 학생',team:'2모둠'})) await page.fill('#'+name,value);
+  await page.fill('#'+factKey,fact);
+  await page.fill(key('changeCondition'),limit);
+  if (id === 'tourism-consumption') {
+    await page.getByText('추가 비교 자료 보기 (선택)',{exact:true}).click();
+    await page.fill(key('source_'+groups[0].storageId+'_excerpt'),'체류 시간도 공식 자료에서 확인했다.');
+    await page.fill(key('source_'+groups[0].storageId+'_use'),'체류 시간의 비교 범위를 확인했다.');
+    if (output) await page.screenshot({path:path.join(output,'tourism-worksheet.png'),fullPage:true});
   }
-  await preview(page,'경제 개념을 실제 자료와 비교 조건에 적용했다.');
-  const comparisonRows=page.locator('#poster .paper-inquiry-section').nth(3).locator('.paper-comparison-table tbody tr');
-  assert.equal(await comparisonRows.count(),compareSimulated ? 3 : scenario ? 2 : 0);
-  if(compareSimulated) assert.deepEqual(await comparisonRows.last().locator('th,td').allTextContents(),[ownName,ownResult]);
 
   await next();
-  assert.equal(await page.locator('#step-title').textContent(),'최종 의견·보고서 완성');
-  const review=page.locator('.economy-conclusion-review');
-  const snippets=await review.locator('.economy-review-snippet').allTextContents();
-  assert.equal(snippets.length,2);
-  assert(snippets[0].includes(opinion) && snippets[1].includes(decisive));
-  if(mobile && !compareSimulated && !scenario) assert(await startsOnScreen(key('finalChoice')));
-  if(guide.conclusion) {
-    assert.equal(await page.locator(key('finalChoice')+'-hint').textContent(),guide.conclusion);
-    assert.equal(await page.locator(key('changeCondition')+'-hint').textContent(),guide.conclusionLimits);
-  }
-  if (guide.application || scenario) {
-    await page.getByText('비교한 상황 다시 보기',{exact:true}).click();
-    assert(await page.locator('.card-simulation').isVisible());
-  }
-  const details=review.locator('details');
-  assert(await details.evaluate(node=>!node.open));
-  if(compareSimulated) assert(await review.locator('.economy-final-comparison').getByText(ownResult,{exact:false}).isVisible());
-  await details.locator('summary').click();
-  assert(await details.getByText(scenario ? decisive : '주민과 지역 사업자가 받는 영향의 차이',{exact:false}).isVisible());
-  await details.locator('summary').click();
-  await write('finalChoice',conclusion);
-  const condition=scenario ? '모의 조건이 달라질 때 같은 기준으로 다시 계산한다.' :
-    phenomenon ? '같은 시기 지역 자료를 확인해 기존 설명을 다시 판단한다.' : '비용이 편익보다 커질 때 선택을 바꾼다.';
-  await write('changeCondition',condition);
-  if(guide.applicationConclusion) await write('applicationJudgment','모의 상황에서 조건을 계산한 뒤 내린 별도 판단');
-  if(phenomenon) {
-    assert.equal(await page.locator('#economicPlan').count(),0);
+  assert.equal(await heading.textContent(),steps[1]);
+  assert((await page.locator('.guided-evidence-list').textContent()).includes(fact));
+  await page.selectOption('#economy-role',role);
+  await page.selectOption('#economy-term',concept);
+  assert((await page.locator('#economy-term-method').textContent()).trim());
+  const explanation = '비교 조건에 따라 사람들의 선택과 비용이 달라질 수 있다.';
+  await page.fill(key('explain'),explanation);
+  await page.fill(key('regionalImpact'),'소비자와 가게가 겪는 변화가 다르다.');
+  assert.equal(await page.locator('#editor textarea:visible').count(),2);
+
+  await next();
+  assert.equal(await heading.textContent(),steps[2]);
+  assert(await page.getByRole('heading',{name:'지역사회 변화 방안과 실천'}).isVisible());
+  assert((await page.locator('.economy-reminder').textContent()).includes(explanation));
+  const judgment = '자료의 조건을 맞추고 비용 차이를 비교한 뒤 결정한다.';
+  await page.fill(key('finalChoice'),judgment);
+  await page.getByText('실천 아이디어 보기',{exact:true}).click();
+  const idea = await page.locator('details[open] p').last().textContent();
+  assert(idea.trim() && !idea.includes('제주'));
+  const change = '지역에서 필요한 정보를 한 장으로 정리해 제공한다.';
+  await page.fill('#economicPlan',change);
+  const planned = '다음 주 모둠과 같은 기준으로 조사한다.';
+  await page.fill('#practicePlan',planned);
+  let result = '';
+  if (id === 'tariff-choices') {
+    await page.getByRole('radio',{name:'실제로 실천함'}).check();
     assert.equal(await page.locator('#practicePlan').count(),0);
-  } else {
+    result = '가게 두 곳에서 조사 조건을 맞추었고 마지막에 가격 차이를 기록했다.';
+    await page.fill('#practiceResult',result);
     await page.getByRole('radio',{name:'아직 실천 전'}).check();
-    await page.fill('#economicPlan','관련 주체와 실천 방안');
-    await page.fill('#practicePlan','모둠과 조사할 내 계획');
-  }
-  await page.fill('#reflection','비교하며 달라진 생각');
-  for(const step of await page.locator('#steps button').allTextContents()) assert(step.includes('✓'));
-  const finalTitleInput=page.getByRole('textbox',{name:'최종 보고서 제목'});
-  assert.equal(await finalTitleInput.inputValue(),title);
-  const finalTitle=compareSimulated ? '신안 발전 수익으로 마을 이동을 돕는 조건' : title;
-  if(compareSimulated) {
-    await finalTitleInput.fill(finalTitle);
-    await page.locator('#steps [data-stage="0"]').click();
-    assert.equal(await page.getByRole('textbox',{name:'탐구 보고서 제목'}).inputValue(),finalTitle);
-    await page.locator('#steps [data-stage="4"]').click();
-  }
-  await page.reload();
-  assert.equal(await finalTitleInput.inputValue(),finalTitle);
-  assert.equal(await page.inputValue(key('finalChoice')),conclusion);
-  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await preview(page,conclusion);
-  if(tourism) {
-    assert.equal(await page.locator('#poster .paper-inquiry-section').nth(2).getByText(fieldPlace,{exact:true}).count(),1);
-    assert.equal(await page.locator('#poster .paper-inquiry-section').nth(4).getByText(fieldPlace).count(),1);
+    assert.equal(await page.inputValue('#practicePlan'),planned);
+    await page.getByRole('radio',{name:'실제로 실천함'}).check();
+    assert.equal(await page.inputValue('#practiceResult'),result);
+    await page.reload();
+    assert.equal(await heading.textContent(),steps[2]);
+    assert.equal(await page.inputValue('#practiceResult'),result);
+    if (output) await page.screenshot({path:path.join(output,'practice-worksheet.png'),fullPage:true});
   }
 
+  await next();
+  assert.equal(await heading.textContent(),steps[3]);
+  assert.equal(await page.getByRole('link',{name:/친구 발표 듣고 기록하기/}).getAttribute('href'),'listening.html?task=economy');
+  await page.fill('#reflection','자료의 범위를 확인하고 처음 생각을 수정했다.');
+  await page.fill('#role','모둠에서 자료 출처를 확인하고 설명했다.');
+  await page.fill('#peerLearning','다른 모둠에게서 조사 범위를 설명하는 방법을 배웠다.');
+  await page.getByText('인쇄·공유 전 점검',{exact:true}).click();
+  assert(await page.getByRole('group',{name:'발표 전 확인할 내용'}).isVisible());
+  await page.locator('#steps [data-stage="0"]').click();
+  assert.equal(await page.inputValue(key('topicTitle')),title);
+  await page.locator('#steps [data-stage="3"]').click();
+  const finalTitle = title+' 최종';
+  await page.fill(key('topicTitle'),finalTitle);
+  for (const step of await page.locator('#steps button').allTextContents()) assert(step.includes('✓'));
+  await preview(page);
+  const report = page.locator('#poster');
+  const contents = await report.textContent();
+  for (const value of [firstValue,fact,limit,role,concept,explanation,judgment,change,planned,'조사 범위를 설명하는 방법']) assert(contents.includes(value),value);
+  assert(!/제주|조수입/.test(contents));
+  assert.equal(await report.locator('.paper-inquiry-section').count(),result ? 5 : 4);
+  if (result) assert(contents.includes(result));
   await page.evaluate(()=>{window.print=()=>{window.printRequested=true;};});
   await page.locator('#tab-preview').click();
   await page.locator('#preview-print').click();
   await page.waitForFunction(()=>window.printRequested);
-  const report=await page.locator('.print-pages').textContent();
-  assert.equal(await page.locator('.print-pages .paper-header h2').textContent(),finalTitle);
-  if(guide.conclusionLimits) {
-    const heading=scenario ? '판단이 바뀔 조건과 자료의 한계' :
-      phenomenon ? '자료의 한계와 설명을 바꿀 근거' : '자료의 한계와 판단이 바뀌는 조건';
-    const limits=page.locator('.print-pages section').filter({has:page.getByRole('heading',{name:heading,exact:true,includeHidden:true})});
-    assert((await limits.last().textContent()).includes(condition));
-  }
-  if(compareSimulated) assert.deepEqual(await page.locator('.print-pages .paper-comparison-table tbody tr').last().locator('th,td').allTextContents(),[ownName,ownResult]);
-  if(compareSimulated) assert(!report.includes(title));
-  for(const value of [...(phenomenon ? analysisChapters : chapters),initialRead,opinion,decisive,conclusion,condition]) assert(report.includes(value));
-  for(const label of ['지역 변화의 원인과 자료의 범위','지역 경제 주체별 영향']) assert.equal(report.includes(label),!scenario);
-  if(guide.applicationConclusion) assert(report.includes('모의 상황에서 조건을 계산한 뒤 내린 별도 판단'));
-  assert.equal(report.includes('아직 실천 전'),!phenomenon);
-  assert(!/내 계산:|내 선택:|[A-F] 지역/.test(report));
-  assert.equal(await page.locator('.print-pages .paper-evidence-table tbody tr').count(),groups.length+Number(tourism));
-  if(tourism) assert.equal(report.split(fieldPlace).length-1,2);
-  assert(report.includes(initialValue));
-  assert(!/제주|조수입/.test(report));
-  if(output && !useWebkit) await page.pdf({path:path.join(output,topic.id+'.pdf'),format:'A4',printBackground:true});
+  const printed=page.locator('.print-pages');
+  assert.equal(await printed.locator('.paper-header h2').textContent(),finalTitle);
+  const text=await printed.textContent();
+  for(const value of [...chapters,firstValue,change,result || planned]) assert(text.includes(value));
+  assert.equal(Boolean(await printed.locator('.economy-evidence-graph svg').count()),chart);
+  if (output && !useWebkit) await page.pdf({path:path.join(output,id+'.pdf'),format:'A4',printBackground:true});
 }
 
 async function legacy(browser) {
-  const context=await browser.newContext({viewport:{width:375,height:844}});
+  const page = await browser.newPage();
   try {
-    const page=await context.newPage();
-    await page.addInitScript(()=>{
+    await page.addInitScript(key=>{
+      if (localStorage.getItem(key)) return;
       const draft={schema:'assessment-one',version:1,step:0,answers:{},sources:[{}],checks:[]};
-      const economy={...draft,answers:{
-        guidedSetId:'stock-diversification',
-        'guided_stock-diversification_phase':'4',
-        'guided_stock-diversification_phaseV2':'1',
-        'guided_stock-diversification_initialOpinion':'자료를 읽기 전에 쓴 의견',
-        'guided_stock-diversification_source_1_excerpt':'기존 미국 자료에서 쓴 근거',
-        'guided_stock-diversification_regionalChange':'이전에 쓴 제주 지역 변화',
-        'guided_stock-diversification_evidenceQuestion':'이전에 확인하려던 정보',
-        'reading_global-prices_compare':'이전 통계 팩 답안'
+      const economy={...draft,answers:{guidedSetId:'online-choice',
+        guided_online_choice_placeholder:'이전 임의 필드',
+        'guided_online-choice_decisionGuideVersion':'3',
+        'guided_online-choice_phaseV3':'3',
+        'guided_online-choice_initialOpinionV3':'이전의 첫 의견',
+        'guided_online-choice_read':'오래된 자료 해석',
+        'guided_online-choice_regionalChange':'이전에 쓴 제주 판매 변화',
+        'guided_online-choice_supplementAnalysis':'이전 보충 자료 판단',
+        'guided_online-choice_optionFirst':'기존에 비교한 첫 설명',
+        'guided_online-choice_ownOptionAnalysis':'직접 적은 이전 비교',
       }};
-      if(!localStorage.getItem('pyeongga-hanjang-social2-v1'))
-        localStorage.setItem('pyeongga-hanjang-social2-v1',JSON.stringify({...draft,economy,inquiry:{version:1,active:'economy'}}));
-    });
+      localStorage.setItem(key,JSON.stringify({...draft,economy,inquiry:{version:1,active:'economy'}}));
+    },storageKey);
     await page.goto(base+'#economy-work');
-    await page.getByRole('heading',{name:'보충 자료 조사',level:1,exact:true}).waitFor();
-    await page.locator('[data-stage="0"]').click();
-    assert.equal(await page.inputValue('#guided_stock-diversification_source_ko_primary_excerpt'),'');
-    await page.reload();
-    assert.equal(await page.locator('#step-title').textContent(),'초기 자료 해석');
-    await page.locator('#tab-preview').click();
-    const archive=page.locator('#poster .paper-inquiry-section').filter({has:page.getByRole('heading',{name:'부록. 이전 활동에서 쓴 기록',exact:true})});
-    const history=await archive.textContent();
-    for(const value of ['기존 미국 자료에서 쓴 근거','이전에 확인하려던 정보','이전 통계 팩 답안','자료를 읽기 전에 쓴 의견'])assert(history.includes(value));
-    assert((await page.locator('#poster .paper-inquiry-section').nth(2).textContent()).includes('이전에 쓴 제주 지역 변화'));
-    assert.equal(await archive.locator('a[href*="investor.gov"]').count(),1);
-    if(!useWebkit) {
+    assert.equal(await page.locator('#step-title').textContent(),steps[1]);
+    const storedBefore = await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),storageKey);
+    assert.equal(storedBefore.economy.answers['guided_online-choice_phaseV4'],undefined);
+    await page.locator('#steps [data-stage="0"]').click();
+    assert.equal(await page.inputValue('#guided_online-choice_regionalChange'),'이전에 쓴 제주 판매 변화');
+    const report = page.locator('#poster');
+    assert((await report.textContent()).includes('이전에 쓴 제주 판매 변화'));
+    const archive = report.locator('.paper-inquiry-section').last();
+    assert((await archive.textContent()).includes('부록'));
+    for (const text of ['이전의 첫 의견','오래된 자료 해석','이전 보충 자료 판단','기존에 비교한 첫 설명','직접 적은 이전 비교'])
+      assert((await archive.textContent()).includes(text),text);
+    if (!useWebkit) {
       await page.locator('#open-files').click();
       const started=page.waitForEvent('download');
       await page.locator('#backup').click();
-      const download=await started;
-      const file=await download.path();
-      const backup=JSON.parse(fs.readFileSync(file,'utf8'));
-      assert.equal(backup.task.answers['guided_stock-diversification_phaseV3'],'0');
-      assert.equal(backup.task.answers['guided_stock-diversification_source_1_excerpt'],'기존 미국 자료에서 쓴 근거');
+      const backup=await (await started).path();
+      const data=JSON.parse(fs.readFileSync(backup,'utf8'));
+      assert.equal(data.task.answers['guided_online-choice_phaseV3'],'3');
+      assert.equal(data.task.answers['guided_online-choice_phaseV4'],'0');
+      assert.equal(data.task.answers.guided_online_choice_placeholder,'이전 임의 필드');
       page.once('dialog',dialog=>dialog.accept());
-      await page.locator('#file').setInputFiles(file);
+      await page.locator('#file').setInputFiles(backup);
       await page.getByText('보관한 파일을 불러왔어요.',{exact:true}).waitFor();
-      assert.equal(await page.locator('#step-title').textContent(),'초기 자료 해석');
+      assert.equal(await page.locator('#step-title').textContent(),steps[0]);
+      assert((await archive.textContent()).includes('이전의 첫 의견'));
+      for (const [id,version,phase,value,target] of [
+        ['stock-diversification','1','phase','4',2],
+        ['online-choice','2','phaseV2','2',1],
+        ['stock-diversification','4','phaseV3','0',0],
+        ['tariff-choices','5','phaseV3','4',2]
+      ]) {
+        const restored = structuredClone(data);
+        const prefix = 'guided_'+id+'_';
+        restored.task.answers = {guidedSetId:id,[prefix+'decisionGuideVersion']:version,
+          [prefix+phase]:value,[prefix+'read']:'백업 버전 '+version+'의 자료 해석',
+          [prefix+'criterion']:'백업 버전 '+version+'의 판단 기준'};
+        await page.locator('#open-files').click();
+        page.once('dialog',dialog=>dialog.accept());
+        await page.locator('#file').setInputFiles({name:'economy-v'+version+'.json',mimeType:'application/json',
+          buffer:Buffer.from(JSON.stringify(restored))});
+        await page.getByRole('heading',{name:steps[target],level:1,exact:true}).waitFor();
+        assert((await archive.textContent()).includes('백업 버전 '+version+'의 자료 해석'));
+        assert((await archive.textContent()).includes('백업 버전 '+version+'의 판단 기준'));
+      }
     }
-  } finally {await context.close();}
+  } finally { await page.close(); }
 }
 
 async function direct(browser) {
-  const page = await browser.newPage({viewport:{width:375,height:812}});
+  const page = await browser.newPage({viewport:{width:360,height:800}});
   try {
     await page.goto(base+'#economy');
-    await page.getByRole('button',{name:'직접 정한 주제로 탐구하기'}).click();
+    await page.locator('[data-guided-set="custom"]').click();
     await page.getByText('자료 읽기 예시 · 전남 외식 물가',{exact:true}).click();
     assert(await page.getByRole('row',{name:/외식 물가지수.*119.9.*123.3/}).isVisible());
     await page.fill('#topic','목포 전통시장 이용');
     await page.fill('#source-0-title','시장 방문 관찰 기록');
     await page.fill('#source-0-fact','직접 조사한 시장 방문객 수');
-    await preview(page,'직접 조사한 시장 방문객 수');
-    assert(!/119\.9|123\.3/.test(await page.locator('#poster').textContent()));
+    await page.fill('#source-0-url','목포 시장 현장 조사');
+    await page.getByText('내 자료 더 추가하기 (선택)',{exact:true}).click();
+    await page.locator('#add-source').click();
+    assert(await page.locator('#source-2-title').isVisible());
+    assert(await page.locator('#source-2-title').evaluate(item=>item===document.activeElement));
+    await page.fill('#source-2-title','삭제할 테스트 자료');
+    page.once('dialog',dialog=>dialog.accept());
+    await page.locator('[data-delete="2"]').click();
+    assert.equal(await page.locator('#source-2-title').count(),0);
+    const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/k1YAAAAASUVORK5CYII=','base64');
+    await page.locator('#photo-0').setInputFiles({name:'test-market.png',mimeType:'image/png',buffer:png});
+    await page.locator('#editor .card-image').waitFor();
+    assert(await page.locator('#poster img').count());
+    await preview(page);
+    const contents = await page.locator('#poster').textContent();
+    assert(contents.includes('직접 조사한 시장 방문객 수') && !/119\.9|123\.3/.test(contents));
   } finally { await page.close(); }
 }
 
 (async()=>{
   if(output)fs.mkdirSync(output,{recursive:true});
-  const browser=useWebkit ? await webkit.launch({executablePath:process.env.WEBKIT_EXECUTABLE}) : await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--disk-cache-size=16777216']});
-  try{
-    const initial=await browser.newPage();
-    await initial.goto(base+'#economy');
-    const topics=await initial.evaluate(()=>ECONOMY_GUIDED_SETS);
-    assert.equal(topics.length,17);
-    assert.equal(await initial.locator('[data-guided-set]').count(),18);
-    assert(await initial.locator('#economy-view-tabs').isHidden());
-    await initial.close();
-    for(const [index,topic] of topics.entries()){
-      if(process.env.TOPIC_FILTER && !process.env.TOPIC_FILTER.split(',').includes(topic.id))continue;
-      const context=await browser.newContext({viewport:{width:index%2===0 ? 375 : 1024,height:812}});
-      try{
-        const page=await context.newPage();
-        page.setDefaultTimeout(9000);
-        const errors=[];
-        page.on('pageerror',error=>errors.push(error.message));
-        await guided(page,topic,index);
-        assert.deepEqual(errors,[]);
-      }catch(error){throw new Error(topic.id+': '+error.message,{cause:error});}
-      finally{await context.close();}
+  const browser=useWebkit ? await webkit.launch({executablePath:process.env.WEBKIT_EXECUTABLE}) :
+    await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+  try {
+    const topics = await topicFilters(browser);
+    for (const [index,id] of topics.entries()) {
+      if (process.env.TOPIC_FILTER && !process.env.TOPIC_FILTER.split(',').includes(id)) continue;
+      const page = await browser.newPage({viewport:{width:index%2===0 ? 375 : 1024,height:812}});
+      page.setDefaultTimeout(6000);
+      const errors=[];
+      page.on('pageerror',error=>errors.push(error.message));
+      try { await guided(page,id); assert.deepEqual(errors,[]); }
+      catch (error) { throw new Error(id+': '+error.message,{cause:error}); }
+      finally { await page.close(); }
     }
     await legacy(browser);
     await direct(browser);
-    console.log('PASS five-stage topics, desktop and mobile previews, report chapters, source routing, direct topic, versioned legacy drafts');
-  } finally {await browser.close();}
+    console.log('PASS topic filters, four-stage worksheets and A4 print, direct source operations and legacy backup');
+  } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});
