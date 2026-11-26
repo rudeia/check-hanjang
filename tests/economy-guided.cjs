@@ -64,10 +64,25 @@ for(const {id} of ctx.sets) {
   assert(analysis.label && analysis.prompt && analysis.explanations.length===2 && analysis.conclusion && analysis.conclusionLimits);
   const prefix='guided_'+id+'_';
   ctx.draft.answers={guidedSetId:id};
-  assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),ctx.caseGuides[id] ? '4' : '3');
+  assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'5');
+  ctx.draft.answers[prefix+'decisionGuideVersion']='5';
+  assert(!/제주|조수입/.test(JSON.stringify(run('guidedInquiryGuide(economyGuided())'))));
+  const groups = run('guidedSourceGroups(economyGuided())');
+  assert(groups.length && groups.every(group=>group?.table.sourceUrl.startsWith('https://')));
+  assert(!/제주|조수입/.test(JSON.stringify(groups)));
+  if (ctx.caseGuides[id]) {
+    assert.equal(run('activeGuidedRegion(economyGuided())'),undefined);
+    assert(run('ECONOMY_REVIEW_CASES[economyGuided().id].rows.length') >= 2);
+    assert.match(run('ECONOMY_LOCAL_SIMULATIONS[economyGuided().id]'),/전남|전북/);
+  } else {
+    const data = run('activeGuidedRegion(economyGuided())');
+    assert(data.periods.length >= 2 && data.rows.some(row=>row.slice(1).some(value=>typeof value==='number')));
+    assert(data.task && data.clue && data.sources.length);
+    assert(!/제주|조수입/.test(JSON.stringify(data)));
+  }
   if (ctx.caseGuides[id]) {
     ctx.draft.answers[prefix+'decisionGuideVersion']='3';
-    assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'4');
+    assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'5');
     ctx.draft.answers[prefix+'read']='이전 활동에서 해석한 내용';
     assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'3');
     delete ctx.draft.answers[prefix+'read'];
@@ -76,6 +91,9 @@ for(const {id} of ctx.sets) {
     ctx.draft.answers[prefix+'regionalChange']='이전 지역 자료 기록';
     assert.equal(run('guidedRegionWasUsed(economyGuided())'),false);
   }
+  ctx.draft.answers[prefix+'decisionGuideVersion']='3';
+  ctx.draft.answers[prefix+'source_1_excerpt']='이전 출처로 작성한 기록';
+  assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'3');
   ctx.draft.answers[prefix+'decisionGuideVersion']='2';
   ctx.draft.answers[prefix+'ownOptionAnalysis']='이전 방식으로 작성한 비교';
   assert.equal(run('nextGuidedQuestionVersion(economyGuided(),work().answers)'),'2');

@@ -44,10 +44,19 @@ function economyGuided() {
 function guidedKey(set, part) { return `guided_${set.id}_${part}`; }
 
 const guidedQuestionVersionKey = set => guidedKey(set,'decisionGuideVersion');
-const guidedCaseAnalysis = set => set && work().answers[guidedQuestionVersionKey(set)] === '4'
-  ? ECONOMY_CASE_INQUIRY_GUIDES[set.id] : null;
-const guidedPhenomenon = set => guidedCaseAnalysis(set) || (set && work().answers[guidedQuestionVersionKey(set)] === '3'
-  ? ECONOMY_PHENOMENON_GUIDES[set.id] : null);
+const guidedUsesStarter = set => Boolean(set && work().answers[guidedQuestionVersionKey(set)] === '5');
+const guidedStarterGuide = set => {
+  const caseGuide = ECONOMY_CASE_INQUIRY_GUIDES[set.id];
+  return {...(caseGuide || ECONOMY_PHENOMENON_GUIDES[set.id]), ...ECONOMY_START_GUIDES[set.id], regionalFirst: !caseGuide};
+};
+const guidedCaseAnalysis = set => {
+  const caseGuide = set && ECONOMY_CASE_INQUIRY_GUIDES[set.id];
+  if (!caseGuide) return null;
+  return guidedUsesStarter(set) ? guidedStarterGuide(set) :
+    work().answers[guidedQuestionVersionKey(set)] === '4' ? caseGuide : null;
+};
+const guidedPhenomenon = set => guidedCaseAnalysis(set) || (guidedUsesStarter(set) ? guidedStarterGuide(set) :
+  set && work().answers[guidedQuestionVersionKey(set)] === '3' ? ECONOMY_PHENOMENON_GUIDES[set.id] : null);
 const guidedInquiryGuide = set => guidedPhenomenon(set) || ECONOMY_REGION_INQUIRIES[set.id];
 const guidedTopicLabel = set => guidedPhenomenon(set)?.label || set.label;
 
@@ -59,14 +68,11 @@ function usesPreviousGuidedQuestion(set, answers = work().answers) {
 
 function nextGuidedQuestionVersion(set, answers) {
   const current = answers[guidedQuestionVersionKey(set)];
-  const caseGuide = ECONOMY_CASE_INQUIRY_GUIDES[set.id];
-  if (current === '4') return current;
-  if (ECONOMY_PHENOMENON_GUIDES[set.id] && (current !== '3' || caseGuide)) {
-    const written = ['inquiryV2','position','initialOpinion','criterion','initialOpinionV3','supplementAnalysis','regionalCause',
-      'regionalImpact','explain','optionFirst','optionSecond','ownOptionName','ownOptionAnalysis','finalChoice','changeCondition'];
-    if (caseGuide) written.push('read','regionalChange',...guidedSourceGroups(set).map(group=>`source_${group.storageId}_excerpt`));
-    if (!written.some(part=>filled(answers[guidedKey(set,part)]))) return caseGuide ? '4' : '3';
-  }
+  const prefix = guidedKey(set,'');
+  const navigation = ['phase','phaseV2','phaseV3','decisionGuideVersion'];
+  const hasTopicAnswers = Object.entries(answers).some(([key,value]) =>
+    key.startsWith(prefix) && !navigation.includes(key.slice(prefix.length)) && filled(value));
+  if (!hasTopicAnswers) return '5';
   return current || (usesPreviousGuidedQuestion(set,answers) ? '1' : '2');
 }
 
@@ -99,6 +105,7 @@ const ECONOMY_TERM_METHODS = {
   '정보의 비대칭': '기업이 공개한 정보와 시장에 퍼진 소문을 구분해요. 결정하기 전에 누가 어떤 정보를 알고 있는지, 무엇을 더 확인할지 적어요.',
   '관세': '관세율이 바뀌면 수입 비용이 어떻게 달라지는지 살펴요. 비용 변화가 매장 가격에 얼마나 반영되는지에 따라 각 주체의 입장을 비교해요.',
   '수요 변화': '누가 어떤 상품을 더 찾거나 덜 찾았는지 살펴요. 소비액만 보인다면 가격과 구매량 중 무엇이 달라졌는지 확인할 자료를 찾아보세요.',
+  '공급 변화': '생산량, 저장량, 시장에 내보내는 양을 구분해요. 어느 때에 가게가 얼마만큼 들여올 수 있는지 설명해 보세요.',
   '합리적 선택': '누가 어떤 선택지 중에서 골라야 하는지 정해요. 각 선택의 비용과 편익을 비교하고 어떤 조건에서 판단이 달라지는지 설명해 보세요.',
   '생산과 분배': '어디에서 생산했는지와 그 소득이 누구에게 돌아가는지 구분해요. 두 지표의 범위를 확인하고 소득이 전달되는 경로를 설명해 보세요.',
   '지속 가능한 지역 경제': '선택이 주민 생활, 지역 일자리, 환경에 미칠 영향을 나누어 살펴요. 효과가 지속되려면 어떤 조건이 필요한지 적어 보세요.',
@@ -115,7 +122,8 @@ const economyTermKey = set => set ? guidedKey(set, 'term') : 'economicTerm';
 function economyTermGuide(set) {
   const key = economyTermKey(set);
   const phenomenon = guidedPhenomenon(set);
-  const terms = phenomenon ? [...new Set([phenomenon.concept,...set.concepts])] : set?.concepts || GENERAL_ECONOMY_TERMS;
+  const terms = phenomenon ? [...new Set([phenomenon.concept,...(guidedUsesStarter(set) ? GENERAL_ECONOMY_TERMS : set.concepts)])] :
+    set?.concepts || GENERAL_ECONOMY_TERMS;
   const selected = work().answers[key];
   return `<section class="economy-write"><h2>경제 개념으로 현상 설명하기</h2>
     <p>고른 정보에서 확인한 사실을 어떤 경제 용어로 설명할 수 있을까요?</p>
@@ -138,9 +146,12 @@ function guidedExplorer() {
     groups.get(group).push(set);
   }
   return `<div class="economy-topics">${[...groups].map(([group,sets]) => `<section><h2>${esc(group)}</h2>
-    <ul class="economy-topic-grid">${sets.map(set => `<li><button type="button" data-guided-set="${esc(set.id)}">
-    <span><strong>${esc((ECONOMY_CASE_INQUIRY_GUIDES[set.id] || ECONOMY_PHENOMENON_GUIDES[set.id])?.label || set.label)}</strong><small>${esc((ECONOMY_CASE_INQUIRY_GUIDES[set.id] || ECONOMY_PHENOMENON_GUIDES[set.id] || ECONOMY_REGION_INQUIRIES[set.id]).focus)}</small></span>
-    ${set.id === selected?.id ? '<span class="topic-resume">이어서</span>' : ''}</button></li>`).join('')}</ul></section>`).join('')}</div>
+    <ul class="economy-topic-grid">${sets.map(set => {
+      const guide = guidedStarterGuide(set);
+      return `<li><button type="button" data-guided-set="${esc(set.id)}">
+    <span><strong>${esc(guide.label)}</strong><small>${esc(guide.focus)}</small></span>
+    ${set.id === selected?.id ? '<span class="topic-resume">이어서</span>' : ''}</button></li>`;
+    }).join('')}</ul></section>`).join('')}</div>
     <button type="button" data-guided-set="custom">직접 정한 주제로 탐구하기</button>`;
 }
 const guidedEvidenceKey = (set, kind, index) => guidedKey(set, `evidence_${kind}_${index}`);
@@ -172,7 +183,16 @@ function guidedSourceGroups(set, original = false) {
     if (!groups.has(storageId)) groups.set(storageId,{sourceNumber,storageId,table,first:kind === 'primary' || kind === 'comparison',entries:[]});
     groups.get(storageId).entries.push(entry);
   }
-  return [...groups.values()];
+  const existing = [...groups.values()];
+  if (original || !guidedUsesStarter(set)) return existing;
+  const starterSources = ECONOMY_START_SUPPLEMENTS[set.id] || [];
+  const additions = starterSources.map(({title,headers,rows,unit,source,date,page},index)=>{
+    const [publisher,sourceTitle,sourceUrl] = source;
+    const table = {title,headers,rows,unit,publisher,sourceTitle,sourceUrl,published:date,sourcePage:page};
+    return {table,entries:[{table}],sourceNumber:index+1,storageId:'start_'+index};
+  });
+  const sourceOrder = ECONOMY_START_SOURCE_ORDER[set.id] ?? guidedCaseAnalysis(set)?.sources;
+  return [...additions,...sourceOrder.map(index=>existing[index])];
 }
 
 const guidedSourceKey = (set,id,part) => guidedKey(set,`source_${id}_${part}`);
@@ -205,9 +225,9 @@ function guidedSource(set, {table,entries,sourceNumber,storageId}, editable, ini
     </div>`;
 }
 
-const activeGuidedRegion = set => ECONOMY_LOCAL_CASES[set.id];
+const activeGuidedRegion = set => (guidedUsesStarter(set) ? ECONOMY_START_REGIONS : ECONOMY_LOCAL_CASES)[set.id];
 const guidedRegionWasUsed = set => !guidedCaseAnalysis(set) && ['regionalChange','regionalCause'].some(part=>filled(work().answers[guidedKey(set,part)]));
-const guidedChartIds = set => ECONOMY_GUIDED_CHARTS[set.id] || [];
+const guidedChartIds = set => guidedUsesStarter(set) ? [] : ECONOMY_GUIDED_CHARTS[set.id] || [];
 const guidedInitialCharts = (set, source) => guidedChartIds(set).filter(id=>ECONOMY_DATA.charts[id].sourceUrl === source.table.sourceUrl);
 const guidedSupplementCharts = (set, source) => guidedChartIds(set).filter(id=>!guidedInitialCharts(set,source).includes(id));
 const guidedChartNoteKey = (set, id) => guidedKey(set,'chart_'+id+'_fact');
@@ -246,12 +266,18 @@ const ECONOMY_INITIAL_CLUES = {
 
 function guidedInitialMaterials(set, editable = true) {
   const caseGuide = guidedCaseAnalysis(set);
-  if (caseGuide) return `<section class="card-fact"><h2>먼저 볼 비교 자료</h2>
+  if (caseGuide) return `<section class="card-fact"><h2>${guidedUsesStarter(set) ? '처음 읽을 자료' : '먼저 볼 비교 자료'}</h2>
     ${editable ? `<p>${esc(caseGuide.prompt)}</p>` : ''}
     ${guidedReviewCase(set)}
     ${editable ? economyInput(guidedCaseFactKey(set),'상황에서 확인한 수치와 조건',caseGuide.read,220) +
       economyInput(guidedKey(set,'read'),'자료를 읽고 해석한 점','두 상황에서 달라지는 점과 그 변화가 판단에 어떤 영향을 줄지 쓰세요.',220) : ''}
     </section>`;
+  if (guidedUsesStarter(set)) {
+    const data = activeGuidedRegion(set);
+    const answers = editable ? guidedDecisionInputs(set,['regionalChange']) +
+      economyInput(guidedKey(set,'read'),'자료를 읽고 해석한 점','표에서 찾은 변화나 차이가 무엇을 보여 주는지 적으세요.',220) : '';
+    return guidedRegionMaterial(data,answers,data.task,true);
+  }
   const [first] = guidedSourceGroups(set);
   const charts = guidedInitialCharts(set,first);
   const key = guidedKey(set,'read');
@@ -269,6 +295,12 @@ function guidedInitialMaterials(set, editable = true) {
 }
 
 function guidedSupplementMaterials(set, editable = true) {
+  if (guidedUsesStarter(set)) {
+    const [first,...more] = guidedSourceGroups(set);
+    const render = group => `<section class="card-fact"><h2>${esc(group.table.title.replace(/^(주요 주제|비교 주제):\s*/,''))}</h2>${guidedSource(set,group,editable)}</section>`;
+    return `<div class="economy-facts">${render(first)}
+      ${more.length ? `<details class="supplement"><summary>더 살펴볼 자료 ${more.length}개</summary>${more.map(render).join('')}</details>` : ''}</div>`;
+  }
   const caseGuide = guidedCaseAnalysis(set);
   if (caseGuide) {
     const groups = guidedSourceGroups(set);
@@ -311,6 +343,7 @@ function guidedReviewCase(set, paper = false) {
   if (!review) return '';
   const extra = ECONOMY_REVIEW_ADDENDA[set.id];
   const caseGuide = guidedCaseAnalysis(set);
+  const context = guidedUsesStarter(set) && caseGuide ? ECONOMY_LOCAL_SIMULATIONS[set.id] : '';
   const title = caseGuide?.reviewTitle || review.title;
   const table = `<table class="${paper ? 'paper-picked' : 'stat-table'}">
       ${paper ? '' : `<caption class="sr-only">${esc(title)} 모의 자료</caption>`}
@@ -318,12 +351,14 @@ function guidedReviewCase(set, paper = false) {
       <tbody>${review.rows.map(([label,detail]) => `<tr><th scope="row">${esc(label)}</th><td>${esc(detail)}</td></tr>`).join('')}</tbody>
     </table>`;
   const materials = `
+    ${caseGuide?.glossary ? `<p>${esc(caseGuide.glossary)}</p>` : ''}
     <p>${esc(review.common)}</p>
     ${paper ? table : `<div class="stat-table-wrap">${table}</div>`}
     ${extra ? `<p class="guided-review-support"><strong>${esc(extra[0])}</strong> ${esc(extra[1])}</p>` : ''}`;
-  if (paper) return `<section><h4>모의 비교 자료 · ${esc(title)}</h4>${materials}</section>`;
+  const scenario = context ? `<p class="field-hint">가상 상황 · ${esc(context)}</p>` : '';
+  if (paper) return `<section><h4>모의 비교 자료 · ${esc(title)}</h4>${scenario}${materials}</section>`;
   return `<section class="card-simulation guided-review-case"><span class="economy-card-label">가상 비교 조건</span><h2>${esc(title)}</h2>
-    ${materials}
+    ${scenario}${materials}
     ${caseGuide ? '' : `<p class="field-hint">${esc(review.prompt)}</p>`}
     </section>`;
 }
@@ -354,7 +389,14 @@ function guidedRegionGraph(data) {
     </figure>`;
 }
 
-function guidedRegionMaterial(data, answers = '', task = data.task) {
+function guidedRegionMaterial(data, answers = '', task = data.task, starter = false) {
+  if (starter) return `<section class="card-fact guided-region-material">
+    <h2>처음 읽을 자료</h2>
+    <p><strong>${esc(data.region)} · ${esc(data.title)}</strong></p>
+    <div class="stat-table-wrap">${guidedRegionTable(data)}</div>
+    <p class="field-hint">${esc(data.clue)}</p>
+    <div class="stat-citation">${guidedRegionSources(data)}</div>
+    <p>${esc(task)}</p>${answers}</section>`;
   const graph = guidedRegionGraph(data);
   return `<section class="card-fact guided-region-material"><span class="economy-card-label">실제 지역 자료</span>
     <h2>${esc(data.region)} · ${esc(data.title)}</h2>
@@ -368,10 +410,12 @@ function guidedRegionReport(set, data = activeGuidedRegion(set)) {
   if (!data) return '';
   const answers = work().answers;
   const change = answers[guidedKey(set,'regionalChange')];
-  if (!guidedRegionWasUsed(set)) return '';
-  return `<section class="paper-local-analysis"><h4>실제 지역의 변화 · ${esc(data.region)}
+  const starter = guidedUsesStarter(set);
+  if (!starter && !guidedRegionWasUsed(set)) return '';
+  return `<section class="paper-local-analysis"><h4>${starter ? '제공 자료' : '실제 지역의 변화'} · ${esc(data.region)}
       <small class="paper-caption">${esc(data.title)}</small></h4>
     ${guidedRegionTable(data,true)}
+    ${starter ? `<p>${esc(data.clue)}</p>` : ''}
     ${filled(change) ? `<section><h5>지역 변화</h5><p>${esc(change)}</p></section>` : ''}
     <section class="paper-sources"><h5>지역 자료 출처</h5>${guidedRegionSources(data,true)}</section></section>`;
 }

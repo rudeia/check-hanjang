@@ -215,7 +215,7 @@ function prompt(key) {
     economicChange: '지역 자료에서 비교한 두 시점의 값과 달라진 모습을 적어요.',
     economicCause: '원인이라고 생각한 점을 자료와 연결하고, 확인할 점도 적어요.',
     posterTitle: '예: 시장의 변화, 우리 동네의 선택',
-    region: '예: 제주시 원도심 상권'
+    region: '예: 전남 목포시 원도심 상권'
   };
   const contextualExample = economics ? examples[key] : selectedIdea()?.examples?.[key];
   const fallbackExample = key === 'reflection' && !economics

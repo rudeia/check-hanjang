@@ -36,6 +36,7 @@ const economyJudgmentEvidence = set => work().answers[set ? guidedKey(set,'suppl
 
 function economyInitialEditor(set) {
   const a = work().answers;
+  const example = ECONOMY_START_REGIONS['household-budget'];
   return `<div class="economy-initial">` + heading(ECONOMY_STEPS[0], '첫 자료에서 사실 한 가지를 찾아 해석해요.') +
     `<section class="economy-write economy-identity">
       ${economyTitleInput(set)}
@@ -48,6 +49,12 @@ function economyInitialEditor(set) {
       ${set ? '' : `<div class="field-grid economy-place-fields">${prompt('region')}${prompt('economicPeriod')}</div>`}
     </section>` + (set ? guidedInitialMaterials(set) :
       `<section class="economy-write economy-source-list"><h2>처음 읽을 자료</h2>
+        <p>내 주제와 지역을 다룬 기사, 통계표 또는 직접 조사한 내용에서 첫 자료를 골라요.</p>
+        <details class="supplement"><summary>자료 읽기 예시 · 전남 외식 물가</summary>
+          <div class="stat-table-wrap">${guidedRegionTable(example)}</div>
+          <p>${esc(example.clue)} ${esc(example.task)}</p>
+          <div class="stat-citation">${guidedRegionSources(example)}</div>
+        </details>
         ${economyResearchBar()}${economySourceCard(sourceSlots()[0],0,true)}</section>`) + '</div>';
 }
 
@@ -273,7 +280,8 @@ function economySourceCount(set) {
   const official = guidedWrittenSources(set).filter(group=>filled(group.excerpt)).map(group=>group.table.sourceUrl);
   official.push(...guidedChartNotes(set).map(({chart})=>chart.sourceUrl));
   const region = activeGuidedRegion(set);
-  if (region && !guidedCaseAnalysis(set) && filled(work().answers[guidedKey(set,'regionalChange')])) official.push(region.sources[0][2]);
+  if (region && !guidedCaseAnalysis(set) && filled(work().answers[guidedKey(set,'regionalChange')]))
+    official.push(...region.sources.map(([, ,url])=>url));
   return new Set([...official,...own]).size;
 }
 
