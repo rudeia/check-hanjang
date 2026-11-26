@@ -468,14 +468,15 @@ function guidedEvidenceTable(groups, extra = [], noteLabel = '판단에 쓴 점'
       `${esc(source.title || '직접 찾은 자료')}
       ${origin.length ? `<p class="paper-source-link">${esc(origin.join(' · '))}</p>` : ''}
       ${url ? `<p class="paper-source-link">${economyPaperSource(url)}</p>` : ''}`,
-      sourceFact(source),sourceThought(source)
+      sourceFact(source),sourceThought(source),source.judgmentUse
     ]);
   }
   const written = rows.length ? `<table class="paper-picked paper-evidence-table">
     <thead><tr><th scope="col">자료와 출처</th><th scope="col">${'확인한 근거와 내 해석'}</th></tr></thead>
-    <tbody>${rows.map(([citation,excerpt,use])=>`<tr><th scope="row">${citation}</th><td>
+    <tbody>${rows.map(([citation,excerpt,use,judgmentUse],index)=>`<tr><th scope="row">${citation}</th><td>
       ${filled(excerpt) ? `<p>${esc(excerpt)}</p>` : ''}
-      ${filled(use) ? `<p class="paper-evidence-use"><strong>${noteLabel}</strong> ${esc(use)}</p>` : ''}
+      ${filled(use) ? `<p class="paper-evidence-use"><strong>${index < groups.length ? noteLabel : '내 말로 요약'}</strong> ${esc(use)}</p>` : ''}
+      ${filled(judgmentUse) ? `<p class="paper-evidence-use"><strong>판단에 쓴 점</strong> ${esc(judgmentUse)}</p>` : ''}
       </td></tr>`).join('')}</tbody></table>` : '';
   return written;
 }

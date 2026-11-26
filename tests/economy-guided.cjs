@@ -9,6 +9,9 @@ vm.runInContext(modules.map(name=>fs.readFileSync('docs/'+name+'.js','utf8')).jo
   const activeTask = () => 'economy';
   const work = () => draft;
   const filled = value => Boolean(value?.trim());
+  const sourceFact = source => source.fact ?? source.evidence ?? '';
+  const sourceThought = source => source.thought ?? source.meaning ?? '';
+  const answer = key => draft.answers[key] || '';
   this.sets=ECONOMY_GUIDED_SETS;this.regions=ECONOMY_LOCAL_CASES;this.draft=draft;
   this.inquiries=ECONOMY_REGION_INQUIRIES;this.charts=ECONOMY_GUIDED_CHARTS;this.phenomena=ECONOMY_PHENOMENON_GUIDES;
   this.caseGuides=ECONOMY_CASE_INQUIRY_GUIDES;
@@ -110,3 +113,24 @@ assert.equal(run("economySavedPhase({id:'online-choice'},{'guided_online-choice_
 assert.equal(run("economySavedPhase({id:'online-choice'},{'guided_online-choice_phase':'4'},0)"),2);
 assert.equal(run("economySavedPhase(null,{economyPhaseV4:'3',economyPhaseV3:'0'},0)"),3);
 console.log('PASS 17 topic guides, archived source preservation and semantic restoration of four-stage navigation');
+
+const scoped = run(`(()=>{
+  const guided='guided_tourism-consumption_initialOpinionV3';
+  const photo='data:image/jpeg;base64,AA==';
+  const one={...blank(),answers:{guidedSetId:'tourism-consumption',name:'가상 이름',economicPlan:'관광 계획',practiceStatus:'done',[guided]:'첫 의견'},sources:[{title:'관광자료',_photo:photo}]};
+  const two=switchEconomyDraft(one,'stock-diversification');
+  two.answers.economicPlan='금융 기준';
+  const back=switchEconomyDraft(JSON.parse(JSON.stringify(two)),'tourism-consumption');
+  const saved=restoreActivity(blank(),{schema:'check-hanjang-activity',version:1,activity:'economy',task:back},'economy');
+  return [validTask(two,true), two.sources[0].title, two.answers.practiceStatus,two.answers.name,
+    back.sources[0]._photo,back.answers.economicPlan,back.answers[guided],valid(saved),saved.economy.economyDrafts['stock-diversification'].answers.economicPlan];
+})()`);
+assert.deepEqual(Array.from(scoped),[true,undefined,undefined,'가상 이름','data:image/jpeg;base64,AA==','관광 계획','첫 의견',true,'금융 기준']);
+ctx.draft.answers={guidedSetId:'tourism-consumption','guided_tourism-consumption_decisionGuideVersion':'5'};
+ctx.draft.sources=[{title:'보충 자료',url:'https://example.org/test',fact:'수치와 단위',thought:'자료 요약',judgmentUse:'의견에 활용'}];
+assert.equal(run('economyOwnEvidence(economyGuided()).length'),1);
+ctx.draft.sources[0].url=run('guidedSourceGroups(economyGuided())[0].table.sourceUrl');
+assert.equal(run('economyOwnEvidence(economyGuided()).length'),0);
+delete ctx.draft.sources[0].judgmentUse;
+assert(run('economyMissing(economyGuided()).some(label=>label.includes("보충 자료"))'));
+console.log('PASS topic-scoped drafts and photos, backup restore, distinct supplemental evidence and draft warning.');

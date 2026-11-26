@@ -411,8 +411,19 @@ function renderProgress() {
   const set = economyGuided();
   const sourceCount = economics ? economySourceCount(set) : sources.filter(completeSource).length;
   if (count) count.textContent = economics
-    ? `기록한 출처 ${sourceCount}곳 · 서로 다른 출처 3곳 이상에서 근거를 찾아봐요.`
+    ? `기록한 출처 ${sourceCount}곳 · 직접 찾은 보충 자료 ${economyOwnEvidence(set).length}건 / 최소 1건`
     : `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (자료 조사 목표: 3개 이상)`;
+  if (economics) {
+    const missing = economyMissing(set);
+    for (const id of ['#economy-ready','#economy-preview-ready']) {
+      const el = $(id);
+      if (!el) continue;
+      el.hidden = awaitingEconomyTopic() || (id === '#economy-preview-ready' && economyView !== 'preview');
+      el.textContent = missing.length
+        ? '아직 작성하지 않은 항목: '+missing.join(' · ')+'. 지금 저장하면 초안이에요.'
+        : '핵심 항목을 작성했어요. PDF를 저장하기 전에 내용과 출처를 확인하세요.';
+    }
+  }
   const completed = economics ? economyCompleted(set) : [
     [a.number,a.name,a.team,a.topic,a.inquiry].every(filled),
     sourceCount >= SOURCE_GOAL,
@@ -442,7 +453,8 @@ function reportEvidenceFigures(evidence, attachments, economics = false) {
         ${source._photo ? `<img src="${source._photo}" alt="${esc(source.photoCaption || source.title || '첨부한 근거 이미지')}">` : ''}
         ${source._photo && source.photoCaption ? `<small>${esc(source.photoCaption)}</small>` : ''}
         <p><strong class="evidence-label">사실</strong> ${esc(sourceFact(source) || '작성할 내용')}</p>
-        <p><strong class="evidence-label">내 생각</strong> ${esc(sourceThought(source) || '작성할 내용')}</p>
+        <p><strong class="evidence-label">${economics ? '내 말로 요약' : '내 생각'}</strong> ${esc(sourceThought(source) || '작성할 내용')}</p>
+        ${economics && filled(source.judgmentUse) ? `<p><strong class="evidence-label">판단에 쓴 점</strong> ${esc(source.judgmentUse)}</p>` : ''}
         <small><strong>출처</strong> ${economics ?
           [esc(source.author),esc(source.date),economyPaperSource(source.url)].filter(filled).join(' · ') :
           esc([source.author, source.date, source.url].filter(filled).join(' / ') || '출처를 적어 주세요.')}</small></figure>`).join('')}
@@ -513,6 +525,7 @@ function setEconomyView(view) {
   if (activeTask() !== 'economy' || awaitingEconomyTopic() || !['write','preview'].includes(view)) return;
   economyView = view;
   applyEconomyView();
+  renderProgress();
   $('#tab-'+view).focus();
 }
 
@@ -652,7 +665,7 @@ async function attachPhoto(input) {
     const backupBytes = new Blob([JSON.stringify({ ...candidate, exportedAt: new Date().toISOString() }, null, 2)]).size;
     if (backupBytes > BACKUP_LIMIT_BYTES) throw new Error('전체 보관 용량을 넘어서 이미지를 추가하지 않았어요. 기존 글과 사진은 그대로 있어요. 작업을 파일로 보관한 뒤 필요 없는 사진을 정리해 주세요.');
     if (!change(candidate, true)) throw new Error('기기 저장 공간이 부족하거나 저장이 허용되지 않아 이미지를 추가하지 않았어요. 기존 글과 사진은 그대로 있어요. 작업을 파일로 보관해 주세요.');
-    if (task === 'economy' ? [0,2].includes(stage()) : stage() === 1) {
+    if (task === 'economy' ? stage() === 0 : stage() === 1) {
       render();
       $('#photo-' + index)?.focus();
     }
@@ -738,7 +751,8 @@ $('#editor').addEventListener('click', event => {
     if (!awaitingEconomyTopic()) return;
     const id = button.dataset.guidedSet;
     if (id === 'custom' || (typeof ECONOMY_GUIDED_SETS !== 'undefined' && ECONOMY_GUIDED_SETS.some(set => set.id === id))) {
-      const answers = { ...work().answers, guidedSetId: id === 'custom' ? '' : id, economyPackId: 'custom' };
+      const switched = switchEconomyDraft(work(),id);
+      const answers = {...switched.answers,guidedSetId:id==='custom'?'':id,economyPackId:'custom'};
       if (id !== 'custom') {
         const topic = ECONOMY_GUIDED_SETS.find(set=>set.id===id);
         answers[guidedQuestionVersionKey(topic)] = nextGuidedQuestionVersion(topic,answers);
@@ -746,7 +760,7 @@ $('#editor').addEventListener('click', event => {
           answers[economyPhase(topic)] ??= '0';
       }
       economyView = 'write';
-      if (!change(patchTask({answers}), true)) return;
+      if (!change({...data,economy:{...switched,answers}}, true)) return;
       location.hash = '#economy-work';
     }
     return;
@@ -802,6 +816,10 @@ previewPrint.addEventListener('click', printPoster);
 
 async function printPoster() {
   if (printBusy) return;
+  if (activeTask() === 'economy') {
+    const missing = economyMissing(economyGuided());
+    if (missing.length && !confirm('아직 작성하지 않은 항목: '+missing.join(' · ')+'\n제출용 완성본이 아니라 초안으로 저장할까요?')) return;
+  }
   printBusy = true;
   const buttons = [$('#print'), previewPrint].filter(Boolean);
   buttons.forEach(button => { button.disabled = true; });
@@ -850,7 +868,7 @@ $('#file').onchange = async event => {
     const incoming = JSON.parse(await file.text());
     const imported = restoreActivity(data, incoming, activeTask());
     if (!valid(imported)) throw new Error('체크 한장에서 보관한 파일을 선택해 주세요.');
-    for (const task of [imported, imported.economy].filter(Boolean)) {
+    for (const task of [imported, imported.economy, ...Object.values(imported.economy?.economyDrafts || {})].filter(Boolean)) {
       await validateRestoredPhotos([...(task.attachments || []), ...task.sources.filter(s => s._photo).map(s => ({ dataUrl: s._photo }))]);
     }
     if (snapshot !== revision) throw new Error('작성 내용이 바뀌었어요. 파일을 다시 선택해 주세요.');

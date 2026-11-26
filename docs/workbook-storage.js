@@ -35,7 +35,33 @@ function validLearning(x){return x===undefined||(x&&x.version===1&&x.links&&type
 function validPosition(p,d,economy=false){if(p===undefined)return true;const counts=[3,d.sources.length*(p?.version===2?2:5),4,4,economy?3:2,5,economy?4:3];const extras=[...LEGACY_FIELDS,'comparison','interpretation','valueCriterion','valueJudgment','conclusion','limits','concepts','generalization','conditions','transfer','method','practicePlan','practiceResult','chosenEvidence','actualPresentation','actualQuestions','posterTitle','topicLens','rightsConnection','sourceReview','presentationPrep','checks'];return p&&[1,2].includes(p.version)&&Number.isInteger(p.group)&&p.group>=0&&p.group<counts.length&&Number.isInteger(p.index)&&p.index>=0&&p.index<counts[p.group]&&(p.extra===undefined||(typeof p.extra==='string'&&extras.includes(p.extra)&&(economy||!['practicePlan','practiceResult'].includes(p.extra))));}
 function validTransfer(x){const context=c=>c&&['preset','student'].includes(c.kind)&&typeof c.text==='string';return x===undefined||(x&&x.version===1&&context(x)&&(x.studentDraft===undefined||typeof x.studentDraft==='string')&&(x.answerContext===undefined||context(x.answerContext)));}
 function validMission(m){return m===undefined||(m&&m.version===1&&typeof m.enabled==='boolean'&&['none','policy','advocate','journalist','researcher','specialist','custom'].includes(m.choice)&&['customRole','audience','purpose'].every(k=>typeof m[k]==='string')&&['task','product'].every(k=>m[k]===undefined||typeof m[k]==='string'));}
-function validTask(d,economy=false){return baseValid(d)&&validLearning(d.learning)&&validPosition(d.position,d,economy)&&validTransfer(d.transferContext)&&validMission(d.mission)&&new Set(d.sources.filter(s=>s._id).map(s=>s._id)).size===d.sources.filter(s=>s._id).length;}
+const ECONOMY_SHARED_ANSWERS = new Set(['school','classroom','number','name','team','guidedSetId','economyPackId']);
+const ECONOMY_DRAFT_FIELDS = ['sources','attachments','worksheetChecks','rehearsalChecks','checks','learning','position','transferContext','mission','step','worksheetStep'];
+const economySharedAnswer = key => ECONOMY_SHARED_ANSWERS.has(key) || key.startsWith('guided_');
+function validEconomyDrafts(drafts) {
+  return drafts === undefined || (drafts && typeof drafts === 'object' && !Array.isArray(drafts) &&
+    Object.keys(drafts).length <= 80 && Object.entries(drafts).every(([id,draft]) =>
+      /^[a-z][a-z0-9-]{0,79}$/.test(id) && draft && typeof draft === 'object' && !Array.isArray(draft) &&
+      Object.keys(draft).every(key=>key==='answers'||ECONOMY_DRAFT_FIELDS.includes(key)) &&
+      stringRecord(draft.answers) && !Object.keys(draft.answers).some(economySharedAnswer) &&
+      validTask({...blank(),...draft},true)));
+}
+function switchEconomyDraft(task, id) {
+  const active = /^[a-z][a-z0-9-]{0,79}$/.test(task.answers.guidedSetId||'') ? task.answers.guidedSetId : 'custom';
+  if (active === id) return task;
+  const drafts = {...task.economyDrafts};
+  const shared = Object.fromEntries(Object.entries(task.answers).filter(([key])=>economySharedAnswer(key)));
+  const saved = Object.fromEntries(Object.entries(task.answers).filter(([key])=>!economySharedAnswer(key)));
+  const state = Object.fromEntries(ECONOMY_DRAFT_FIELDS.filter(key=>key in task).map(key=>[key,task[key]]));
+  drafts[active] = {...state,answers:saved};
+  const next = Object.hasOwn(drafts,id) ? drafts[id] : {};
+  delete drafts[id];
+  const base = {...task};
+  for (const key of ECONOMY_DRAFT_FIELDS) delete base[key];
+  return {...base, ...blank(), ...next, economyDrafts:drafts,
+    answers:{...shared,...next.answers,guidedSetId:id==='custom'?'':id,economyPackId:'custom'}};
+}
+function validTask(d,economy=false){return baseValid(d)&&(economy?validEconomyDrafts(d.economyDrafts):d.economyDrafts===undefined)&&validLearning(d.learning)&&validPosition(d.position,d,economy)&&validTransfer(d.transferContext)&&validMission(d.mission)&&new Set(d.sources.filter(s=>s._id).map(s=>s._id)).size===d.sources.filter(s=>s._id).length;}
 function valid(d){return validTask(d)&&(d.inquiry===undefined?d.economy===undefined:(d.inquiry&&d.inquiry.version===1&&['human','economy'].includes(d.inquiry.active)&&(d.economy===undefined?d.inquiry.active==='human':validTask(d.economy,true)&&d.economy.inquiry===undefined&&d.economy.economy===undefined)));}
 const MEDIA_LIMIT = {
   count: 4, inputBytes: 20 * 1024 * 1024, inputPixels: 25000000, inputEdge: 16384,
