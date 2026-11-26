@@ -10,6 +10,13 @@ const storageKey = 'pyeongga-hanjang-social2-v1';
 const steps = ['질문과 첫 자료','추가 조사와 경제 분석','결론과 제안','제출과 공유'];
 const chapters = ['Ⅰ. 질문과 첫 자료','Ⅱ. 추가 조사와 경제 분석','Ⅲ. 결론과 제안'];
 
+// Exercise the version-5 entry flow; economy-paired.cjs tests the current entry.
+async function legacyPage(browser, options) {
+  const page = await browser.newPage(options);
+  await page.route('**/economy-paired-data.js*', route => route.fulfill({ contentType:'application/javascript', body:'/* version-5 fixture */' }));
+  return page;
+}
+
 async function preview(page) {
   await page.locator('#tab-preview').click();
   assert(await page.locator('#workspace').isHidden());
@@ -20,7 +27,7 @@ async function preview(page) {
 }
 
 async function topicFilters(browser) {
-  const page = await browser.newPage({viewport:{width:360,height:800}});
+  const page = await legacyPage(browser,{viewport:{width:360,height:800}});
   try {
     await page.goto(base+'#economy');
     const tabs = page.locator('.economy-category-tabs');
@@ -188,7 +195,7 @@ async function guided(page, id) {
 }
 
 async function legacy(browser) {
-  const page = await browser.newPage();
+  const page = await legacyPage(browser,);
   try {
     await page.addInitScript(key=>{
       if (localStorage.getItem(key)) return;
@@ -257,7 +264,7 @@ async function legacy(browser) {
 }
 
 async function topicIsolation(browser) {
-  const page = await browser.newPage({viewport:{width:390,height:800}});
+  const page = await legacyPage(browser,{viewport:{width:390,height:800}});
   const a='tourism-consumption', b='exchange-positions';
   const start=async id=>{
     await page.goto(base+'#economy');
@@ -310,7 +317,7 @@ async function topicIsolation(browser) {
 }
 
 async function hiddenFinanceDraft(browser) {
-  const page=await browser.newPage();
+  const page=await legacyPage(browser,);
   try {
     await page.addInitScript(key=>{
       if (localStorage.getItem(key)) return;
@@ -329,7 +336,7 @@ async function hiddenFinanceDraft(browser) {
 }
 
 async function direct(browser) {
-  const page = await browser.newPage({viewport:{width:360,height:800}});
+  const page = await legacyPage(browser,{viewport:{width:360,height:800}});
   try {
     await page.goto(base+'#economy');
     await page.locator('[data-guided-set="custom"]').click();
@@ -371,7 +378,7 @@ async function direct(browser) {
     const topics = await topicFilters(browser);
     for (const [index,id] of topics.entries()) {
       if (process.env.TOPIC_FILTER && !process.env.TOPIC_FILTER.split(',').includes(id)) continue;
-      const page = await browser.newPage({viewport:{width:index%2===0 ? 375 : 1024,height:812}});
+      const page = await legacyPage(browser,{viewport:{width:index%2===0 ? 375 : 1024,height:812}});
       page.setDefaultTimeout(6000);
       const errors=[];
       page.on('pageerror',error=>errors.push(error.message));

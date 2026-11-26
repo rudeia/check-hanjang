@@ -411,7 +411,7 @@ function renderProgress() {
   const set = economyGuided();
   const sourceCount = economics ? economySourceCount(set) : sources.filter(completeSource).length;
   if (count) count.textContent = economics
-    ? `기록한 출처 ${sourceCount}곳 · 직접 찾은 보충 자료 ${economyOwnEvidence(set).length}건 / 최소 1건`
+    ? `기록한 출처 ${sourceCount}곳 · 직접 찾은 보충 자료 ${economyOwnEvidence(set).length}건 / 최소 1건` + (economyPaired(set) && sources.some(source=>economyOwnSourceComplete(source) && economyProvidedSource(source,economySuppliedSources(set,sources[0] || {}))) ? ' · 초기 자료와 같은 출처는 보충 자료로 세지 않아요. 다른 자료를 찾아보세요.' : '')
     : `모은 자료: ${sourceCount} / ${SOURCE_GOAL}개 (자료 조사 목표: 3개 이상)`;
   if (economics) {
     const missing = economyMissing(set);
@@ -751,11 +751,11 @@ $('#editor').addEventListener('click', event => {
       if (id !== 'custom') {
         const topic = ECONOMY_GUIDED_SETS.find(set=>set.id===id);
         answers[guidedQuestionVersionKey(topic)] = nextGuidedQuestionVersion(topic,answers);
-        if (['phase','phaseV2','phaseV3'].every(part=>answers[guidedKey(topic,part)] === undefined))
-          answers[economyPhase(topic)] ??= '0';
+        if (['phase','phaseV2','phaseV3','phaseV4'].every(part=>answers[guidedKey(topic,part)] === undefined))
+          answers[economyPhase(topic)] = '0';
       }
-      economyView = 'write';
       if (!change({...data,economy:{...switched,answers}}, true)) return;
+      economyView = 'write';
       location.hash = '#economy-work';
     }
     return;

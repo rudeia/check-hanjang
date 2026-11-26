@@ -44,6 +44,8 @@ function economyGuided() {
 function guidedKey(set, part) { return `guided_${set.id}_${part}`; }
 
 const guidedQuestionVersionKey = set => guidedKey(set,'decisionGuideVersion');
+const economyPairedConfig = set => set && typeof ECONOMY_PAIRED_START !== 'undefined' ? ECONOMY_PAIRED_START[set.id] : null;
+const economyPaired = set => set && work().answers[guidedQuestionVersionKey(set)] === '6' ? economyPairedConfig(set) : null;
 const guidedUsesStarter = set => Boolean(set && work().answers[guidedQuestionVersionKey(set)] === '5');
 const guidedStarterGuide = set => {
   const caseGuide = ECONOMY_CASE_INQUIRY_GUIDES[set.id];
@@ -58,7 +60,7 @@ const guidedCaseAnalysis = set => {
 const guidedPhenomenon = set => guidedCaseAnalysis(set) || (guidedUsesStarter(set) ? guidedStarterGuide(set) :
   set && work().answers[guidedQuestionVersionKey(set)] === '3' ? ECONOMY_PHENOMENON_GUIDES[set.id] : null);
 const guidedInquiryGuide = set => guidedPhenomenon(set) || ECONOMY_REGION_INQUIRIES[set.id];
-const guidedTopicLabel = set => guidedPhenomenon(set)?.label || set.label;
+const guidedTopicLabel = set => economyPaired(set)?.label || guidedPhenomenon(set)?.label || set.label;
 
 function usesPreviousGuidedQuestion(set, answers = work().answers) {
   const version = answers[guidedQuestionVersionKey(set)];
@@ -67,6 +69,11 @@ function usesPreviousGuidedQuestion(set, answers = work().answers) {
 }
 
 function guidedHasDraft(set, answers) {
+  const task = work();
+  const saved = task.answers.guidedSetId === set.id ? task : task.economyDrafts?.[set.id];
+  if ((saved?.sources || []).some(source=>Object.entries(source).some(([key,value])=>key !== '_id' && typeof value==='string' && value.trim())) ||
+      (saved?.attachments || []).length ||
+      Object.entries(saved?.answers || {}).some(([key,value])=>!economySharedAnswer(key) && filled(value))) return true;
   const prefix = guidedKey(set,'');
   const navigation = ['phase','phaseV2','phaseV3','phaseV4','decisionGuideVersion'];
   return Object.entries(answers).some(([key,value]) =>
@@ -74,12 +81,13 @@ function guidedHasDraft(set, answers) {
 }
 
 function nextGuidedQuestionVersion(set, answers) {
-  if (!guidedHasDraft(set,answers)) return '5';
+  if (!guidedHasDraft(set,answers)) return economyPairedConfig(set) ? '6' : '5';
   return answers[guidedQuestionVersionKey(set)] || (usesPreviousGuidedQuestion(set,answers) ? '1' : '2');
 }
 
 function guidedQuestion(set) {
   const guide = guidedInquiryGuide(set);
+  if (economyPaired(set)) return economyPaired(set).question;
   return usesPreviousGuidedQuestion(set) ? guide.previousQuestion : guide.focus;
 }
 
@@ -91,7 +99,7 @@ function economyInquiry() {
 }
 
 function economyInquiryLabel(set) {
-  return !set || filled(work().answers[economyQuestionKey(set)]) || usesPreviousGuidedQuestion(set) ? '탐구 질문' : '탐구 과제';
+  return !set || economyPaired(set) || filled(work().answers[economyQuestionKey(set)]) || usesPreviousGuidedQuestion(set) ? '탐구 질문' : '탐구 과제';
 }
 
 function economyQuestionSummary(heading, question) {
@@ -124,10 +132,12 @@ const economyTermKey = set => set ? guidedKey(set, 'term') : 'economicTerm';
 function economyTermGuide(set) {
   const key = economyTermKey(set);
   const phenomenon = guidedPhenomenon(set);
+  const pairedTerms = { 'tourism-consumption':['수요 변화'], 'online-choice':['수요 변화'], 'household-budget':['구매력'], 'fruit-purchasing':['공급 변화'], 'tariff-choices':['공급 변화'], 'exchange-positions':['환율'], 'trade-suppliers':['분업과 무역'], 'stock-news-surge':['분업과 무역'] };
   const terms = phenomenon ? [...new Set([phenomenon.concept,...set.concepts,...(guidedUsesStarter(set) ? ['비용과 편익', ...GENERAL_ECONOMY_TERMS] : [])])] :
+    economyPaired(set) ? [...new Set([...(pairedTerms[set.id] || []),...set.concepts,'비용과 편익','경제 주체'])].filter(term=>!['관세','정보의 비대칭','금융 자산과 자산 관리'].includes(term)) :
     set?.concepts || [...GENERAL_ECONOMY_TERMS,'비용과 편익','수요 변화','공급 변화','구매력','외부 효과','환율','관세'];
   const selected = work().answers[key];
-  const reason = set && guidedInquiryGuide(set).cause;
+  const reason = !economyPaired(set) && set && guidedInquiryGuide(set).cause;
   return `<section class="economy-write"><h2>경제 개념으로 현상 설명하기</h2>
     <p>비교한 자료를 설명하는 데 필요한 개념을 골라 보세요. 아직 확인하지 못한 이유는 가능성으로 표현하세요.</p>
     <div class="field"><label for="economy-term">적용할 경제 개념</label><select id="economy-term" data-term-key="${key}">
@@ -143,12 +153,15 @@ const ECONOMY_TOPIC_GROUPS = {
 };
 
 function economyTopicGroup(set) {
+  if (economyPairedConfig(set) && set.id === 'tariff-choices') return 'local';
+  if (economyPairedConfig(set) && set.id === 'stock-news-surge') return 'trade';
   if (set.id === 'stock-news-surge' || set.id === 'cocoa-buying') return 'local';
   if (set.id === 'exchange-positions') return 'trade';
   return set.group === '국제 무역' ? 'trade' : 'local';
 }
 
-const economyTopicSelectable = set => !Object.hasOwn(ECONOMY_CASE_INQUIRY_GUIDES,set.id);
+const economyTopicSelectable = set => !Object.hasOwn(ECONOMY_CASE_INQUIRY_GUIDES,set.id) &&
+  (typeof ECONOMY_PAIRED_START === 'undefined' || Boolean(economyPairedConfig(set)));
 
 function guidedExplorer(activeGroup = 'all') {
   if (activeTask() !== 'economy' || typeof ECONOMY_GUIDED_SETS === 'undefined') return '';
@@ -165,14 +178,16 @@ function guidedExplorer(activeGroup = 'all') {
     <ul class="economy-topic-grid">${sets.map(set => {
       const guide = guidedStarterGuide(set);
       const resuming = guidedHasDraft(set,answers);
-      const previous = resuming && !guidedUsesStarter(set);
-      const previousLabel = previous ? guidedTopicLabel(set) : '';
-      const region = previousLabel ? activeGuidedRegion(set)?.region :
+      const open = answers; // Guided answer/version keys are shared by topic prefix.
+      const prior = resuming && open[guidedQuestionVersionKey(set)] !== '6';
+      const paired = prior ? null : economyPairedConfig(set);
+      const previousLabel = prior ? (open[guidedQuestionVersionKey(set)] === '5' ? guide.label : set.label) : '';
+      const region = paired ? (paired.regionLabel || '두 지역 비교') : prior ? activeGuidedRegion(set)?.region :
         ECONOMY_START_REGIONS[set.id]?.region || ECONOMY_LOCAL_SIMULATIONS[set.id]?.split(' ')[0];
       return `<li><button type="button" data-guided-set="${esc(set.id)}">
-    <span class="topic-badges">${region ? `<span class="badge-region">${esc(region)}</span>` : ''}<span class="badge-concept">${esc((previous && guidedPhenomenon(set)?.concept) || guide.concept)}</span>
-      ${resuming ? '<span class="topic-resume">이어서</span>' : ''}</span>
-    <strong>${esc(previousLabel || guide.label)}</strong><small>${esc(previousLabel ? guidedInquiryGuide(set).focus : guide.cardFocus || guide.focus)}</small></button></li>`;
+    <span class="topic-badges">${region ? `<span class="badge-region">${esc(region)}</span>` : ''}<span class="badge-concept">${esc((prior && open[guidedQuestionVersionKey(set)] === '3' && ECONOMY_PHENOMENON_GUIDES[set.id]?.concept) || guide.concept)}</span>
+      ${resuming ? '<span class="topic-resume">'+(prior && typeof ECONOMY_PAIRED_START !== 'undefined' ? '이전 양식 이어 쓰기' : '이어서')+'</span>' : ''}</span>
+    <strong>${esc(paired?.label || previousLabel || guide.label)}</strong><small>${esc(paired?.question || (previousLabel ? (open[guidedQuestionVersionKey(set)] === '5' ? guide.focus : ECONOMY_REGION_INQUIRIES[set.id].focus) : guide.cardFocus || guide.focus))}</small></button></li>`;
     }).join('')}</ul></section>`).join('')}</div>
     <button type="button" data-guided-set="custom">+ 직접 정한 우리 지역 주제로 탐구하기</button>
     ${previousOnly.length ? `<details class="supplement"><summary>이전에 쓰던 주제 이어 쓰기</summary>
@@ -230,14 +245,14 @@ const guidedNumberFormat = new Intl.NumberFormat('ko-KR');
 const guidedValue = value => typeof value === 'number' ? guidedNumberFormat.format(value) : value;
 const studyDate = table => esc([table.dateLabel || '발표',table.published].filter(Boolean).join(' '));
 
-function guidedReferenceTable(table) {
+function guidedReferenceTable(table,paper=false,hideCaption=false) {
   const numeric = table.rows.some(row=>row.slice(1).some(value=>typeof value === 'number'));
   const scope = numeric ? ` · ${esc(table.unit)}` : '';
   const title = table.title.replace(/^(주요 주제|비교 주제):\s*/,'');
-  return `<div class="stat-table-wrap"><table class="stat-table"><caption>${esc(title)}${scope}</caption>
+  return `${paper ? '' : '<div class="stat-table-wrap">'}<table class="${paper ? 'paper-picked paper-local-table' : 'stat-table'}">${paper ? '' : '<caption'+(hideCaption?' class="sr-only"':'')+'>'+esc(title)+scope+'</caption>'}
     <thead><tr>${table.headers.map((h,index)=>`<th scope="col"${index && table.rows.every(row=>typeof row[index] === 'number') ? ' class="num"' : ''}>${esc(h)}</th>`).join('')}</tr></thead>
     <tbody>${table.rows.map(([label,...values])=>`<tr><th scope="row">${esc(label)}</th>${values.map(value=>`<td${numericCell(value)}>${esc(guidedValue(value))}</td>`).join('')}</tr>`).join('')}</tbody>
-    </table></div>`;
+    </table>${paper ? '' : '</div>'}`;
 }
 
 function guidedSource(set, {table,entries,sourceNumber,storageId}, editable, initial = false) {
