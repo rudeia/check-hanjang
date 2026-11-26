@@ -419,3 +419,7 @@ dialog li + li { margin-top: .5rem; }
   .official-graph .stat-image { break-inside: avoid; }
   .view-tabs { display: none !important; }
 }
+
+/* Keep the short period-value fields legible on a phone. */
+.economy-reading-table td { min-width: 5rem; }
+.economy-reading-table input { display: block; width: 100%; min-width: 0; box-sizing: border-box; padding: .45rem .35rem; font-variant-numeric: tabular-nums; }

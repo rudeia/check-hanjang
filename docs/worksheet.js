@@ -665,7 +665,7 @@ async function attachPhoto(input) {
     const backupBytes = new Blob([JSON.stringify({ ...candidate, exportedAt: new Date().toISOString() }, null, 2)]).size;
     if (backupBytes > BACKUP_LIMIT_BYTES) throw new Error('전체 보관 용량을 넘어서 이미지를 추가하지 않았어요. 기존 글과 사진은 그대로 있어요. 작업을 파일로 보관한 뒤 필요 없는 사진을 정리해 주세요.');
     if (!change(candidate, true)) throw new Error('기기 저장 공간이 부족하거나 저장이 허용되지 않아 이미지를 추가하지 않았어요. 기존 글과 사진은 그대로 있어요. 작업을 파일로 보관해 주세요.');
-    if (task === 'economy' ? stage() === 0 : stage() === 1) {
+    if (task === 'economy' ? stage() === 0 || stage() === 1 : stage() === 1) {
       render();
       $('#photo-' + index)?.focus();
     }
@@ -713,11 +713,6 @@ $('#editor').addEventListener('input', event => {
 });
 $('#editor').addEventListener('change', event => {
   const field = event.target;
-  if (field.name === 'practice-status' && Object.hasOwn(ECONOMY_PRACTICE_STATUS,field.value)) {
-    editAnswer('practiceStatus',field.value);
-    render();
-    $('#editor input[name="practice-status"]:checked')?.focus();
-  }
   if (field.dataset.guidedRole !== undefined) {
     const set = economyGuided();
     if (set && (!field.value || guidedRoles(set).includes(field.value))) editAnswer(guidedKey(set,'position'),field.value);
@@ -750,7 +745,7 @@ $('#editor').addEventListener('click', event => {
   if (button.dataset.guidedSet) {
     if (!awaitingEconomyTopic()) return;
     const id = button.dataset.guidedSet;
-    if (id === 'custom' || (typeof ECONOMY_GUIDED_SETS !== 'undefined' && ECONOMY_GUIDED_SETS.some(set => set.id === id))) {
+    if (id === 'custom' || (typeof ECONOMY_GUIDED_SETS !== 'undefined' && ECONOMY_GUIDED_SETS.some(set => set.id === id && (economyTopicSelectable(set) || guidedHasDraft(set,work().answers))))) {
       const switched = switchEconomyDraft(work(),id);
       const answers = {...switched.answers,guidedSetId:id==='custom'?'':id,economyPackId:'custom'};
       if (id !== 'custom') {

@@ -134,3 +134,32 @@ assert.equal(run('economyOwnEvidence(economyGuided()).length'),0);
 delete ctx.draft.sources[0].judgmentUse;
 assert(run('economyMissing(economyGuided()).some(label=>label.includes("보충 자료"))'));
 console.log('PASS topic-scoped drafts and photos, backup restore, distinct supplemental evidence and draft warning.');
+
+assert.equal(run('Object.keys(ECONOMY_INQUIRY_CHECKS).length'),17);
+for (const topic of ctx.sets) {
+  const prefix='guided_'+topic.id+'_';
+  ctx.draft.answers={guidedSetId:topic.id,[prefix+'decisionGuideVersion']:'5',[prefix+'initialOpinionV3']:'자료에서 읽은 사실'};
+  assert(run('economyToCheckPrompt(economyGuided()).trim().length')>10);
+  assert(run('economyMissing(economyGuided()).includes("더 조사해서 확인할 점")'));
+  ctx.draft.answers[prefix+'questionToCheckV7']='별도로 조사할 설명';
+  assert(!run('economyMissing(economyGuided()).includes("더 조사해서 확인할 점")'));
+}
+ctx.draft.answers={guidedSetId:'cocoa-buying','guided_cocoa-buying_decisionGuideVersion':'5'};
+ctx.draft.sources=[{title:'교사가 제공한 코코아 자료',url:run('ECONOMY_START_BRIDGES["cocoa-buying"].url'),fact:'단위 있는 수치',thought:'요약',judgmentUse:'판단 근거'}];
+assert.equal(run('economyOwnEvidence(economyGuided()).length'),0);
+assert.match(run('ECONOMY_CALC_METHOD["saving-goal"]'),/예금 이자와 수수료는 따로 계산하지 않아요/);
+assert.match(run('ECONOMY_REVIEW_CASES["domestic-global-stocks"].title'),/같은 해외 주식/);
+console.log('PASS 17 claim-check prompts, missing-field handling, supplied bridge exclusion and consistent simulation prompts');
+
+const bridge=run('ECONOMY_START_BRIDGES["cocoa-buying"]');
+ctx.draft.sources[0]={title:'  '+bridge.sourceTitle,author:bridge.publisher,date:'2026년',fact:'수치',thought:'요약',judgmentUse:'판단'};
+assert.equal(run('economyOwnEvidence(economyGuided()).length'),0);
+ctx.draft.sources[0].url=bridge.publisher;
+delete ctx.draft.sources[0].author;
+assert.equal(run('economyOwnEvidence(economyGuided()).length'),0);
+ctx.draft.sources[0]={title:'별도의 국제가격 시계열',author:bridge.publisher,date:'2026년',fact:'수치',thought:'요약',judgmentUse:'판단'};
+assert.equal(run('economyOwnEvidence(economyGuided()).length'),1);
+assert(run('economyMissing(economyGuided()).includes("분석할 사람이나 기업의 입장")'));
+assert(run('economyMissing(economyGuided()).includes("경제 주체별 영향")'));
+ctx.draft.answers={topic:'이전 주제명',inquiry:'이전 초안의 실제 탐구 질문'};
+assert.equal(run('economyDisplayQuestion(null)'),'이전 초안의 실제 탐구 질문');

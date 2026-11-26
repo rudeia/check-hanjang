@@ -124,37 +124,41 @@ const economyTermKey = set => set ? guidedKey(set, 'term') : 'economicTerm';
 function economyTermGuide(set) {
   const key = economyTermKey(set);
   const phenomenon = guidedPhenomenon(set);
-  const terms = phenomenon ? [...new Set([phenomenon.concept,...(guidedUsesStarter(set) ? GENERAL_ECONOMY_TERMS : set.concepts)])] :
-    set?.concepts || GENERAL_ECONOMY_TERMS;
+  const terms = phenomenon ? [...new Set([phenomenon.concept,...set.concepts,...(guidedUsesStarter(set) ? ['비용과 편익', ...GENERAL_ECONOMY_TERMS] : [])])] :
+    set?.concepts || [...GENERAL_ECONOMY_TERMS,'비용과 편익','수요 변화','공급 변화','구매력','외부 효과','환율','관세'];
   const selected = work().answers[key];
   const reason = set && guidedInquiryGuide(set).cause;
   return `<section class="economy-write"><h2>경제 개념으로 현상 설명하기</h2>
-    <p>고른 정보에서 확인한 사실을 어떤 경제 용어로 설명할 수 있을까요?</p>
+    <p>비교한 자료를 설명하는 데 필요한 개념을 골라 보세요. 아직 확인하지 못한 이유는 가능성으로 표현하세요.</p>
     <div class="field"><label for="economy-term">적용할 경제 개념</label><select id="economy-term" data-term-key="${key}">
       <option value="">경제 용어를 골라 보세요</option>${terms.map(term => `<option${term === selected ? ' selected' : ''}>${esc(term)}</option>`).join('')}</select>
       <p id="economy-term-method" class="field-hint" role="status">${terms.includes(selected) ? esc(ECONOMY_TERM_METHODS[selected]) : ''}</p></div>
-    ${economyInput(set ? guidedKey(set,'explain') : 'concepts','경제 개념으로 변화의 이유 설명하기',
+    ${economyInput(set ? guidedKey(set,'explain') : 'concepts','자료에서 확인한 변화를 경제 개념으로 설명하기',
       reason || '자료의 숫자나 조건 한 가지를 고르고, 결과가 달라진 이유를 선택한 개념으로 설명해요.',300,
       (set ? work().answers[guidedKey(set,'explain')] : undefined) ?? work().answers.concepts)}</section>`;
 }
 
 const ECONOMY_TOPIC_GROUPS = {
-  all:'전체', local:'생활·지역 경제', finance:'환율·투자', trade:'국제 무역'
+  all:'전체', local:'생활·지역 경제', trade:'국제 무역·환율'
 };
 
 function economyTopicGroup(set) {
   if (set.id === 'stock-news-surge' || set.id === 'cocoa-buying') return 'local';
-  if (set.group === '환율·투자') return 'finance';
+  if (set.id === 'exchange-positions') return 'trade';
   return set.group === '국제 무역' ? 'trade' : 'local';
 }
+
+const economyTopicSelectable = set => !Object.hasOwn(ECONOMY_CASE_INQUIRY_GUIDES,set.id);
 
 function guidedExplorer(activeGroup = 'all') {
   if (activeTask() !== 'economy' || typeof ECONOMY_GUIDED_SETS === 'undefined') return '';
   const answers = work().answers;
-  const groups = {local:[],finance:[],trade:[]};
-  for (const set of ECONOMY_GUIDED_SETS) groups[economyTopicGroup(set)].push(set);
+  const groups = {local:[],trade:[]};
+  const selectable=ECONOMY_GUIDED_SETS.filter(economyTopicSelectable);
+  const previousOnly=ECONOMY_GUIDED_SETS.filter(set=>!economyTopicSelectable(set) && guidedHasDraft(set,answers));
+  for (const set of selectable) groups[economyTopicGroup(set)].push(set);
   const tabs = Object.entries(ECONOMY_TOPIC_GROUPS).map(([id,label])=>
-    `<button type="button" data-topic-tab="${id}" aria-pressed="${id === activeGroup}" aria-controls="economy-topic-results">${label} <span>${id === 'all' ? ECONOMY_GUIDED_SETS.length : groups[id].length}</span></button>`).join('');
+    `<button type="button" data-topic-tab="${id}" aria-pressed="${id === activeGroup}" aria-controls="economy-topic-results">${label} <span>${id === 'all' ? selectable.length : groups[id].length}</span></button>`).join('');
   const visible = Object.entries(groups).filter(([id])=>activeGroup === 'all' || id === activeGroup);
   return `<div class="economy-category-tabs" role="group" aria-label="경제 주제 영역">${tabs}</div>
     <div class="economy-topics" id="economy-topic-results">${visible.map(([group,sets]) => `<section><h2>${ECONOMY_TOPIC_GROUPS[group]}</h2>
@@ -168,9 +172,12 @@ function guidedExplorer(activeGroup = 'all') {
       return `<li><button type="button" data-guided-set="${esc(set.id)}">
     <span class="topic-badges">${region ? `<span class="badge-region">${esc(region)}</span>` : ''}<span class="badge-concept">${esc((previous && guidedPhenomenon(set)?.concept) || guide.concept)}</span>
       ${resuming ? '<span class="topic-resume">이어서</span>' : ''}</span>
-    <strong>${esc(previousLabel || guide.label)}</strong><small>${esc(previousLabel ? guidedInquiryGuide(set).focus : guide.focus)}</small></button></li>`;
+    <strong>${esc(previousLabel || guide.label)}</strong><small>${esc(previousLabel ? guidedInquiryGuide(set).focus : guide.cardFocus || guide.focus)}</small></button></li>`;
     }).join('')}</ul></section>`).join('')}</div>
-    <button type="button" data-guided-set="custom">+ 직접 정한 우리 지역 주제로 탐구하기</button>`;
+    <button type="button" data-guided-set="custom">+ 직접 정한 우리 지역 주제로 탐구하기</button>
+    ${previousOnly.length ? `<details class="supplement"><summary>이전에 쓰던 주제 이어 쓰기</summary>
+      <p>아래 주제는 새로 고를 수 없지만, 전에 작성한 글은 열 수 있어요.</p>
+      <ul class="economy-topic-grid">${previousOnly.map(set=>`<li><button type="button" data-guided-set="${esc(set.id)}">${esc(guidedStarterGuide(set).label)}</button></li>`).join('')}</ul></details>` : ''}`;
 }
 const guidedEvidenceKey = (set, kind, index) => guidedKey(set, `evidence_${kind}_${index}`);
 
@@ -357,12 +364,30 @@ function guidedSupplementMaterials(set, editable = true) {
 }
 
 function guidedReviewCase(set, paper = false) {
-  const review = ECONOMY_REVIEW_CASES[set.id];
+  const review = guidedUsesStarter(set) && set.id === 'saving-goal' ? {
+    title:'1년 뒤 필요한 금액과 남는 돈 비교',
+    common:'지금 가진 돈은 100만 원이에요. A는 전액 예금, B는 예금 80만 원과 펀드 20만 원이에요. 예금 이자와 수수료는 계산하지 않아요. 1년 뒤 목표 금액은 80만 원과 100만 원으로 나누어 비교해요.',
+    rows:[
+      ['펀드 값이 20% 내려갈 때','방법 B에서 펀드에 넣은 20만 원에만 하락률을 적용해요.'],
+      ['펀드 값이 20% 올라갈 때','방법 B에서 펀드에 넣은 20만 원에만 상승률을 적용해요.']
+    ],
+    prompt:'두 방법에서 1년 뒤 남는 돈을 각각 구한 뒤, 목표 금액을 채우는지 비교하세요.'
+  } : guidedUsesStarter(set) && set.id === 'stock-news-surge' ? {
+    title:'운송 장비를 사는 경우와 빌리는 경우',
+    common:'가상 운송회사가 늘어난 주문을 처리할 장비가 필요해요. 현재 주문은 있으나 다음 계약이 얼마나 이어질지는 확정되지 않았어요.',
+    rows:[
+      ['장비를 사는 경우','처음 지출이 크고 유지비가 들어요. 오래 쓴다면 매번 빌리는 비용을 줄일 수 있어요.'],
+      ['장비를 빌리는 경우','쓰는 기간만 비용을 내요. 장기간 계속 빌리면 구입하는 것보다 비용이 커질 수 있어요.']
+    ],
+    prompt:'다음 계약이 오래 이어질 때와 그렇지 않을 때 각각 어느 방식이 나은지 비교하세요.'
+  } : ECONOMY_REVIEW_CASES[set.id];
   if (!review) return '';
-  const extra = ECONOMY_REVIEW_ADDENDA[set.id];
+  const extra = guidedUsesStarter(set) && set.id === 'saving-goal' ? null : ECONOMY_REVIEW_ADDENDA[set.id];
   const caseGuide = guidedCaseAnalysis(set);
   const context = guidedUsesStarter(set) && caseGuide ? ECONOMY_LOCAL_SIMULATIONS[set.id] : '';
-  const title = caseGuide?.reviewTitle || review.title;
+  const prompt = guidedUsesStarter(set) && set.id === 'tariff-choices'
+    ? '두 경우의 매장 가격을 비교하세요. 수입 과일과 국내 배를 비슷한 용도로 산다면 소비자와 배 농가에 어떤 영향이 갈지 예상하세요.' : review.prompt;
+  const title = guidedUsesStarter(set) && set.id === 'domestic-global-stocks' ? review.title : caseGuide?.reviewTitle || review.title;
   const table = `<table class="${paper ? 'paper-picked' : 'stat-table'}">
       ${paper ? '' : `<caption class="sr-only">${esc(title)} 모의 자료</caption>`}
       <thead><tr><th scope="col">모의 상황</th><th scope="col">상황별로 주어진 정보</th></tr></thead>
@@ -377,7 +402,7 @@ function guidedReviewCase(set, paper = false) {
   if (paper) return `<section><h4>모의 비교 자료 · ${esc(title)}</h4>${scenario}${materials}</section>`;
   return `<section class="card-simulation guided-review-case"><span class="economy-card-label">가상 비교 조건</span><h2>${esc(title)}</h2>
     ${scenario}${materials}
-    ${caseGuide ? '' : `<p class="field-hint">${esc(review.prompt)}</p>`}
+    ${caseGuide ? '' : `<p class="field-hint">${esc(prompt)}</p>`}
     </section>`;
 }
 
@@ -420,7 +445,7 @@ function guidedRegionMaterial(data, answers = '', task = data.task, starter = fa
     ${graph}
     <p class="field-hint">${esc(data.clue)}</p>
     <div class="stat-citation">${guidedRegionSources(data)}</div>
-    <p>${esc(task)}</p>${answers}</section>`;
+    ${answers}</section>`;
   return `<section class="card-fact guided-region-material"><span class="economy-card-label">실제 지역 자료</span>
     <h2>${esc(data.region)} · ${esc(data.title)}</h2>
     <div class="stat-table-wrap">${guidedRegionTable(data)}</div>${answers}
@@ -503,7 +528,10 @@ function guidedWriting(set, kinds) {
     input(field.key,field.title,'내 답을 적어요.',work().answers[field.key],{area:true,limit:250,hint:field.hint})).join('');
 }
 
-const guidedRoles = set => [...new Set([...(guidedPhenomenon(set)?.roles || set.roles),'지역 주민','지역 소상공인'])];
+const guidedRoles = set => {
+  const saved=work().answers[guidedKey(set,'position')];
+  return [...new Set([...(guidedPhenomenon(set)?.roles || set.roles),'지역 주민','지역 소상공인',...(filled(saved) ? [saved] : [])])];
+};
 
 function guidedRole(set) {
   const role = work().answers[guidedKey(set,'position')];
